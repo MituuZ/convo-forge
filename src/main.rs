@@ -1,5 +1,5 @@
 use std::env;
-use std::fs::OpenOptions;
+use std::fs::{File, OpenOptions};
 use std::io::{self, Read, Write};
 use std::process::{Command, Stdio};
 
@@ -37,27 +37,45 @@ fn main() -> io::Result<()> {
     // Update file_content to include the newly added prompt
     file_content.push_str(&user_prompt);
 
-    // Create the ollama command
+    // Create the ollama command with stdout captured
     let mut cmd = Command::new("ollama")
         .args(&["run", "gemma3:12b"])
         .stdin(Stdio::piped())
-        .stdout(Stdio::inherit())
+        .stdout(Stdio::piped())
         .stderr(Stdio::inherit())
         .spawn()?;
 
-    // Write the entire file content to ollama's stdin
+    // Write to stdin
     if let Some(mut stdin) = cmd.stdin.take() {
         stdin.write_all(file_content.as_bytes())?;
         // stdin is closed automatically when it goes out of scope
     }
 
-    // Wait for the command to complete
-    let status = cmd.wait()?;
+    // Wait for the command to complete and get the output
+    let output = cmd.wait_with_output()?;
 
-    if !status.success() {
-        eprintln!("ollama command failed with exit code: {:?}", status.code());
-        std::process::exit(status.code().unwrap_or(1));
+    if !output.status.success() {
+        eprintln!("ollama command failed with exit code: {:?}", output.status.code());
+        std::process::exit(output.status.code().unwrap_or(1));
     }
+
+    // Convert the output bytes to a string
+    let ollama_response = String::from_utf8_lossy(&output.stdout);
+    
+    // Print the response to console
+    println!("{}", ollama_response);
+    
+    // Reopen the file in append mode to add the response
+    let mut file = OpenOptions::new()
+        .write(true)
+        .append(true)
+        .open(filename)?;
+        
+    // Append a delimiter before the response
+    file.write_all(b"\n\n--- AI Response ---\n\n")?;
+    
+    // Append ollama's response to the file
+    file.write_all(ollama_response.as_bytes())?;
 
     Ok(())
 }
