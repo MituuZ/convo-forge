@@ -1,6 +1,6 @@
 use std::env;
-use std::fs::File;
-use std::io::{self, Read};
+use std::fs::OpenOptions;
+use std::io::{self, Read, Write};
 use std::process::{Command, Stdio};
 
 fn main() -> io::Result<()> {
@@ -8,19 +8,34 @@ fn main() -> io::Result<()> {
 
     // Check if a filename was provided
     if args.len() < 2 {
-        eprintln!("Usage: {} <input_filename>", args[0]);
+        eprintln!("Usage: {} <filename>", args[0]);
         std::process::exit(1);
     }
 
-    // Get the input filename from arguments
-    let input_filename = &args[1];
+    // Get the filename from arguments
+    let filename = &args[1];
 
-    // Open the input file
-    let mut input_file = File::open(input_filename)?;
+    // Open the file in append mode, create it if it doesn't exist
+    let mut file = OpenOptions::new()
+        .read(true)
+        .write(true)
+        .create(true)
+        .open(filename)?;
 
-    // Read the file content
+    // Read the current file content
     let mut file_content = String::new();
-    input_file.read_to_string(&mut file_content)?;
+    file.read_to_string(&mut file_content)?;
+
+    // Prompt the user for input
+    println!("Enter your prompt:");
+    let mut user_prompt = String::new();
+    io::stdin().read_line(&mut user_prompt)?;
+
+    // Append the user prompt to the file
+    file.write_all(user_prompt.as_bytes())?;
+
+    // Update file_content to include the newly added prompt
+    file_content.push_str(&user_prompt);
 
     // Create the ollama command
     let mut cmd = Command::new("ollama")
@@ -30,9 +45,8 @@ fn main() -> io::Result<()> {
         .stderr(Stdio::inherit())
         .spawn()?;
 
-    // Write file content to ollama's stdin
+    // Write the entire file content to ollama's stdin
     if let Some(mut stdin) = cmd.stdin.take() {
-        use std::io::Write;
         stdin.write_all(file_content.as_bytes())?;
         // stdin is closed automatically when it goes out of scope
     }
