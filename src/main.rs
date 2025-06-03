@@ -1,22 +1,46 @@
 use std::env;
-use std::fs::{File, OpenOptions};
+use std::fs::{self, OpenOptions};
 use std::io::{self, BufRead, BufReader, Read, Write};
-use std::process::{Command, Child, Stdio};
+use std::path::PathBuf;
+use std::process::{Child, Command, Stdio};
 use std::sync::mpsc::{self, Receiver, TryRecvError};
 use std::thread;
 use std::time::Duration;
+use clap::{Parser, ArgAction};
+
+#[derive(Parser)]
+#[command(author, version, about, long_about = None)]
+struct Args {
+    /// Path to file containing chat history
+    history_file: String,
+
+    /// Optional file with content to be used as input for each chat message
+    #[arg(short = 'f', long = "file")]
+    input_file: Option<PathBuf>,
+}
 
 fn main() -> io::Result<()> {
-    let args: Vec<String> = env::args().collect();
-
-    // Check if a filename was provided
-    if args.len() < 2 {
-        eprintln!("Usage: {} <filename>", args[0]);
-        std::process::exit(1);
-    }
+    // Parse command-line arguments
+    let args = Args::parse();
 
     // Get the filename from arguments
-    let filename = &args[1];
+    let filename = &args.history_file;
+
+    // Read the input file if provided
+    let input_file_content = if let Some(file_path) = args.input_file {
+        match fs::read_to_string(file_path.clone()) {
+            Ok(content) => {
+                println!("Loaded input from file: {}", file_path.display());
+                Some(content)
+            }
+            Err(e) => {
+                eprintln!("Error reading input file: {}", e);
+                None
+            }
+        }
+    } else {
+        None
+    };
 
     // Open the file in append mode, create it if it doesn't exist
     let mut file = OpenOptions::new()
@@ -46,6 +70,13 @@ fn main() -> io::Result<()> {
             break;
         }
 
+        // Append file content to user prompt if provided
+        let prompt_with_file = if let Some(ref content) = input_file_content {
+            format!("{}\n\n{}", user_prompt.trim(), content)
+        } else {
+            user_prompt.clone()
+        };
+
         // Append the user prompt to the file with a delimiter
         let mut file = OpenOptions::new()
             .write(true)
@@ -70,10 +101,16 @@ fn main() -> io::Result<()> {
             .stderr(Stdio::inherit())
             .spawn()?;
 
-        // Write the full conversation history to stdin
+        // Write the conversation history to stdin (including file content if available)
         if let Some(mut stdin) = cmd.stdin.take() {
+            // Use the full history for context
             stdin.write_all(file_content.as_bytes())?;
-            // stdin is closed automatically when it goes out of scope
+            
+            // Also include the input file content if available
+            if let Some(ref content) = input_file_content {
+                stdin.write_all(b"\n\n")?;
+                stdin.write_all(content.as_bytes())?;
+            }
         }
 
         // Get stdout stream from the child process
