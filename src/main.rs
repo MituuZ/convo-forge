@@ -1,6 +1,6 @@
 use std::env;
 use std::fs::{File, OpenOptions};
-use std::io::{self, Read, Write};
+use std::io::{self, BufRead, BufReader, Read, Write};
 use std::process::{Command, Stdio};
 
 fn main() -> io::Result<()> {
@@ -37,7 +37,7 @@ fn main() -> io::Result<()> {
     // Update file_content to include the newly added prompt
     file_content.push_str(&user_prompt);
 
-    // Create the ollama command with stdout captured
+    // Create the ollama command with stdout piped
     let mut cmd = Command::new("ollama")
         .args(&["run", "gemma3:12b"])
         .stdin(Stdio::piped())
@@ -51,19 +51,37 @@ fn main() -> io::Result<()> {
         // stdin is closed automatically when it goes out of scope
     }
 
-    // Wait for the command to complete and get the output
-    let output = cmd.wait_with_output()?;
+    // Get stdout stream from the child process
+    let stdout = cmd.stdout.take().expect("Failed to open stdout");
+    let mut reader = BufReader::new(stdout);
+    let mut buffer = [0; 1024];
+    let mut full_response = Vec::new();
 
-    if !output.status.success() {
-        eprintln!("ollama command failed with exit code: {:?}", output.status.code());
-        std::process::exit(output.status.code().unwrap_or(1));
+    // Read stdout in chunks and stream to console while collecting the full response
+    loop {
+        let bytes_read = reader.read(&mut buffer)?;
+        if bytes_read == 0 {
+            break;
+        }
+        
+        // Write the chunk to console
+        io::stdout().write_all(&buffer[..bytes_read])?;
+        io::stdout().flush()?;
+        
+        // Store the chunk for later file writing
+        full_response.extend_from_slice(&buffer[..bytes_read]);
     }
 
-    // Convert the output bytes to a string
-    let ollama_response = String::from_utf8_lossy(&output.stdout);
-    
-    // Print the response to console
-    println!("{}", ollama_response);
+    // Wait for the command to complete
+    let status = cmd.wait()?;
+
+    if !status.success() {
+        eprintln!("\nollama command failed with exit code: {:?}", status.code());
+        std::process::exit(status.code().unwrap_or(1));
+    }
+
+    // Convert the collected response to a string
+    let ollama_response = String::from_utf8_lossy(&full_response);
     
     // Reopen the file in append mode to add the response
     let mut file = OpenOptions::new()
