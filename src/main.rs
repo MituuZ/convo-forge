@@ -1,4 +1,4 @@
-use std::env;
+use clap::Parser;
 use std::fs::{self, OpenOptions};
 use std::io::{self, BufRead, BufReader, Read, Write};
 use std::path::PathBuf;
@@ -6,7 +6,6 @@ use std::process::{Child, Command, Stdio};
 use std::sync::mpsc::{self, Receiver, TryRecvError};
 use std::thread;
 use std::time::Duration;
-use clap::{Parser, ArgAction};
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
@@ -103,14 +102,24 @@ fn main() -> io::Result<()> {
 
         // Write the conversation history to stdin (including file content if available)
         if let Some(mut stdin) = cmd.stdin.take() {
+            // Add a system prompt to explain the context and interface
+
             // Use the full history for context
             stdin.write_all(file_content.as_bytes())?;
-            
+
+            // Include the current user input
+            stdin.write_all(b"\n\nCurrent user query: ")?;
+            stdin.write_all(user_prompt.trim().as_bytes())?;
+
             // Also include the input file content if available
             if let Some(ref content) = input_file_content {
-                stdin.write_all(b"\n\n")?;
+                stdin.write_all(b"\n\nAdditional context from file: ")?;
                 stdin.write_all(content.as_bytes())?;
             }
+            
+            stdin.write_all(b"\n\n")?;
+            let system_prompt = "You are an AI assistant receiving input from a command-line application called alllama. The user may include additional context from files using the -f/--file flag. This supplementary content appears after the user's direct message. Your responses are displayed in the terminal and saved to a history file. Keep your answers helpful, concise, and relevant to both the user's direct query and any file context provided. You can tell where you have previously responded by --- AI Response ---\n\n";
+            stdin.write_all(system_prompt.as_bytes())?;
         }
 
         // Get stdout stream from the child process
