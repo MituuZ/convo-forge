@@ -3,9 +3,10 @@ use std::fs::{self, OpenOptions};
 use std::io::{self, BufRead, BufReader, Read, Write};
 use std::path::PathBuf;
 use std::process::{Child, Command, Stdio};
+use crossterm::event::{self, Event, KeyCode};
 use std::sync::mpsc::{self, Receiver, TryRecvError};
 use std::thread;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
@@ -69,13 +70,6 @@ fn main() -> io::Result<()> {
             break;
         }
 
-        // Append file content to user prompt if provided
-        let prompt_with_file = if let Some(ref content) = input_file_content {
-            format!("{}\n\n{}", user_prompt.trim(), content)
-        } else {
-            user_prompt.clone()
-        };
-
         // Append the user prompt to the file with a delimiter
         let mut file = OpenOptions::new()
             .write(true)
@@ -127,23 +121,28 @@ fn main() -> io::Result<()> {
         let mut reader = BufReader::new(stdout);
         
         // Set up channel for interrupt signal
-        let (tx, rx) = mpsc::channel();
+        let (interrupt_tx, interrupt_rx) = mpsc::channel();
         
-        // Spawn a thread to check for user input (interrupt signal)
         thread::spawn(move || {
             println!("\nAI is responding... (Press Enter to interrupt)\n");
-            let mut buffer = String::new();
-            io::stdin().read_line(&mut buffer).ok();
-            tx.send(()).ok(); // Send interrupt signal
+            loop {
+                if event::poll(Duration::from_millis(100)).unwrap() {
+                    if let Event::Key(key) = event::read().unwrap() {
+                        if key.code == KeyCode::Enter {
+                            let _ = interrupt_tx.send(());
+                            break;
+                        }
+                    }
+                }
+            }
         });
-        
-        // Read response from ollama while checking for interrupt
-        let (full_response, was_interrupted) = read_process_output_with_interrupt(&mut reader, &rx, &mut cmd)?;
-        
-        // Convert the collected response to a string
+
+        // Read response while checking for interrupt
+        let (full_response, was_interrupted) =
+            read_process_output_with_interrupt(&mut reader, &interrupt_rx, &mut cmd)
+                .expect("error reading process output");
+
         let ollama_response = String::from_utf8_lossy(&full_response);
-        
-        // Add a note if the response was interrupted
         let response_with_note = if was_interrupted {
             format!("{}\n\n[Response was interrupted by user]", ollama_response)
         } else {
