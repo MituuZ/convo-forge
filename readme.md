@@ -27,6 +27,8 @@ alllama <HISTORY_FILE> [OPTIONS]
 
 ### Options
 - `-f, --file <INPUT_FILE>` - Optional to be used as context for **each** chat message
+- `-h, -help` - Print help
+- `-v, --version` - Print version
 
 ### Example
 ```shell
