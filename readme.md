@@ -42,5 +42,11 @@ sllama chat.txt -f code.rs
 ## Configuration
 You can configure your sllama
 
+## TODO
+- [ ] Clarify how the prompt is formed
+- [ ] Add a configuration file
+- [ ] Add functionality to truncate a chat
+- [ ] Keep track of the model's context window and file size
+
 ## License
 [MIT License](LICENSE)
