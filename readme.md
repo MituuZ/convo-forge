@@ -7,7 +7,7 @@ A command-line interface for interacting with Ollama AI models.
 
 ## Installation
 ```shell
-git clone https://github.com/yourusername/silent-llama.git
+git clone https://github.com/mituuz/silent-llama.git
 cd silent-llama
 cargo build --release
 ```
