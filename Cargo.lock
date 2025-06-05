@@ -3,14 +3,6 @@
 version = 4
 
 [[package]]
-name = "alllama"
-version = "0.1.0-pre2"
-dependencies = [
- "clap",
- "crossterm",
-]
-
-[[package]]
 name = "anstream"
 version = "0.6.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -361,6 +353,14 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9203b8055f63a2a00e2f593bb0510367fe707d7ff1e5c872de2f537b339e5410"
 dependencies = [
  "libc",
+]
+
+[[package]]
+name = "sllama"
+version = "0.1.0-pre2"
+dependencies = [
+ "clap",
+ "crossterm",
 ]
 
 [[package]]

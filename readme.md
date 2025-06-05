@@ -1,4 +1,4 @@
-# Alllama
+# silent-llama
 A command-line interface for interacting with Ollama AI models.
 
 ## Features
@@ -7,8 +7,8 @@ A command-line interface for interacting with Ollama AI models.
 
 ## Installation
 ```shell
-git clone https://github.com/yourusername/alllama.git
-cd alllama
+git clone https://github.com/yourusername/silent-llama.git
+cd silent-llama
 cargo build --release
 ```
 
@@ -19,7 +19,7 @@ cargo build --release
 
 ## Usage
 ```shell
-alllama <HISTORY_FILE> [OPTIONS]
+sllama <HISTORY_FILE> [OPTIONS]
 ```
 
 ### Arguments
@@ -33,11 +33,14 @@ alllama <HISTORY_FILE> [OPTIONS]
 ### Example
 ```shell
 # Start a new conversation saving history to chat.txt
-alllama chat.txt
+sllama chat.txt
 
 # Continue a conversation with additional context from code.rs
-alllama chat.txt -f code.rs
+sllama chat.txt -f code.rs
 ```
+
+## Configuration
+You can configure your sllama
 
 ## License
 [MIT License](LICENSE)

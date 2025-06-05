@@ -112,7 +112,7 @@ fn main() -> io::Result<()> {
             }
             
             stdin.write_all(b"\n\n")?;
-            let system_prompt = "You are an AI assistant receiving input from a command-line application called alllama. The user may include additional context from files using the -f/--file flag. This supplementary content appears after the user's direct message. Your responses are displayed in the terminal and saved to a history file. Keep your answers helpful, concise, and relevant to both the user's direct query and any file context provided. You can tell where you have previously responded by --- AI Response ---\n\n";
+            let system_prompt = "You are an AI assistant receiving input from a command-line application called silent-llama (sllama). The user may include additional context from files using the -f/--file flag. This supplementary content appears after the user's direct message. Your responses are displayed in the terminal and saved to a history file. Keep your answers helpful, concise, and relevant to both the user's direct query and any file context provided. You can tell where you have previously responded by --- AI Response ---\n\n";
             stdin.write_all(system_prompt.as_bytes())?;
         }
 
