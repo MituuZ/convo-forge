@@ -31,6 +31,8 @@ sllama <HISTORY_FILE> [OPTIONS]
 
 ### Arguments
 - `<HISTORY_FILE>` - Path to the file that acts as chat history (will be created if it doesn't exist)
+  - If a relative path is provided, it will be created inside the `sllama_dir` directory
+  - If an absolute path is provided, it will be used as-is regardless of `sllama_dir`
 
 ### Options
 - `-f, --file <INPUT_FILE>` - Optional to be used as context for **each** chat message
