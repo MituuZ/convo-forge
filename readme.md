@@ -52,7 +52,7 @@ Ollama model used
 Default: `gemma3:12b`
 
 #### sllama_dir
-Path to the sllama directory. This will hold new history files by default.
+Path to the sllama directory. This will hold new history files by default (not yet implemented).
 
 Default: `~/sllama`
 
