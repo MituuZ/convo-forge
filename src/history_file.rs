@@ -14,7 +14,7 @@ impl HistoryFile {
             println!("Opening file from absolute path: {}", path);
             PathBuf::from(path)
         } else {
-            println!("Opening file from relative path: {}", path);
+            println!("Opening file from relative path from sllama_dir: {}", path);
             Path::new(&sllama_dir).join(path)
         };
         
