@@ -4,6 +4,10 @@ A command-line interface for interacting with Ollama AI models.
 ## Features
 - Store conversations as files
 - Add context to a session with `-f/--file` flag
+- Prompts are built in the following way:
+  1. History file (including the current user prompt)
+  2. Context file
+  3. System prompt
 
 ## Installation
 ```shell
@@ -63,17 +67,20 @@ Default:
 ```
 You are an AI assistant receiving input from a command-line
 application called silent-llama (sllama). The user may include additional context from
-files using the -f/--file flag. This supplementary content appears after the user's direct message.
-Your responses are displayed in the terminal and saved to a history file.
+files using the -f/--file flag. This supplementary content appears after the user's direct message and before this sytem prompt.
+Your responses are displayed in the terminal and saved to the history file.
 Keep your answers helpful, concise, and relevant to both the user's direct query and any file context provided.
 You can tell where you have previously responded by --- AI Response ---\
 ```
 
 ## TODO
-- [ ] Clarify how the prompt is formed
+- [x] Clarify how the prompt is formed
 - [x] Add a configuration file
 - [ ] Add functionality to truncate a chat
 - [ ] Keep track of the model's context window and file size
+- [ ] Create memories, which are included in the prompt by default (session/global)
+- [ ] Specify a file type in the prompt (instruct the LLM to format its responses)
+- [ ] RAG implementation using onnxruntime
 
 ## License
 [MIT License](LICENSE)

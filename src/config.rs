@@ -23,12 +23,14 @@ fn default_sllama_dir() -> String {
 }
 
 fn default_system_prompt() -> String {
-    r#"You are an AI assistant receiving input from a command-line
+    r#"
+    You are an AI assistant receiving input from a command-line
     application called silent-llama (sllama). The user may include additional context from
-    files using the -f/--file flag. This supplementary content appears after the user's direct message.
-    Your responses are displayed in the terminal and saved to a history file.
+    files using the -f/--file flag. This supplementary content appears after the user's direct message and before this sytem prompt.
+    Your responses are displayed in the terminal and saved to the history file.
     Keep your answers helpful, concise, and relevant to both the user's direct query and any file context provided.
-    You can tell where you have previously responded by --- AI Response ---\n\n"#.to_string()
+    You can tell where you have previously responded by --- AI Response ---\
+    \n\n"#.to_string()
 }
 
 impl Config {
@@ -59,7 +61,7 @@ fn get_config_path() -> PathBuf {
     } else if cfg!(windows) && std::env::var("USERPROFILE").is_ok() {
         PathBuf::from(std::env::var("USERPROFILE").unwrap())
     } else {
-        PathBuf::from(".")  // Fallback to current directory
+        PathBuf::from(".") // Fallback to current directory
     };
 
     home_dir.join(".sllama.toml")
