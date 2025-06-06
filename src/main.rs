@@ -59,7 +59,6 @@ fn main() -> io::Result<()> {
     let mut history = HistoryFile::new(filename.clone(), config.sllama_dir.clone())?;
 
     println!("Starting conversation. Type 'exit' to end the session.");
-    println!("File '{}' will store the entire conversation.", filename);
     println!("Press Enter during AI generation to interrupt the response.");
     
     // Main conversation loop
