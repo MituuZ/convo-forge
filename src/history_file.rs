@@ -215,4 +215,46 @@ mod tests {
         // Check that content is properly formatted
         assert!(history_file.get_content().contains("Initial content\n\n--- User Input ---"));
     }
+
+    #[test]
+    fn test_history_file_with_relative_path() {
+        // Create a temporary directory to act as sllama_dir
+        let temp_dir = tempfile::tempdir().unwrap();
+        let sllama_dir = temp_dir.path().to_string_lossy().to_string();
+
+        // Use a relative path for the history file
+        let relative_path = "test_history.txt".to_string();
+
+        // Create the history file
+        let history_file = HistoryFile::new(relative_path.clone(), sllama_dir.clone()).unwrap();
+
+        // Expected full path (sllama_dir + relative_path)
+        let expected_path = Path::new(&sllama_dir).join(&relative_path);
+
+        // Verify the file exists at the expected path
+        assert!(expected_path.exists());
+
+        // Verify the path stored in the HistoryFile is correct
+        assert_eq!(history_file.path, expected_path.to_string_lossy().to_string());
+    }
+
+    #[test]
+    fn test_history_file_with_absolute_path() {
+        // Create a temporary directory to act as sllama_dir
+        let temp_dir = tempfile::tempdir().unwrap();
+        let sllama_dir = temp_dir.path().to_string_lossy().to_string();
+
+        // Create another temporary directory for the absolute path
+        let absolute_dir = tempfile::tempdir().unwrap();
+        let absolute_path = absolute_dir.path().join("absolute_history.txt").to_string_lossy().to_string();
+
+        // Create the history file
+        let history_file = HistoryFile::new(absolute_path.clone(), sllama_dir).unwrap();
+
+        // Verify the file exists at the absolute path
+        assert!(Path::new(&absolute_path).exists());
+
+        // Verify the path stored in the HistoryFile is the absolute path
+        assert_eq!(history_file.path, absolute_path);
+    }
 }
