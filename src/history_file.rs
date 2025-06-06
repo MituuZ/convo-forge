@@ -14,16 +14,18 @@ impl HistoryFile {
             println!("Opening file from absolute path: {}", path);
             PathBuf::from(path)
         } else {
-            println!("Opening file from relative path from sllama_dir: {}", path);
-            Path::new(&sllama_dir).join(path)
+            let actual_path = Path::new(&sllama_dir).join(path);
+            let absolute_path = std::fs::canonicalize(&actual_path).unwrap_or_else(|_| actual_path.clone());
+            println!("Opening file from relative path: {}", absolute_path.display());
+            actual_path
         };
-        
+
         if let Some(parent) = full_path.parent() {
             std::fs::create_dir_all(parent)?;
         }
-        
+
         let path_string = full_path.to_string_lossy().into_owned();
-        
+
         let mut file = OpenOptions::new()
             .read(true)
             .write(true)
@@ -39,7 +41,7 @@ impl HistoryFile {
             content,
         })
     }
-    
+
     /// Get the content of the history file
     pub(crate) fn get_content(&self) -> &str {
         &self.content
@@ -61,7 +63,11 @@ impl HistoryFile {
     }
 
     /// Append AI response to the history file and update internal content
-    pub(crate) fn append_ai_response(&mut self, response: &str, was_interrupted: bool) -> io::Result<()> {
+    pub(crate) fn append_ai_response(
+        &mut self,
+        response: &str,
+        was_interrupted: bool,
+    ) -> io::Result<()> {
         let mut file = OpenOptions::new()
             .write(true)
             .append(true)
@@ -86,8 +92,8 @@ impl HistoryFile {
 mod tests {
     use super::*;
     use std::fs;
-    use tempfile::NamedTempFile;
     use std::io::Write;
+    use tempfile::NamedTempFile;
 
     fn create_temp_file_with_content(content: &str) -> NamedTempFile {
         let mut file = NamedTempFile::new().unwrap();
@@ -100,9 +106,9 @@ mod tests {
         let temp_path = NamedTempFile::new().unwrap();
         let path = temp_path.path().to_str().unwrap().to_string();
         temp_path.close().unwrap(); // Delete the file
-        
+
         let history_file = HistoryFile::new(path.clone(), String::new()).unwrap();
-        
+
         assert!(fs::metadata(&path).is_ok()); // File exists
         assert_eq!(history_file.get_content(), ""); // Empty content
     }
@@ -112,9 +118,9 @@ mod tests {
         let content = "Existing content";
         let temp_file = create_temp_file_with_content(content);
         let path = temp_file.path().to_str().unwrap().to_string();
-        
+
         let history_file = HistoryFile::new(path, String::new()).unwrap();
-        
+
         assert_eq!(history_file.get_content(), content);
     }
 
@@ -122,40 +128,39 @@ mod tests {
     fn test_append_user_input() {
         let temp_file = NamedTempFile::new().unwrap();
         let path = temp_file.path().to_str().unwrap().to_string();
-        
+
         let mut history_file = HistoryFile::new(path.clone(), String::new()).unwrap();
         history_file.append_user_input("User message").unwrap();
-        
+
         // Verify internal content was updated
         assert_eq!(
-            history_file.get_content(), 
+            history_file.get_content(),
             "\n\n--- User Input ---\n\nUser message"
         );
-        
+
         // Verify file content was updated
         let file_content = fs::read_to_string(path).unwrap();
-        assert_eq!(
-            file_content,
-            "\n\n--- User Input ---\n\nUser message"
-        );
+        assert_eq!(file_content, "\n\n--- User Input ---\n\nUser message");
     }
 
     #[test]
     fn test_append_multiple_entries() {
         let temp_file = NamedTempFile::new().unwrap();
         let path = temp_file.path().to_str().unwrap().to_string();
-        
+
         let mut history_file = HistoryFile::new(path.clone(), String::new()).unwrap();
         history_file.append_user_input("User message 1").unwrap();
-        history_file.append_ai_response("AI response 1", false).unwrap();
+        history_file
+            .append_ai_response("AI response 1", false)
+            .unwrap();
         history_file.append_user_input("User message 2").unwrap();
-        
+
         // Verify content has all entries
         let content = history_file.get_content();
         assert!(content.contains("User message 1"));
         assert!(content.contains("AI response 1"));
         assert!(content.contains("User message 2"));
-        
+
         // Verify file content matches internal content
         let file_content = fs::read_to_string(path).unwrap();
         assert_eq!(file_content, content);
@@ -165,35 +170,40 @@ mod tests {
     fn test_append_ai_response_normal() {
         let temp_file = NamedTempFile::new().unwrap();
         let path = temp_file.path().to_str().unwrap().to_string();
-        
+
         let mut history_file = HistoryFile::new(path.clone(), String::new()).unwrap();
-        history_file.append_ai_response("AI response", false).unwrap();
-        
+        history_file
+            .append_ai_response("AI response", false)
+            .unwrap();
+
         // Verify internal content was updated
         assert_eq!(
-            history_file.get_content(), 
+            history_file.get_content(),
             "\n\n--- AI Response ---\n\nAI response"
         );
-        
+
         // Verify file content was updated
         let file_content = fs::read_to_string(path).unwrap();
-        assert_eq!(
-            file_content,
-            "\n\n--- AI Response ---\n\nAI response"
-        );
+        assert_eq!(file_content, "\n\n--- AI Response ---\n\nAI response");
     }
 
     #[test]
     fn test_append_ai_response_interrupted() {
         let temp_file = NamedTempFile::new().unwrap();
         let path = temp_file.path().to_str().unwrap().to_string();
-        
+
         let mut history_file = HistoryFile::new(path.clone(), String::new()).unwrap();
-        history_file.append_ai_response("AI response", true).unwrap();
-        
+        history_file
+            .append_ai_response("AI response", true)
+            .unwrap();
+
         // Verify internal content was updated with interruption note
-        assert!(history_file.get_content().contains("[Response was interrupted by user]"));
-        
+        assert!(
+            history_file
+                .get_content()
+                .contains("[Response was interrupted by user]")
+        );
+
         // Verify file content was updated with interruption note
         let file_content = fs::read_to_string(path).unwrap();
         assert!(file_content.contains("[Response was interrupted by user]"));
@@ -203,17 +213,21 @@ mod tests {
     fn test_newline_handling() {
         let temp_file = create_temp_file_with_content("Initial content");
         let path = temp_file.path().to_str().unwrap().to_string();
-        
+
         let mut history_file = HistoryFile::new(path, String::new()).unwrap();
-        
+
         // First append doesn't need to add extra newline
         history_file.append_user_input("User input").unwrap();
-        
+
         // Check that we don't have double newlines
         assert!(!history_file.get_content().contains("\n\n\n"));
-        
+
         // Check that content is properly formatted
-        assert!(history_file.get_content().contains("Initial content\n\n--- User Input ---"));
+        assert!(
+            history_file
+                .get_content()
+                .contains("Initial content\n\n--- User Input ---")
+        );
     }
 
     #[test]
@@ -235,7 +249,10 @@ mod tests {
         assert!(expected_path.exists());
 
         // Verify the path stored in the HistoryFile is correct
-        assert_eq!(history_file.path, expected_path.to_string_lossy().to_string());
+        assert_eq!(
+            history_file.path,
+            expected_path.to_string_lossy().to_string()
+        );
     }
 
     #[test]
@@ -246,7 +263,11 @@ mod tests {
 
         // Create another temporary directory for the absolute path
         let absolute_dir = tempfile::tempdir().unwrap();
-        let absolute_path = absolute_dir.path().join("absolute_history.txt").to_string_lossy().to_string();
+        let absolute_path = absolute_dir
+            .path()
+            .join("absolute_history.txt")
+            .to_string_lossy()
+            .to_string();
 
         // Create the history file
         let history_file = HistoryFile::new(absolute_path.clone(), sllama_dir).unwrap();
