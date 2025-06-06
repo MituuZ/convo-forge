@@ -17,7 +17,7 @@ use std::time::Duration;
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
 struct Args {
-    /// Path to file containing chat history
+    /// Path to file containing chat history. Can be either relative (to `sslama_dir`) or absolute.
     history_file: String,
 
     /// Optional file with content to be used as input for each chat message
