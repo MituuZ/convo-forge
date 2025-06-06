@@ -22,6 +22,7 @@ cargo build --release
 - toml
 - clap
 - crossterm
+- tempfile
 
 ## Usage
 ```shell
