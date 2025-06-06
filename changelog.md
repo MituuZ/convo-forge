@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.2 - 2025-06-06
+_Implement history file_
+
+### Configs
+- `sllama_dir` - Now works as expected. Relative files are created here, but absolute paths are respected
+
 ## 0.1.1 - 2025-06-06
 _Add configuration and changelog files_
 

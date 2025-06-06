@@ -1,9 +1,12 @@
 mod config;
+mod history_file;
+
 use config::Config;
 
+use crate::history_file::HistoryFile;
 use clap::Parser;
 use crossterm::event::{self, Event, KeyCode};
-use std::fs::{self, OpenOptions};
+use std::fs::{self};
 use std::io::{self, BufReader, Read, Write};
 use std::path::PathBuf;
 use std::process::{Child, Command, Stdio};
@@ -30,8 +33,6 @@ fn main() -> io::Result<()> {
             return Ok(());
         }   
     };
-    
-    println!("{}", config.sllama_dir);
 
     // Parse command-line arguments
     let args = Args::parse();
@@ -54,17 +55,8 @@ fn main() -> io::Result<()> {
     } else {
         None
     };
-
-    // Open the file in append mode, create it if it doesn't exist
-    let mut file = OpenOptions::new()
-        .read(true)
-        .write(true)
-        .create(true)
-        .open(filename)?;
-
-    // Read the current file content
-    let mut file_content = String::new();
-    file.read_to_string(&mut file_content)?;
+    
+    let mut history = HistoryFile::new(filename.clone(), config.sllama_dir.clone())?;
 
     println!("Starting conversation. Type 'exit' to end the session.");
     println!("File '{}' will store the entire conversation.", filename);
@@ -83,21 +75,7 @@ fn main() -> io::Result<()> {
             break;
         }
 
-        // Append the user prompt to the file with a delimiter
-        let mut file = OpenOptions::new()
-            .write(true)
-            .append(true)
-            .open(filename)?;
-        
-        file.write_all(b"\n\n--- User Input ---\n\n")?;
-        file.write_all(user_prompt.as_bytes())?;
-        
-        // Update file_content to include the newly added prompt
-        if !file_content.is_empty() && !file_content.ends_with("\n") {
-            file_content.push('\n');
-        }
-        file_content.push_str("\n--- User Input ---\n\n");
-        file_content.push_str(&user_prompt);
+        history.append_user_input(&user_prompt)?;
 
         // Create the ollama command with stdout piped
         let mut cmd = Command::new("ollama")
@@ -107,23 +85,18 @@ fn main() -> io::Result<()> {
             .stderr(Stdio::inherit())
             .spawn()?;
 
-        // Write the conversation history to stdin (including file content if available)
+        // Create the input for the ollama process
         if let Some(mut stdin) = cmd.stdin.take() {
-            // Add a system prompt to explain the context and interface
+            // Use the full history for context (including current user input)
+            stdin.write_all(history.get_content().as_bytes())?;
 
-            // Use the full history for context
-            stdin.write_all(file_content.as_bytes())?;
-
-            // Include the current user input
-            stdin.write_all(b"\n\nCurrent user query: ")?;
-            stdin.write_all(user_prompt.trim().as_bytes())?;
-
-            // Also include the input file content if available
+            // Include the context file content if available
             if let Some(ref content) = input_file_content {
                 stdin.write_all(b"\n\nAdditional context from file: ")?;
                 stdin.write_all(content.as_bytes())?;
             }
             
+            // Finally, add the system prompt
             stdin.write_all(b"\n\n")?;
             stdin.write_all(config.system_prompt.as_bytes())?;
         }
@@ -155,28 +128,8 @@ fn main() -> io::Result<()> {
                 .expect("error reading process output");
 
         let ollama_response = String::from_utf8_lossy(&full_response);
-        let response_with_note = if was_interrupted {
-            format!("{}\n\n[Response was interrupted by user]", ollama_response)
-        } else {
-            ollama_response.to_string()
-        };
         
-        // Append the AI response to the file
-        let mut file = OpenOptions::new()
-            .write(true)
-            .append(true)
-            .open(filename)?;
-            
-        // Append a delimiter before the response
-        file.write_all(b"\n\n--- AI Response ---\n\n")?;
-        file.write_all(response_with_note.as_bytes())?;
-        
-        // Update the file_content with the AI response for the next iteration
-        if !file_content.is_empty() && !file_content.ends_with("\n") {
-            file_content.push('\n');
-        }
-        file_content.push_str("\n--- AI Response ---\n\n");
-        file_content.push_str(&response_with_note);
+        history.append_ai_response(&ollama_response, was_interrupted)?;
     }
 
     Ok(())

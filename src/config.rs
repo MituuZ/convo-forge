@@ -23,12 +23,14 @@ fn default_sllama_dir() -> String {
 }
 
 fn default_system_prompt() -> String {
-    r#"You are an AI assistant receiving input from a command-line
+    r#"
+    You are an AI assistant receiving input from a command-line
     application called silent-llama (sllama). The user may include additional context from
-    files using the -f/--file flag. This supplementary content appears after the user's direct message.
-    Your responses are displayed in the terminal and saved to a history file.
+    files using the -f/--file flag. This supplementary content appears after the user's direct message and before this system prompt.
+    Your responses are displayed in the terminal and saved to the history file.
     Keep your answers helpful, concise, and relevant to both the user's direct query and any file context provided.
-    You can tell where you have previously responded by --- AI Response ---\n\n"#.to_string()
+    You can tell where you have previously responded by --- AI Response ---\
+    \n\n"#.to_string()
 }
 
 impl Config {
@@ -41,11 +43,17 @@ impl Config {
     }
 
     pub fn load() -> io::Result<Self> {
-        let config_path = get_config_path();
+        let config_path = match get_config_path() {
+            Ok(path) => path,
+            Err(_) => return Ok(Config::default()),
+        };
 
         let config_str = match fs::read_to_string(&config_path) {
             Ok(s) => s,
-            Err(_) => return Ok(Config::default()),
+            Err(s) => {
+                println!("Could not read config file: {}", s);
+                return Ok(Config::default())
+            },
         };
 
         // This will automatically use the default values for any missing fields
@@ -53,14 +61,14 @@ impl Config {
     }
 }
 
-fn get_config_path() -> PathBuf {
+fn get_config_path() -> Result<PathBuf, &'static str> {
     let home_dir = if let Ok(home) = std::env::var("HOME") {
         PathBuf::from(home)
     } else if cfg!(windows) && std::env::var("USERPROFILE").is_ok() {
         PathBuf::from(std::env::var("USERPROFILE").unwrap())
     } else {
-        PathBuf::from(".")  // Fallback to current directory
+        return Err("Could not determine home directory");
     };
 
-    home_dir.join(".sllama.toml")
+    Ok(home_dir.join(".sllama.toml"))
 }
