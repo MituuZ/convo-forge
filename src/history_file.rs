@@ -1,6 +1,7 @@
 use std::fs::OpenOptions;
 use std::io;
 use std::io::{Read, Write};
+use std::path::{Path, PathBuf};
 
 pub(crate) struct HistoryFile {
     path: String,
@@ -8,19 +9,33 @@ pub(crate) struct HistoryFile {
 }
 
 impl HistoryFile {
-    pub(crate) fn new(path: String) -> io::Result<Self> {
+    pub(crate) fn new(path: String, sllama_dir: String) -> io::Result<Self> {
+        let full_path = if Path::new(&path).is_absolute() {
+            println!("Opening file from absolute path: {}", path);
+            PathBuf::from(path)
+        } else {
+            println!("Opening file from relative path: {}", path);
+            Path::new(&sllama_dir).join(path)
+        };
+        
+        if let Some(parent) = full_path.parent() {
+            std::fs::create_dir_all(parent)?;
+        }
+        
+        let path_string = full_path.to_string_lossy().into_owned();
+        
         let mut file = OpenOptions::new()
             .read(true)
             .write(true)
             .create(true)
-            .open(&path)?;
+            .open(&full_path)?;
 
         // Read the current file content
         let mut content = String::new();
         file.read_to_string(&mut content)?;
 
         Ok(HistoryFile {
-            path,
+            path: path_string,
             content,
         })
     }
@@ -86,7 +101,7 @@ mod tests {
         let path = temp_path.path().to_str().unwrap().to_string();
         temp_path.close().unwrap(); // Delete the file
         
-        let history_file = HistoryFile::new(path.clone()).unwrap();
+        let history_file = HistoryFile::new(path.clone(), String::new()).unwrap();
         
         assert!(fs::metadata(&path).is_ok()); // File exists
         assert_eq!(history_file.get_content(), ""); // Empty content
@@ -98,7 +113,7 @@ mod tests {
         let temp_file = create_temp_file_with_content(content);
         let path = temp_file.path().to_str().unwrap().to_string();
         
-        let history_file = HistoryFile::new(path).unwrap();
+        let history_file = HistoryFile::new(path, String::new()).unwrap();
         
         assert_eq!(history_file.get_content(), content);
     }
@@ -108,7 +123,7 @@ mod tests {
         let temp_file = NamedTempFile::new().unwrap();
         let path = temp_file.path().to_str().unwrap().to_string();
         
-        let mut history_file = HistoryFile::new(path.clone()).unwrap();
+        let mut history_file = HistoryFile::new(path.clone(), String::new()).unwrap();
         history_file.append_user_input("User message").unwrap();
         
         // Verify internal content was updated
@@ -130,7 +145,7 @@ mod tests {
         let temp_file = NamedTempFile::new().unwrap();
         let path = temp_file.path().to_str().unwrap().to_string();
         
-        let mut history_file = HistoryFile::new(path.clone()).unwrap();
+        let mut history_file = HistoryFile::new(path.clone(), String::new()).unwrap();
         history_file.append_user_input("User message 1").unwrap();
         history_file.append_ai_response("AI response 1", false).unwrap();
         history_file.append_user_input("User message 2").unwrap();
@@ -151,7 +166,7 @@ mod tests {
         let temp_file = NamedTempFile::new().unwrap();
         let path = temp_file.path().to_str().unwrap().to_string();
         
-        let mut history_file = HistoryFile::new(path.clone()).unwrap();
+        let mut history_file = HistoryFile::new(path.clone(), String::new()).unwrap();
         history_file.append_ai_response("AI response", false).unwrap();
         
         // Verify internal content was updated
@@ -173,7 +188,7 @@ mod tests {
         let temp_file = NamedTempFile::new().unwrap();
         let path = temp_file.path().to_str().unwrap().to_string();
         
-        let mut history_file = HistoryFile::new(path.clone()).unwrap();
+        let mut history_file = HistoryFile::new(path.clone(), String::new()).unwrap();
         history_file.append_ai_response("AI response", true).unwrap();
         
         // Verify internal content was updated with interruption note
@@ -189,7 +204,7 @@ mod tests {
         let temp_file = create_temp_file_with_content("Initial content");
         let path = temp_file.path().to_str().unwrap().to_string();
         
-        let mut history_file = HistoryFile::new(path).unwrap();
+        let mut history_file = HistoryFile::new(path, String::new()).unwrap();
         
         // First append doesn't need to add extra newline
         history_file.append_user_input("User input").unwrap();
