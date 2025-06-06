@@ -79,8 +79,6 @@ You can tell where you have previously responded by --- AI Response ---\
 - [ ] Add functionality to truncate a chat
 - [ ] Keep track of the model's context window and file size
 - [ ] Create memories, which are included in the prompt by default (session/global)
-- [ ] Specify a file type in the prompt (instruct the LLM to format its responses)
-- [ ] RAG implementation using onnxruntime
 
 ## License
 [MIT License](LICENSE)
