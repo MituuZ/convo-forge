@@ -13,9 +13,11 @@ cargo build --release
 ```
 
 ## Dependencies
+- Ollama
+- serde
+- toml
 - clap
 - crossterm
-- Ollama
 
 ## Usage
 ```shell
@@ -40,11 +42,36 @@ sllama chat.txt -f code.rs
 ```
 
 ## Configuration
-You can configure your sllama
+You can configure your sllama by creating and modifying TOML configuration located at `~/.sllama.toml`/`%USERPROFILE%\.sllama.toml`.
+
+### Options
+
+#### model
+Ollama model used
+
+Default: `gemma3:12b`
+
+#### sllama_dir
+Path to the sllama directory. This will hold new history files by default.
+
+Default: `~/sllama`
+
+#### system_prompt
+System prompt that configures the AI assistant's behavior.
+
+Default:
+```
+You are an AI assistant receiving input from a command-line
+application called silent-llama (sllama). The user may include additional context from
+files using the -f/--file flag. This supplementary content appears after the user's direct message.
+Your responses are displayed in the terminal and saved to a history file.
+Keep your answers helpful, concise, and relevant to both the user's direct query and any file context provided.
+You can tell where you have previously responded by --- AI Response ---\
+```
 
 ## TODO
 - [ ] Clarify how the prompt is formed
-- [ ] Add a configuration file
+- [x] Add a configuration file
 - [ ] Add functionality to truncate a chat
 - [ ] Keep track of the model's context window and file size
 

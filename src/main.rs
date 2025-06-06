@@ -1,7 +1,10 @@
+mod config;
+use config::Config;
+
 use clap::Parser;
 use crossterm::event::{self, Event, KeyCode};
 use std::fs::{self, OpenOptions};
-use std::io::{self, BufRead, BufReader, Read, Write};
+use std::io::{self, BufReader, Read, Write};
 use std::path::PathBuf;
 use std::process::{Child, Command, Stdio};
 use std::sync::mpsc::{self, Receiver, TryRecvError};
@@ -20,6 +23,16 @@ struct Args {
 }
 
 fn main() -> io::Result<()> {
+    let config = match Config::load() {
+        Ok(c) => c,
+        Err(e) => {
+            eprintln!("Error loading config: {}", e);
+            return Ok(());
+        }   
+    };
+    
+    println!("{}", config.sllama_dir);
+
     // Parse command-line arguments
     let args = Args::parse();
 
@@ -88,7 +101,7 @@ fn main() -> io::Result<()> {
 
         // Create the ollama command with stdout piped
         let mut cmd = Command::new("ollama")
-            .args(&["run", "gemma3:12b"])
+            .args(&["run", &config.model])
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::inherit())
@@ -112,8 +125,7 @@ fn main() -> io::Result<()> {
             }
             
             stdin.write_all(b"\n\n")?;
-            let system_prompt = "You are an AI assistant receiving input from a command-line application called silent-llama (sllama). The user may include additional context from files using the -f/--file flag. This supplementary content appears after the user's direct message. Your responses are displayed in the terminal and saved to a history file. Keep your answers helpful, concise, and relevant to both the user's direct query and any file context provided. You can tell where you have previously responded by --- AI Response ---\n\n";
-            stdin.write_all(system_prompt.as_bytes())?;
+            stdin.write_all(config.system_prompt.as_bytes())?;
         }
 
         // Get stdout stream from the child process
