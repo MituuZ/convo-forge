@@ -19,7 +19,12 @@ fn default_model() -> String {
 }
 
 fn default_sllama_dir() -> String {
-    "~/sllama".to_string()
+    get_home_dir()
+        .map(|home_dir| home_dir.join("sllama").display().to_string())
+        .unwrap_or_else(|_| {
+            eprintln!("Could not determine home directory, using current directory instead.");
+            "./sllama".to_string()
+        })
 }
 
 fn default_system_prompt() -> String {
@@ -52,8 +57,8 @@ impl Config {
             Ok(s) => s,
             Err(s) => {
                 println!("Could not read config file: {}", s);
-                return Ok(Config::default())
-            },
+                return Ok(Config::default());
+            }
         };
 
         // This will automatically use the default values for any missing fields
@@ -62,13 +67,18 @@ impl Config {
 }
 
 fn get_config_path() -> Result<PathBuf, &'static str> {
-    let home_dir = if let Ok(home) = std::env::var("HOME") {
-        PathBuf::from(home)
+    match get_home_dir() {
+        Ok(home_dir) => Ok(home_dir.join(".sllama.toml")),
+        Err(_) => Err("Could not determine home directory"),
+    }
+}
+
+fn get_home_dir() -> Result<PathBuf, &'static str> {
+    if let Ok(home) = std::env::var("HOME") {
+        Ok(PathBuf::from(home))
     } else if cfg!(windows) && std::env::var("USERPROFILE").is_ok() {
-        PathBuf::from(std::env::var("USERPROFILE").unwrap())
+        Ok(PathBuf::from(std::env::var("USERPROFILE").unwrap()))
     } else {
         return Err("Could not determine home directory");
-    };
-
-    Ok(home_dir.join(".sllama.toml"))
+    }
 }
