@@ -48,6 +48,19 @@ sllama chat.txt
 sllama chat.txt -f code.rs
 ```
 
+### Commands
+Commands can be entered during a chat by prepending the command with `:`. Commands are case-insensitive.
+
+#### List
+List all files in sllama_dir, optionally add a filter string.
+
+`:list <filter>`
+
+#### Exit
+Exit the current chat.
+
+`:q`
+
 ## Configuration
 You can configure your sllama by creating and modifying TOML configuration located at `~/.sllama.toml`/`%USERPROFILE%\.sllama.toml`.
 
