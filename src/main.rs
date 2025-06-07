@@ -2,6 +2,7 @@ mod config;
 mod history_file;
 mod ollama_client;
 
+use clap::ArgGroup;
 use config::Config;
 
 use crate::history_file::HistoryFile;
@@ -28,7 +29,7 @@ fn main() -> io::Result<()> {
         Err(e) => {
             eprintln!("Error loading config: {}", e);
             return Ok(());
-        }   
+        }
     };
 
     // Parse command-line arguments
@@ -52,13 +53,13 @@ fn main() -> io::Result<()> {
     } else {
         None
     };
-    
+
     let mut history = HistoryFile::new(filename.clone(), config.sllama_dir.clone())?;
     let ollama_client = OllamaClient::new(config.model, config.system_prompt);
 
     println!("Starting conversation. Type 'exit' to end the session.");
     println!("Press Enter during AI generation to interrupt the response.");
-    
+
     // Main conversation loop
     loop {
         // Prompt the user for input
@@ -67,17 +68,37 @@ fn main() -> io::Result<()> {
         io::stdin().read_line(&mut user_prompt)?;
 
         // Check if user wants to exit
-        if user_prompt.trim().to_lowercase() == "exit" {
-            println!("Ending conversation. All interactions saved to '{}'", filename);
+        let user_prompt = user_prompt.trim().to_lowercase();
+        if user_prompt == "exit" {
+            println!(
+                "Ending conversation. All interactions saved to '{}'",
+                filename
+            );
             break;
-        }
+        } else if user_prompt == ":list" {
+            println!("Files in {} directory:", config.sllama_dir);
+            fn list_dir_contents(dir: &str, indent: usize) -> io::Result<()> {
+                for entry in fs::read_dir(dir)? {
+                    let entry = entry?;
+                    let path = entry.path();
+                    println!("{:indent$}- {}", "", entry.file_name().to_string_lossy(), indent = indent);
+                    if path.is_dir() {
+                        list_dir_contents(path.to_str().unwrap(), indent + 2)?;
+                    }
+                }
+                Ok(())
+            }
 
+            match list_dir_contents(&config.sllama_dir, 2) {
+                Ok(_) => (),
+                Err(e) => eprintln!("Error reading directory: {}", e)
+            }
+            continue;
+        }
         history.append_user_input(&user_prompt)?;
 
-        let (ollama_response, was_interrupted) = ollama_client.generate_response(
-            history.get_content(),
-            input_file_content.as_deref(),
-        )?;
+        let (ollama_response, was_interrupted) = ollama_client
+            .generate_response(history.get_content(), input_file_content.as_deref())?;
 
         history.append_ai_response(&ollama_response, was_interrupted)?;
     }
