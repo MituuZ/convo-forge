@@ -112,10 +112,9 @@ fn list_command(sllama_dir: &str, args: Vec<&str>) {
         for entry in fs::read_dir(dir)? {
             let entry = entry?;
             let path = entry.path();
-            let file_name = entry.file_name();
             
-            if pattern.is_empty() || file_name.to_string_lossy().contains(pattern) {
-                println!("{:indent$}- {}", "", file_name.to_string_lossy(), indent = indent);
+            if (pattern.is_empty() || path.display().to_string().contains(pattern)) && !path.is_dir() {
+                println!("{:indent$}- {}", "", path.display(), indent = indent);
             }
             if path.is_dir() {
                 list_dir_contents(path.to_str().unwrap(), indent + 2, pattern)?;
