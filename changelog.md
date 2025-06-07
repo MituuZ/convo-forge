@@ -4,7 +4,7 @@
 _Add list command_
 
 ### Commands
-- First active chat command `:list`, list files from your sllama_dir
+- First active chat command `:list`, list files from your sllama_dir with an optional parameter to filter
 - Modify exit to a command `:q`
 
 ## 0.1.2 - 2025-06-06

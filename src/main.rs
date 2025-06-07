@@ -2,6 +2,7 @@ mod config;
 mod history_file;
 mod ollama_client;
 
+use std::collections::HashMap;
 use clap::ArgGroup;
 use config::Config;
 
@@ -11,6 +12,7 @@ use clap::Parser;
 use std::fs::{self};
 use std::io::{self};
 use std::path::PathBuf;
+use crossterm::Command;
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
@@ -69,18 +71,20 @@ fn main() -> io::Result<()> {
         // Check if user wants to exit
         let user_prompt = user_prompt.trim().to_lowercase();
         if user_prompt.starts_with(":") {
-            let command_string = user_prompt[1..].trim().to_string();
+            let parts: Vec<&str> = user_prompt.split_whitespace().collect();
+            let command_string = parts[0].to_lowercase();
+            let args: Vec<&str> = parts[1..].to_vec();
             
             match command_string.as_str() {
-                "q" => {
+                ":q" => {
                     println!(
                         "Ending conversation. All interactions saved to '{}'",
                         filename
                     );
                     break
                 },
-                "list" => {
-                    list_command(&config.sllama_dir);
+                ":list" => {
+                    list_command(&config.sllama_dir, args);
                     continue
                 },
                 _ => {
@@ -101,20 +105,26 @@ fn main() -> io::Result<()> {
     Ok(())
 }
 
-fn list_command(sllama_dir: &str) {
-    fn list_dir_contents(dir: &str, indent: usize) -> io::Result<()> {
+fn list_command(sllama_dir: &str, args: Vec<&str>) {
+    let pattern = args.get(0).unwrap_or(&"");
+    
+    fn list_dir_contents(dir: &str, indent: usize, pattern: &str) -> io::Result<()> {
         for entry in fs::read_dir(dir)? {
             let entry = entry?;
             let path = entry.path();
-            println!("{:indent$}- {}", "", entry.file_name().to_string_lossy(), indent = indent);
+            let file_name = entry.file_name();
+            
+            if pattern.is_empty() || file_name.to_string_lossy().contains(pattern) {
+                println!("{:indent$}- {}", "", file_name.to_string_lossy(), indent = indent);
+            }
             if path.is_dir() {
-                list_dir_contents(path.to_str().unwrap(), indent + 2)?;
+                list_dir_contents(path.to_str().unwrap(), indent + 2, pattern)?;
             }
         }
         Ok(())
     }
 
-    match list_dir_contents(sllama_dir, 2) {
+    match list_dir_contents(sllama_dir, 2, pattern) {
         Ok(_) => (),
         Err(e) => eprintln!("Error reading directory: {}", e)
     }
