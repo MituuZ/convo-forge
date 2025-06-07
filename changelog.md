@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.3 - 2025-06-07
+_Add list command_
+
+### Commands
+First active chat command `:list`, list files from your sllama_dir
+
 ## 0.1.2 - 2025-06-06
 _Implement history file_
 
