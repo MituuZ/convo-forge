@@ -57,44 +57,39 @@ fn main() -> io::Result<()> {
     let mut history = HistoryFile::new(filename.clone(), config.sllama_dir.clone())?;
     let ollama_client = OllamaClient::new(config.model, config.system_prompt);
 
-    println!("Starting conversation. Type 'exit' to end the session.");
     println!("Press Enter during AI generation to interrupt the response.");
 
     // Main conversation loop
     loop {
         // Prompt the user for input
-        println!("\nEnter your prompt (or type 'exit' to end):");
+        println!("\nEnter your prompt (or type ':q' to end):");
         let mut user_prompt = String::new();
         io::stdin().read_line(&mut user_prompt)?;
 
         // Check if user wants to exit
         let user_prompt = user_prompt.trim().to_lowercase();
-        if user_prompt == "exit" {
-            println!(
-                "Ending conversation. All interactions saved to '{}'",
-                filename
-            );
-            break;
-        } else if user_prompt == ":list" {
-            println!("Files in {} directory:", config.sllama_dir);
-            fn list_dir_contents(dir: &str, indent: usize) -> io::Result<()> {
-                for entry in fs::read_dir(dir)? {
-                    let entry = entry?;
-                    let path = entry.path();
-                    println!("{:indent$}- {}", "", entry.file_name().to_string_lossy(), indent = indent);
-                    if path.is_dir() {
-                        list_dir_contents(path.to_str().unwrap(), indent + 2)?;
-                    }
+        if user_prompt.starts_with(":") {
+            let command_string = user_prompt[1..].trim().to_string();
+            
+            match command_string.as_str() {
+                "q" => {
+                    println!(
+                        "Ending conversation. All interactions saved to '{}'",
+                        filename
+                    );
+                    break
+                },
+                "list" => {
+                    list_command(&config.sllama_dir);
+                    continue
+                },
+                _ => {
+                    println!("Unknown command '{}'", command_string);
+                    continue
                 }
-                Ok(())
             }
-
-            match list_dir_contents(&config.sllama_dir, 2) {
-                Ok(_) => (),
-                Err(e) => eprintln!("Error reading directory: {}", e)
-            }
-            continue;
         }
+        
         history.append_user_input(&user_prompt)?;
 
         let (ollama_response, was_interrupted) = ollama_client
@@ -104,4 +99,23 @@ fn main() -> io::Result<()> {
     }
 
     Ok(())
+}
+
+fn list_command(sllama_dir: &str) {
+    fn list_dir_contents(dir: &str, indent: usize) -> io::Result<()> {
+        for entry in fs::read_dir(dir)? {
+            let entry = entry?;
+            let path = entry.path();
+            println!("{:indent$}- {}", "", entry.file_name().to_string_lossy(), indent = indent);
+            if path.is_dir() {
+                list_dir_contents(path.to_str().unwrap(), indent + 2)?;
+            }
+        }
+        Ok(())
+    }
+
+    match list_dir_contents(sllama_dir, 2) {
+        Ok(_) => (),
+        Err(e) => eprintln!("Error reading directory: {}", e)
+    }
 }
