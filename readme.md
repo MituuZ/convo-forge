@@ -82,6 +82,8 @@ You can tell where you have previously responded by --- AI Response ---\
 - [ ] Add functionality to truncate a chat
 - [ ] Keep track of the model's context window and file size
 - [ ] Create memories, which are included in the prompt by default (session/global)
+- [ ] clap's arg groups can create mutually exclusive arguments
+- [ ] Integrate Rustyline
 
 ## License
 [MIT License](LICENSE)
