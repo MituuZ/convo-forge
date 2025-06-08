@@ -2,8 +2,6 @@ mod config;
 mod history_file;
 mod ollama_client;
 
-use std::collections::HashMap;
-use clap::ArgGroup;
 use config::Config;
 
 use crate::history_file::HistoryFile;
@@ -12,7 +10,6 @@ use clap::Parser;
 use std::fs::{self};
 use std::io::{self};
 use std::path::PathBuf;
-use crossterm::Command;
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
@@ -74,26 +71,35 @@ fn main() -> io::Result<()> {
             let parts: Vec<&str> = user_prompt.split_whitespace().collect();
             let command_string = parts[0].to_lowercase();
             let args: Vec<&str> = parts[1..].to_vec();
-            
+
             match command_string.as_str() {
                 ":q" => {
                     println!(
                         "Ending conversation. All interactions saved to '{}'",
                         filename
                     );
-                    break
-                },
+                    break;
+                }
                 ":list" => {
                     list_command(&config.sllama_dir, args);
-                    continue
-                },
+                    continue;
+                }
+                ":switch" => {
+                    if let Some(new_history_file) = switch_command(args) {
+                        let filename = new_history_file;
+                        history = HistoryFile::new(filename.clone(), config.sllama_dir.clone())?;
+                        println!("{}", history.get_content());
+                        println!("Switched to history file: {}", filename);
+                    }
+                    continue;
+                }
                 _ => {
                     println!("Unknown command '{}'", command_string);
-                    continue
+                    continue;
                 }
             }
         }
-        
+
         history.append_user_input(&user_prompt)?;
 
         let (ollama_response, was_interrupted) = ollama_client
@@ -107,24 +113,46 @@ fn main() -> io::Result<()> {
 
 fn list_command(sllama_dir: &str, args: Vec<&str>) {
     let pattern = args.get(0).unwrap_or(&"");
-    
-    fn list_dir_contents(dir: &str, indent: usize, pattern: &str) -> io::Result<()> {
+
+    fn list_dir_contents(dir: &str, pattern: &str, sllama_dir: &str) -> io::Result<()> {
         for entry in fs::read_dir(dir)? {
             let entry = entry?;
             let path = entry.path();
-            
-            if (pattern.is_empty() || path.display().to_string().contains(pattern)) && !path.is_dir() {
-                println!("{:indent$}- {}", "", path.display(), indent = indent);
+
+            if (pattern.is_empty() || path.display().to_string().contains(pattern))
+                && !path.is_dir()
+            {
+                match path.display().to_string().strip_prefix(sllama_dir) {
+                    None => println!("{}", path.display()),
+                    Some(ds) => {
+                        let mut cleaned_ds = ds.to_string();
+                        if cleaned_ds.starts_with('/') {
+                            cleaned_ds = cleaned_ds[1..].to_string();
+                        }
+                        println!("{}", cleaned_ds)
+                    }
+                }
             }
             if path.is_dir() {
-                list_dir_contents(path.to_str().unwrap(), indent + 2, pattern)?;
+                list_dir_contents(path.to_str().unwrap(), pattern, sllama_dir)?;
             }
         }
         Ok(())
     }
 
-    match list_dir_contents(sllama_dir, 2, pattern) {
+    match list_dir_contents(sllama_dir, pattern, sllama_dir) {
         Ok(_) => (),
-        Err(e) => eprintln!("Error reading directory: {}", e)
+        Err(e) => eprintln!("Error reading directory: {}", e),
     }
+}
+
+fn switch_command(args: Vec<&str>) -> Option<String> {
+    let new_history_file = args.get(0).unwrap_or(&"");
+
+    if new_history_file.is_empty() {
+        println!("Error: No history file specified. Usage: :switch <history_file>");
+        return None;
+    }
+
+    Some(new_history_file.to_string())
 }

@@ -56,6 +56,12 @@ List all files in sllama_dir, optionally add a filter string.
 
 `:list <filter>`
 
+#### Switch
+Switch to a different history file. Supports either absolute or relative paths (from `sllama_dir`).
+
+`:switch relative/path`
+`:switch /absolute/path`
+
 #### Exit
 Exit the current chat.
 

@@ -1,7 +1,13 @@
 # Changelog
 
+## 0.1.4 - 2025-06-08
+_Add `switch` command_
+
+### Commands
+- Enables changing the history file during an active chat
+
 ## 0.1.3 - 2025-06-07
-_Add list command_
+_Add `list` command_
 
 ### Commands
 - First active chat command `:list`, list files from your sllama_dir with an optional parameter to filter
