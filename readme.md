@@ -19,16 +19,6 @@ cd silent-llama
 cargo build --release
 ```
 
-## Dependencies
-
-- [Ollama](https://github.com/ollama/ollama) - [MIT](LICENSES/ollama-MIT)
-- [serde](https://github.com/serde-rs/serde) - [MIT](LICENSES/serde-MIT)
-- [toml](https://github.com/toml-rs/toml) - [MIT](LICENSES/toml-MIT)
-- [clap](https://github.com/clap-rs/clap) - [MIT](LICENSES/clap-MIT)
-- [crossterm](https://github.com/crossterm-rs/crossterm) - [MIT](LICENSES/crossterm-MIT)
-- [tempfile](https://github.com/Stebalien/tempfile) - [MIT](LICENSES/tempfile-MIT)
-- [rustyline](https://github.com/kkawakam/rustyline) - [MIT](LICENSES/rustyline-MIT)
-
 ## Usage
 
 ```shell
@@ -124,6 +114,16 @@ You can tell where you have previously responded by --- AI Response ---\
 - [ ] Keep track of the model's context window and file size
 - [ ] Create memories, which are included in the prompt by default (session/global)
 - [ ] clap's arg groups can create mutually exclusive arguments
+
+## Dependencies
+
+- [Ollama](https://github.com/ollama/ollama) - [MIT](LICENSES/ollama-MIT)
+- [serde](https://github.com/serde-rs/serde) - [MIT](LICENSES/serde-MIT)
+- [toml](https://github.com/toml-rs/toml) - [MIT](LICENSES/toml-MIT)
+- [clap](https://github.com/clap-rs/clap) - [MIT](LICENSES/clap-MIT)
+- [crossterm](https://github.com/crossterm-rs/crossterm) - [MIT](LICENSES/crossterm-MIT)
+- [tempfile](https://github.com/Stebalien/tempfile) - [MIT](LICENSES/tempfile-MIT)
+- [rustyline](https://github.com/kkawakam/rustyline) - [MIT](LICENSES/rustyline-MIT)
 
 ## License
 
