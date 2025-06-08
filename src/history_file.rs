@@ -4,7 +4,7 @@ use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 
 pub(crate) struct HistoryFile {
-    path: String,
+    pub(crate) path: String,
     content: String,
 }
 
@@ -15,8 +15,12 @@ impl HistoryFile {
             PathBuf::from(path)
         } else {
             let actual_path = Path::new(&sllama_dir).join(path);
-            let absolute_path = std::fs::canonicalize(&actual_path).unwrap_or_else(|_| actual_path.clone());
-            println!("Opening file from relative path: {}", absolute_path.display());
+            let absolute_path =
+                std::fs::canonicalize(&actual_path).unwrap_or_else(|_| actual_path.clone());
+            println!(
+                "Opening file from relative path: {}",
+                absolute_path.display()
+            );
             actual_path
         };
 
@@ -85,6 +89,23 @@ impl HistoryFile {
         self.content.push_str(&entry);
 
         Ok(())
+    }
+
+    pub(crate) fn reload_content(&mut self) {
+        match OpenOptions::new()
+            .read(true)
+            .write(true)
+            .create(true)
+            .open(self.path.clone())
+        {
+            Ok(mut file) => {
+                let mut content = String::new();
+                file.read_to_string(&mut content).unwrap();
+                self.content = content;
+                println!("Reloaded file content: {}", self.path.clone());
+            }
+            Err(e) => println!("Error opening file: {}", e),
+        }
     }
 }
 

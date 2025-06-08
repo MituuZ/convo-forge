@@ -3,6 +3,7 @@ mod history_file;
 mod ollama_client;
 
 use config::Config;
+use std::env;
 
 use crate::history_file::HistoryFile;
 use crate::ollama_client::OllamaClient;
@@ -10,6 +11,7 @@ use clap::Parser;
 use std::fs::{self};
 use std::io::{self};
 use std::path::PathBuf;
+use std::process::Command;
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
@@ -125,7 +127,28 @@ fn main() -> io::Result<()> {
                     Either relative to sllama_dir or absolute path."
                     );
                     println!(":help - show this help message");
+                    println!(":edit - open the history file in your editor");
                     println!(":sysprompt <prompt> - set the system prompt for current session");
+                    continue;
+                }
+                ":edit" => {
+                    let editor = env::var("EDITOR")
+                        .or_else(|_| env::var("VISUAL"))
+                        .unwrap_or_else(|_| {
+                            if cfg!(target_os = "windows") {
+                                "notepad".to_string()
+                            } else {
+                                "vi".to_string()
+                            }
+                        });
+
+                    let status = Command::new(editor).arg(history.path.clone()).status()?;
+
+                    if !status.success() {
+                        println!("Error opening file in editor");
+                    }
+
+                    history.reload_content();
                     continue;
                 }
                 _ => {

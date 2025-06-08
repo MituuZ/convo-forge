@@ -71,6 +71,17 @@ Switch to a different history file. Supports either absolute or relative paths (
 `:switch relative/path`
 `:switch /absolute/path`
 
+#### Edit
+
+Open the current history file in the user's editor.
+
+1. `$EDITOR`
+2. `$VISUAL`
+3. windows - `notepad` (untested)
+4. other - `vi`
+
+`:edit`
+
 #### Exit
 
 Exit the current chat.
@@ -122,6 +133,7 @@ You can tell where you have previously responded by --- AI Response --- (added a
 - [x] Clarify how the prompt is formed
 - [x] Add a configuration file
 - [x] Integrate rustyline
+- [ ] Allow changing the context file during a chat
 - [ ] Implement completions with rustyline
 - [ ] Re-implement AI response interruption
 - [ ] Add functionality to truncate a chat

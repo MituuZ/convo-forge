@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.1.7 - 2025-06-08
+
+_Add `edit` command_
+
+### Commands
+
+- Enable modifying the currently open history file
+    1. `$EDITOR`
+    2. `$VISUAL`
+    3. windows - `notepad`
+    4. other - `vi`
+
 ## 0.1.6 - 2025-06-08
 
 _Add `help` command_
