@@ -1,5 +1,3 @@
-use crossterm::event;
-use crossterm::event::{Event, KeyCode};
 use std::io::{BufReader, Read, Write};
 use std::process::{Child, Command, Stdio};
 use std::sync::mpsc;
@@ -19,11 +17,12 @@ impl OllamaClient {
             system_prompt,
         }
     }
-    
+
     pub(crate) fn generate_response(
         &self,
         history_content: &str,
-        context_content: Option<&str>
+        user_prompt: &str,
+        context_content: Option<&str>,
     ) -> io::Result<(String, bool)> {
         // Create the ollama command with stdout piped
         let mut cmd = Command::new("ollama")
@@ -35,18 +34,23 @@ impl OllamaClient {
 
         // Create the input for the ollama process
         if let Some(mut stdin) = cmd.stdin.take() {
-            // Use the full history for context (including current user input)
-            stdin.write_all(history_content.as_bytes())?;
+            // First, add the system prompt
+            stdin.write_all(b"Here is the system prompt: ")?;
+            stdin.write_all(self.system_prompt.as_bytes())?;
 
-            // Include the context file content if available
+            // Then add the context file content if available
             if let Some(ref content) = context_content {
                 stdin.write_all(b"\n\nAdditional context from file: ")?;
                 stdin.write_all(content.as_bytes())?;
             }
 
-            // Finally, add the system prompt
-            stdin.write_all(b"\n\n")?;
-            stdin.write_all(self.system_prompt.as_bytes())?;
+            // Then include the full history file for context
+            stdin.write_all(b"\n\nPrevious conversation: ")?;
+            stdin.write_all(history_content.as_bytes())?;
+
+            // Finally, add the user prompt
+            stdin.write_all(b"\n\nCurrent user prompt: ")?;
+            stdin.write_all(user_prompt.as_bytes())?;
         }
 
         // Get stdout stream from the child process
@@ -56,19 +60,19 @@ impl OllamaClient {
         // Set up channel for interrupt signal
         let (interrupt_tx, interrupt_rx) = mpsc::channel();
 
-        thread::spawn(move || {
-            println!("\nAI is responding... (Press Enter to interrupt)\n");
-            loop {
-                if event::poll(Duration::from_millis(100)).unwrap() {
-                    if let Event::Key(key) = event::read().unwrap() {
-                        if key.code == KeyCode::Enter {
-                            let _ = interrupt_tx.send(());
-                            break;
-                        }
-                    }
-                }
-            }
-        });
+        // thread::spawn(move || {
+        //     println!("\nAI is responding... (Press Enter to interrupt)\n");
+        //     loop {
+        //         if event::poll(Duration::from_millis(100)).unwrap() {
+        //             if let Event::Key(key) = event::read().unwrap() {
+        //                 if key.code == KeyCode::Enter {
+        //                     let _ = interrupt_tx.send(());
+        //                     break;
+        //                 }
+        //             }
+        //         }
+        //     }
+        // });
 
         // Read response while checking for interrupt
         let (full_response, was_interrupted) =
@@ -76,15 +80,19 @@ impl OllamaClient {
                 .expect("error reading process output");
 
         let ollama_response = String::from_utf8_lossy(&full_response).to_string();
-        
+
         Ok((ollama_response, was_interrupted))
+    }
+
+    pub(crate) fn update_system_prompt(&mut self, new_system_prompt: String) {
+        self.system_prompt = new_system_prompt;
     }
 }
 
 fn read_process_output_with_interrupt(
     reader: &mut BufReader<impl Read>,
     interrupt_rx: &Receiver<()>,
-    cmd: &mut Child
+    cmd: &mut Child,
 ) -> io::Result<(Vec<u8>, bool)> {
     let mut buffer = [0; 1024];
     let mut full_response = Vec::new();
@@ -135,7 +143,7 @@ fn read_process_output_with_interrupt(
                 Ok(0) => break,
                 Ok(bytes_read) => {
                     full_response.extend_from_slice(&buffer[..bytes_read]);
-                },
+                }
                 Err(_) => break,
             }
         }
@@ -152,9 +160,9 @@ mod tests {
     fn test_ollama_client_creation() {
         let model = "llama2".to_string();
         let system_prompt = "You are a helpful assistant.".to_string();
-        
+
         let client = OllamaClient::new(model.clone(), system_prompt.clone());
-        
+
         assert_eq!(client.model, model);
         assert_eq!(client.system_prompt, system_prompt);
     }

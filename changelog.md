@@ -2,7 +2,24 @@
 
 ## 0.1.5 - 2025-06-08
 
-_Use [rustyline](https://github.com/kkawakam/rustyline) for user input handling_
+_Integrate [rustyline](https://github.com/kkawakam/rustyline) for input handling, add `sysprompt` command, order prompts
+and disable interruption_
+
+### Interruption
+
+- Crossterm and rustyline do not play nice, disabled AI response interruption to keep input consistent.
+
+### Prompts
+
+- Use a more traditional ordering with:
+    1. System prompt
+    2. Context file
+    3. History file
+    4. Current user prompt
+
+### Commands
+
+- Enable modifying system prompt for the current session.
 
 ## 0.1.4 - 2025-06-08
 

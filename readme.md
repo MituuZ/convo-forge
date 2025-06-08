@@ -7,9 +7,10 @@ A command-line interface for interacting with Ollama AI models.
 - Store conversations as files
 - Add context to a session with `-f/--file` flag
 - Prompts are built in the following way:
-    1. History file (including the current user prompt)
+    1. System prompt
     2. Context file
-    3. System prompt
+    3. History file
+    4. Current user prompt
 
 ## Installation
 
@@ -69,6 +70,12 @@ Switch to a different history file. Supports either absolute or relative paths (
 Exit the current chat.
 
 `:q`
+
+#### Sysprompt
+
+Update the system prompt for this session. Does not modify any configurations.
+
+`:sysprompt Enter the new system prompt here`
 
 ## Configuration
 

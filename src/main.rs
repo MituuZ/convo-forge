@@ -54,14 +54,17 @@ fn main() -> io::Result<()> {
     };
 
     let mut history = HistoryFile::new(filename.clone(), config.sllama_dir.clone())?;
-    let ollama_client = OllamaClient::new(config.model, config.system_prompt);
-
+    println!("{}", history.get_content());
+    println!("You're conversing with {} model", &config.model);
+    let mut ollama_client = OllamaClient::new(config.model, config.system_prompt);
     println!("Press Enter during AI generation to interrupt the response.");
 
     // Main conversation loop
     loop {
         // Prompt the user for input
-        println!("\nEnter your prompt (or type ':q' to end):");
+        println!(
+            "\nEnter your prompt or a command (type ':q' to end or ':help' for other commands)"
+        );
         let mut rl = match rustyline::DefaultEditor::new() {
             Ok(r) => r,
             Err(e) => {
@@ -106,6 +109,10 @@ fn main() -> io::Result<()> {
                     }
                     continue;
                 }
+                ":sysprompt" => {
+                    ollama_client.update_system_prompt(args.join(" "));
+                    continue;
+                }
                 _ => {
                     println!("Unknown command '{}'", command_string);
                     continue;
@@ -113,10 +120,13 @@ fn main() -> io::Result<()> {
             }
         }
 
-        history.append_user_input(&user_prompt)?;
+        let (ollama_response, was_interrupted) = ollama_client.generate_response(
+            history.get_content(),
+            &user_prompt,
+            input_file_content.as_deref(),
+        )?;
 
-        let (ollama_response, was_interrupted) = ollama_client
-            .generate_response(history.get_content(), input_file_content.as_deref())?;
+        history.append_user_input(&user_prompt)?;
 
         history.append_ai_response(&ollama_response, was_interrupted)?;
     }
