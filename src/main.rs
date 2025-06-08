@@ -62,8 +62,21 @@ fn main() -> io::Result<()> {
     loop {
         // Prompt the user for input
         println!("\nEnter your prompt (or type ':q' to end):");
-        let mut user_prompt = String::new();
-        io::stdin().read_line(&mut user_prompt)?;
+        let mut rl = match rustyline::DefaultEditor::new() {
+            Ok(r) => r,
+            Err(e) => {
+                eprintln!("Error initializing rustyline: {}", e);
+                break;
+            }
+        };
+        let readline = rl.readline(">> ");
+        let user_prompt = match readline {
+            Ok(line) => line,
+            Err(e) => {
+                eprintln!("Error reading input: {}", e);
+                break;
+            }
+        };
 
         // Check if user wants to exit
         let user_prompt = user_prompt.trim().to_lowercase();
