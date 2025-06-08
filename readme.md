@@ -123,10 +123,10 @@ You can tell where you have previously responded by --- AI Response --- (added a
 - [x] Add a configuration file
 - [x] Integrate rustyline
 - [ ] Implement completions with rustyline
+- [ ] Re-implement AI response interruption
 - [ ] Add functionality to truncate a chat
 - [ ] Keep track of the model's context window and file size
 - [ ] Create memories, which are included in the prompt by default (session/global)
-- [ ] clap's arg groups can create mutually exclusive arguments
 
 ## Dependencies
 
