@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.6 - 2025-06-08
+
+_Add `help` command_
+
 ## 0.1.5 - 2025-06-08
 
 _Integrate [rustyline](https://github.com/kkawakam/rustyline) for input handling, add `sysprompt` command, order prompts

@@ -113,6 +113,21 @@ fn main() -> io::Result<()> {
                     ollama_client.update_system_prompt(args.join(" "));
                     continue;
                 }
+                ":help" => {
+                    println!("\nAvailable commands:");
+                    println!(":q - quit");
+                    println!(
+                        ":list <optional pattern> - list files in the sllama directory. \
+                    Optionally, you can provide a pattern to filter the results."
+                    );
+                    println!(
+                        ":switch <history_file> - switch to a different history file. \
+                    Either relative to sllama_dir or absolute path."
+                    );
+                    println!(":help - show this help message");
+                    println!(":sysprompt <prompt> - set the system prompt for current session");
+                    continue;
+                }
                 _ => {
                     println!("Unknown command '{}'", command_string);
                     continue;

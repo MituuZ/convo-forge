@@ -52,6 +52,12 @@ sllama chat.txt -f code.rs
 
 Commands can be entered during a chat by prepending the command with `:`. Commands are case-insensitive.
 
+#### Help
+
+List available commands.
+
+`:help`
+
 #### List
 
 List all files in sllama_dir, optionally add a filter string.
