@@ -168,7 +168,6 @@ fn sysprompt_command(command_params: CommandParams) -> io::Result<CommandResult>
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::io::{self, Write};
     use tempfile::TempDir;
 
     /// Helper function to create the test environment
