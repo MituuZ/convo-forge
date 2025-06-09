@@ -118,7 +118,6 @@ fn main() -> io::Result<()> {
                     match command_fn(command_params)? {
                         commands::CommandResult::Quit => break,
                         SwitchHistory(new_file) => {
-                            // Update filename, so ending conversation prints the correct filename
                             history = HistoryFile::new(new_file, config.sllama_dir.clone())?;
                             println!("{}", history.get_content());
                             println!("Switched to history file: {}", history.filename);
