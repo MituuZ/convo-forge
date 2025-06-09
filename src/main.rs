@@ -132,7 +132,7 @@ fn main() -> io::Result<()> {
             }
         }
 
-        let (ollama_response, was_interrupted) = ollama_client.generate_response(
+        let ollama_response = ollama_client.generate_response(
             history.get_content(),
             &user_prompt,
             input_file_content.as_deref(),
@@ -140,7 +140,7 @@ fn main() -> io::Result<()> {
 
         history.append_user_input(&user_prompt)?;
 
-        history.append_ai_response(&ollama_response, was_interrupted)?;
+        history.append_ai_response(&ollama_response)?;
     }
 
     Ok(())

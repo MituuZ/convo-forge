@@ -96,18 +96,13 @@ impl HistoryFile {
     pub(crate) fn append_ai_response(
         &mut self,
         response: &str,
-        was_interrupted: bool,
     ) -> io::Result<()> {
         let mut file = OpenOptions::new()
             .write(true)
             .append(true)
             .open(&self.path)?;
 
-        let response_with_note = if was_interrupted {
-            format!("{}\n\n[Response was interrupted by user]", response)
-        } else {
-            response.to_string()
-        };
+        let response_with_note = response.to_string();
 
         let entry = format!("\n\n--- AI Response ---\n\n{}", response_with_note);
         file.write_all(entry.as_bytes())?;
@@ -212,7 +207,7 @@ mod tests {
         let mut history_file = HistoryFile::new(path.clone(), String::new()).unwrap();
         history_file.append_user_input("User message 1").unwrap();
         history_file
-            .append_ai_response("AI response 1", false)
+            .append_ai_response("AI response 1")
             .unwrap();
         history_file.append_user_input("User message 2").unwrap();
 
@@ -234,7 +229,7 @@ mod tests {
 
         let mut history_file = HistoryFile::new(path.clone(), String::new()).unwrap();
         history_file
-            .append_ai_response("AI response", false)
+            .append_ai_response("AI response")
             .unwrap();
 
         // Verify internal content was updated
@@ -246,28 +241,6 @@ mod tests {
         // Verify file content was updated
         let file_content = fs::read_to_string(path).unwrap();
         assert_eq!(file_content, "\n\n--- AI Response ---\n\nAI response");
-    }
-
-    #[test]
-    fn test_append_ai_response_interrupted() {
-        let temp_file = NamedTempFile::new().unwrap();
-        let path = temp_file.path().to_str().unwrap().to_string();
-
-        let mut history_file = HistoryFile::new(path.clone(), String::new()).unwrap();
-        history_file
-            .append_ai_response("AI response", true)
-            .unwrap();
-
-        // Verify internal content was updated with interruption note
-        assert!(
-            history_file
-                .get_content()
-                .contains("[Response was interrupted by user]")
-        );
-
-        // Verify file content was updated with interruption note
-        let file_content = fs::read_to_string(path).unwrap();
-        assert!(file_content.contains("[Response was interrupted by user]"));
     }
 
     #[test]

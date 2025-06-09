@@ -16,9 +16,7 @@
  */
 
 use std::io::{BufReader, Read, Write};
-use std::process::{Child, Command, Stdio};
-use std::sync::mpsc;
-use std::sync::mpsc::{Receiver, TryRecvError};
+use std::process::{Command, Stdio};
 use std::time::Duration;
 use std::{io, thread};
 
@@ -40,7 +38,7 @@ impl OllamaClient {
         history_content: &str,
         user_prompt: &str,
         context_content: Option<&str>,
-    ) -> io::Result<(String, bool)> {
+    ) -> io::Result<String> {
         // Create the ollama command with stdout piped
         let mut cmd = Command::new("ollama")
             .args(&["run", &self.model])
@@ -70,35 +68,13 @@ impl OllamaClient {
             stdin.write_all(user_prompt.as_bytes())?;
         }
 
-        // Get stdout stream from the child process
         let stdout = cmd.stdout.take().expect("Failed to open stdout");
         let mut reader = BufReader::new(stdout);
-
-        // Set up channel for interrupt signal
-        let (interrupt_tx, interrupt_rx) = mpsc::channel();
-
-        // thread::spawn(move || {
-        //     println!("\nAI is responding... (Press Enter to interrupt)\n");
-        //     loop {
-        //         if event::poll(Duration::from_millis(100)).unwrap() {
-        //             if let Event::Key(key) = event::read().unwrap() {
-        //                 if key.code == KeyCode::Enter {
-        //                     let _ = interrupt_tx.send(());
-        //                     break;
-        //                 }
-        //             }
-        //         }
-        //     }
-        // });
-
-        // Read response while checking for interrupt
-        let (full_response, was_interrupted) =
-            read_process_output_with_interrupt(&mut reader, &interrupt_rx, &mut cmd)
-                .expect("error reading process output");
-
+        let full_response =
+            read_process_output_with_interrupt(&mut reader).expect("error reading process output");
         let ollama_response = String::from_utf8_lossy(&full_response).to_string();
 
-        Ok((ollama_response, was_interrupted))
+        Ok(ollama_response)
     }
 
     pub(crate) fn update_system_prompt(&mut self, new_system_prompt: String) {
@@ -106,30 +82,11 @@ impl OllamaClient {
     }
 }
 
-fn read_process_output_with_interrupt(
-    reader: &mut BufReader<impl Read>,
-    interrupt_rx: &Receiver<()>,
-    cmd: &mut Child,
-) -> io::Result<(Vec<u8>, bool)> {
+fn read_process_output_with_interrupt(reader: &mut BufReader<impl Read>) -> io::Result<Vec<u8>> {
     let mut buffer = [0; 1024];
     let mut full_response = Vec::new();
-    let mut was_interrupted = false;
 
     loop {
-        // Check for interrupt signal
-        match interrupt_rx.try_recv() {
-            Ok(_) | Err(TryRecvError::Disconnected) => {
-                // Interrupt signal received, kill the process
-                println!("\n[Interrupting AI response...]");
-                cmd.kill()?;
-                was_interrupted = true;
-                break;
-            }
-            Err(TryRecvError::Empty) => {
-                // No interrupt, continue reading
-            }
-        }
-
         // Set up non-blocking read with timeout
         match reader.read(&mut buffer) {
             Ok(0) => break, // End of stream
@@ -153,20 +110,7 @@ fn read_process_output_with_interrupt(
         thread::sleep(Duration::from_millis(10));
     }
 
-    // Try to read any remaining output if we were interrupted
-    if was_interrupted {
-        loop {
-            match reader.read(&mut buffer) {
-                Ok(0) => break,
-                Ok(bytes_read) => {
-                    full_response.extend_from_slice(&buffer[..bytes_read]);
-                }
-                Err(_) => break,
-            }
-        }
-    }
-
-    Ok((full_response, was_interrupted))
+    Ok(full_response)
 }
 
 #[cfg(test)]

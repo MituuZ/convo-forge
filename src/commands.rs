@@ -17,7 +17,6 @@
 use crate::history_file::HistoryFile;
 use crate::ollama_client::OllamaClient;
 use std::collections::HashMap;
-use std::env::args;
 use std::process::Command;
 use std::{env, fs, io};
 
