@@ -73,7 +73,7 @@ impl Config {
         let config_str = match fs::read_to_string(&config_path) {
             Ok(s) => s,
             Err(s) => {
-                println!("Could not read config file: {}", s);
+                eprintln!("Could not read config file: {}", s);
                 return Ok(Config::default());
             }
         };

@@ -151,7 +151,7 @@ fn edit_command(command_params: CommandParams) -> io::Result<CommandResult> {
 
     let status = Command::new(editor).arg(history.path.clone()).status();
     if !status.map_or(false, |s| s.success()) {
-        println!("Error opening file in editor");
+        eprintln!("Error opening file in editor");
     }
     history.reload_content();
 
