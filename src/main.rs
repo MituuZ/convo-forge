@@ -132,39 +132,11 @@ fn main() -> io::Result<()> {
                     continue;
                 }
                 ":help" => {
-                    println!("\nAvailable commands:");
-                    println!(":q - quit");
-                    println!(
-                        ":list <optional pattern> - list files in the sllama directory. \
-                    Optionally, you can provide a pattern to filter the results."
-                    );
-                    println!(
-                        ":switch <history_file> - switch to a different history file. \
-                    Either relative to sllama_dir or absolute path."
-                    );
-                    println!(":help - show this help message");
-                    println!(":edit - open the history file in your editor");
-                    println!(":sysprompt <prompt> - set the system prompt for current session");
+                    help_command();
                     continue;
                 }
                 ":edit" => {
-                    let editor = env::var("EDITOR")
-                        .or_else(|_| env::var("VISUAL"))
-                        .unwrap_or_else(|_| {
-                            if cfg!(target_os = "windows") {
-                                "notepad".to_string()
-                            } else {
-                                "vi".to_string()
-                            }
-                        });
-
-                    let status = Command::new(editor).arg(history.path.clone()).status()?;
-
-                    if !status.success() {
-                        println!("Error opening file in editor");
-                    }
-
-                    history.reload_content();
+                    edit_command(&mut history);
                     continue;
                 }
                 _ => {
@@ -186,6 +158,49 @@ fn main() -> io::Result<()> {
     }
 
     Ok(())
+}
+
+fn edit_command(history: &mut HistoryFile) {
+    let editor = env::var("EDITOR")
+        .or_else(|_| env::var("VISUAL"))
+        .unwrap_or_else(|_| {
+            if cfg!(target_os = "windows") {
+                "notepad".to_string()
+            } else {
+                "vi".to_string()
+            }
+        });
+
+    let status = Command::new(editor).arg(history.path.clone()).status();
+
+    match status {
+        Ok(status) => {
+            if !status.success() {
+                println!("Error opening file in editor");
+            }
+
+            history.reload_content();
+        }
+        Err(_) => {
+            println!("Error opening file in editor");
+        }
+    }
+}
+
+fn help_command() {
+    println!("\nAvailable commands:");
+    println!(":q - quit");
+    println!(
+        ":list <optional pattern> - list files in the sllama directory. \
+                    Optionally, you can provide a pattern to filter the results."
+    );
+    println!(
+        ":switch <history_file> - switch to a different history file. \
+                    Either relative to sllama_dir or absolute path."
+    );
+    println!(":help - show this help message");
+    println!(":edit - open the history file in your editor");
+    println!(":sysprompt <prompt> - set the system prompt for current session");
 }
 
 fn list_command(sllama_dir: &str, args: Vec<&str>) {
