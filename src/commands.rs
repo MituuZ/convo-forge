@@ -119,7 +119,7 @@ fn help_command(_command_params: CommandParams) -> io::Result<CommandResult> {
     );
     println!(
         ":switch <history_file> - switch to a different history file. \
-                    Either relative to sllama_dir or absolute path."
+                    Either relative to sllama_dir or absolute path. Creates the file if it doesn't exist."
     );
     println!(":help - show this help message");
     println!(":edit - open the history file in your editor");
@@ -164,4 +164,182 @@ fn sysprompt_command(command_params: CommandParams) -> io::Result<CommandResult>
         .ollama_client
         .update_system_prompt(command_params.args.join(" "));
     Ok(CommandResult::Continue)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::io::{self, Write};
+    use tempfile::TempDir;
+
+    /// Helper function to create the test environment
+    fn setup_test_environment() -> (OllamaClient, HistoryFile, TempDir, String) {
+        let temp_dir = TempDir::new().unwrap();
+        let dir_path = temp_dir.path().to_str().unwrap().to_string();
+
+        let ollama_client = OllamaClient::new("test-model".to_string(), "test-prompt".to_string());
+
+        // Create a temporary history file with some content
+        let history_path = format!("{}/test-history.txt", dir_path);
+        fs::write(&history_path, "Test conversation content").unwrap();
+
+        let history = HistoryFile::new("test-history.txt".to_string(), dir_path.clone()).unwrap();
+
+        (ollama_client, history, temp_dir, dir_path)
+    }
+
+    #[test]
+    fn test_list_command() -> io::Result<()> {
+        let (mut ollama_client, mut history, _temp_dir, dir_path) = setup_test_environment();
+
+        // Create a few test history files
+        fs::write(format!("{}/history1.txt", dir_path), "Content 1")?;
+        fs::write(format!("{}/history2.txt", dir_path), "Content 2")?;
+
+        let args: Vec<&str> = vec![];
+        let params = CommandParams::new(&args, &mut ollama_client, &mut history, &dir_path);
+
+        let result = list_command(params)?;
+        assert!(matches!(result, CommandResult::Continue));
+
+        // We can't easily test the stdout output here without mocking,
+        // but the command should run without errors
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_switch_command() -> io::Result<()> {
+        let (mut ollama_client, mut history, _temp_dir, dir_path) = setup_test_environment();
+
+        // Create a test history file to switch to
+        let new_history_file = "new-history.txt";
+        fs::write(
+            format!("{}/{}", dir_path, new_history_file),
+            "New history content",
+        )?;
+
+        let args = vec![new_history_file];
+        let params = CommandParams::new(&args, &mut ollama_client, &mut history, &dir_path);
+
+        let result = switch_command(params)?;
+
+        if let CommandResult::SwitchHistory(filename) = result {
+            assert_eq!(filename, new_history_file);
+        } else {
+            panic!("Expected SwitchHistory result but got something else");
+        }
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_help_command() -> io::Result<()> {
+        let (mut ollama_client, mut history, _temp_dir, dir_path) = setup_test_environment();
+
+        let args: Vec<&str> = vec![];
+        let params = CommandParams::new(&args, &mut ollama_client, &mut history, &dir_path);
+
+        let result = help_command(params)?;
+        assert!(matches!(result, CommandResult::Continue));
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_exit_command() -> io::Result<()> {
+        let (mut ollama_client, mut history, _temp_dir, dir_path) = setup_test_environment();
+
+        let args: Vec<&str> = vec![];
+        let params = CommandParams::new(&args, &mut ollama_client, &mut history, &dir_path);
+
+        let result = quit_command(params)?;
+        assert!(matches!(result, CommandResult::Quit));
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_edit_command() -> io::Result<()> {
+        let (mut ollama_client, mut history, _temp_dir, dir_path) = setup_test_environment();
+
+        // We'll mock the editor by setting it to "echo" which should exist on most systems
+        // and will just return successfully without doing anything
+        unsafe {
+            env::set_var("EDITOR", "echo");
+        }
+
+        let args: Vec<&str> = vec![];
+        let params = CommandParams::new(&args, &mut ollama_client, &mut history, &dir_path);
+
+        let result = edit_command(params)?;
+        assert!(matches!(result, CommandResult::Continue));
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_sysprompt_command() -> io::Result<()> {
+        let (mut ollama_client, mut history, _temp_dir, dir_path) = setup_test_environment();
+
+        let test_prompt = "This is a test system prompt";
+        let args: Vec<&str> = test_prompt.split_whitespace().collect();
+        let params = CommandParams::new(&args, &mut ollama_client, &mut history, &dir_path);
+
+        let result = sysprompt_command(params)?;
+        assert!(matches!(result, CommandResult::Continue));
+
+        // Verify the prompt was updated
+        assert_eq!(ollama_client.system_prompt, test_prompt);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_create_command_registry() {
+        let registry = create_command_registry();
+
+        // Check that all expected commands are registered
+        assert!(registry.contains_key(":q"));
+        assert!(registry.contains_key(":list"));
+        assert!(registry.contains_key(":switch"));
+        assert!(registry.contains_key(":sysprompt"));
+        assert!(registry.contains_key(":help"));
+        assert!(registry.contains_key(":edit"));
+
+        // Check the total number of commands
+        assert_eq!(registry.len(), 6);
+    }
+
+    #[test]
+    fn test_switch_command_with_no_args() -> io::Result<()> {
+        let (mut ollama_client, mut history, _temp_dir, dir_path) = setup_test_environment();
+
+        let args: Vec<&str> = vec![];
+        let params = CommandParams::new(&args, &mut ollama_client, &mut history, &dir_path);
+
+        let result = switch_command(params)?;
+        assert!(matches!(result, CommandResult::Continue));
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_list_command_with_pattern() -> io::Result<()> {
+        let (mut ollama_client, mut history, _temp_dir, dir_path) = setup_test_environment();
+
+        // Create some test files
+        fs::write(format!("{}/history1.txt", dir_path), "Content 1")?;
+        fs::write(format!("{}/history2.txt", dir_path), "Content 2")?;
+        fs::write(format!("{}/other.txt", dir_path), "Other content")?;
+
+        // Test with a pattern that should match some files
+        let args = vec!["history"];
+        let params = CommandParams::new(&args, &mut ollama_client, &mut history, &dir_path);
+
+        let result = list_command(params)?;
+        assert!(matches!(result, CommandResult::Continue));
+
+        Ok(())
+    }
 }
