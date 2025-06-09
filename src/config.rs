@@ -1,3 +1,20 @@
+/*
+ * Copyright © 2025 Mitja Leino
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+ * documentation files (the “Software”), to deal in the Software without restriction, including without limitation
+ * the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
+ * and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE
+ * WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS
+ * OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+ * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ *
+ */
+
 use serde::Deserialize;
 use std::path::PathBuf;
 use std::{fs, io};
@@ -56,7 +73,7 @@ impl Config {
         let config_str = match fs::read_to_string(&config_path) {
             Ok(s) => s,
             Err(s) => {
-                println!("Could not read config file: {}", s);
+                eprintln!("Could not read config file: {}", s);
                 return Ok(Config::default());
             }
         };
@@ -80,5 +97,23 @@ fn get_home_dir() -> Result<PathBuf, &'static str> {
         Ok(PathBuf::from(std::env::var("USERPROFILE").unwrap()))
     } else {
         return Err("Could not determine home directory");
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::config::Config;
+
+    #[test]
+    fn test_default_config_values() {
+        let config = Config::default();
+
+        // Check default values directly
+        assert_eq!(config.model, "gemma3:12b");
+        assert!(config.system_prompt.contains("You are an AI assistant"));
+
+        // For sllama_dir, just check that it ends with "/sllama" or "\sllama"
+        // rather than testing the specific home directory path
+        assert!(config.sllama_dir.ends_with("/sllama") || config.sllama_dir.ends_with("\\sllama"));
     }
 }

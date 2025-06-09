@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.8 - 2025-06-09
+
+_Refactor command handling and remove crossterm_
+
 ## 0.1.7 - 2025-06-08
 
 _Add `edit` command_

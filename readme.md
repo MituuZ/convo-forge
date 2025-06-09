@@ -149,7 +149,6 @@ You can tell where you have previously responded by --- AI Response --- (added a
 - [serde](https://github.com/serde-rs/serde) - [MIT](LICENSES/serde-MIT)
 - [toml](https://github.com/toml-rs/toml) - [MIT](LICENSES/toml-MIT)
 - [clap](https://github.com/clap-rs/clap) - [MIT](LICENSES/clap-MIT)
-- [crossterm](https://github.com/crossterm-rs/crossterm) - [MIT](LICENSES/crossterm-MIT)
 - [tempfile](https://github.com/Stebalien/tempfile) - [MIT](LICENSES/tempfile-MIT)
 - [rustyline](https://github.com/kkawakam/rustyline) - [MIT](LICENSES/rustyline-MIT)
 
