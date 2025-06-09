@@ -98,8 +98,7 @@ fn main() -> io::Result<()> {
             }
         };
 
-        // Check if user wants to exit
-        let user_prompt = user_prompt.trim().to_lowercase();
+        let user_prompt = user_prompt.trim();
         if user_prompt.starts_with(":") {
             let parts: Vec<&str> = user_prompt.split_whitespace().collect();
             let command_string = parts[0].to_lowercase();
