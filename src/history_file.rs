@@ -20,6 +20,7 @@ use std::io;
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 
+#[derive(Debug)]
 pub(crate) struct HistoryFile {
     pub(crate) path: String,
     pub(crate) filename: String,
@@ -151,12 +152,19 @@ mod tests {
     fn test_new_creates_file_if_not_exists() {
         let temp_path = NamedTempFile::new().unwrap();
         let path = temp_path.path().to_str().unwrap().to_string();
+        let expected_filename = temp_path
+            .path()
+            .file_name()
+            .unwrap()
+            .to_string_lossy()
+            .into_owned();
         temp_path.close().unwrap(); // Delete the file
 
         let history_file = HistoryFile::new(path.clone(), String::new()).unwrap();
 
         assert!(fs::metadata(&path).is_ok()); // File exists
         assert_eq!(history_file.get_content(), ""); // Empty content
+        assert_eq!(history_file.filename, expected_filename); // Filename is extracted correctly
     }
 
     #[test]
@@ -164,10 +172,17 @@ mod tests {
         let content = "Existing content";
         let temp_file = create_temp_file_with_content(content);
         let path = temp_file.path().to_str().unwrap().to_string();
+        let expected_filename = temp_file
+            .path()
+            .file_name()
+            .unwrap()
+            .to_string_lossy()
+            .into_owned();
 
         let history_file = HistoryFile::new(path, String::new()).unwrap();
 
         assert_eq!(history_file.get_content(), content);
+        assert_eq!(history_file.filename, expected_filename);
     }
 
     #[test]
@@ -299,6 +314,9 @@ mod tests {
             history_file.path,
             expected_path.to_string_lossy().to_string()
         );
+
+        // Verify the filename is extracted correctly
+        assert_eq!(history_file.filename, "test_history.txt");
     }
 
     #[test]
@@ -323,5 +341,26 @@ mod tests {
 
         // Verify the path stored in the HistoryFile is the absolute path
         assert_eq!(history_file.path, absolute_path);
+
+        // Verify the filename is extracted correctly
+        assert_eq!(history_file.filename, "absolute_history.txt");
+    }
+
+    #[test]
+    fn test_directory_path_handling() {
+        // Create a temporary directory
+        let temp_dir = tempfile::tempdir().unwrap();
+        let dir_path = temp_dir.path().to_string_lossy().to_string();
+
+        // Attempt to create a history file with a directory path
+        let result = HistoryFile::new(dir_path, String::new());
+
+        // Should result in an error, not a panic
+        assert!(result.is_err());
+
+        // Just check that we get an error, without asserting on the specific error kind
+        // since it can vary between operating systems
+        let _error = result.unwrap_err();
+        println!("Got expected error when opening directory: {:?}", _error);
     }
 }
