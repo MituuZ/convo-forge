@@ -53,9 +53,6 @@ fn main() -> io::Result<()> {
     // Parse command-line arguments
     let args = Args::parse();
 
-    // Get the filename from arguments
-    let mut filename: String = args.history_file.clone();
-
     // Read the input file if provided
     let input_file_content = if let Some(file_path) = args.input_file {
         match fs::read_to_string(file_path.clone()) {
@@ -72,7 +69,8 @@ fn main() -> io::Result<()> {
         None
     };
 
-    let mut history = HistoryFile::new(filename.clone(), config.sllama_dir.clone())?;
+    // Get the filename from arguments
+    let mut history = HistoryFile::new(args.history_file.clone(), config.sllama_dir.clone())?;
     println!("{}", history.get_content());
     println!("You're conversing with {} model", &config.model);
     let mut ollama_client = OllamaClient::new(config.model, config.system_prompt);
@@ -111,7 +109,7 @@ fn main() -> io::Result<()> {
                 ":q" => {
                     println!(
                         "Ending conversation. All interactions saved to '{}'",
-                        filename
+                        history.filename
                     );
                     break;
                 }
@@ -122,10 +120,10 @@ fn main() -> io::Result<()> {
                 ":switch" => {
                     if let Some(new_history_file) = switch_command(args) {
                         // Update filename, so ending conversation prints the correct filename
-                        filename = new_history_file;
-                        history = HistoryFile::new(filename.clone(), config.sllama_dir.clone())?;
+                        history =
+                            HistoryFile::new(new_history_file.clone(), config.sllama_dir.clone())?;
                         println!("{}", history.get_content());
-                        println!("Switched to history file: {}", filename);
+                        println!("Switched to history file: {}", history.filename);
                     }
                     continue;
                 }
