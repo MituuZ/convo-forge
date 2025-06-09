@@ -15,20 +15,21 @@
  *
  */
 
+mod commands;
 mod config;
 mod history_file;
 mod ollama_client;
 
 use config::Config;
-use std::env;
 
+use crate::commands::CommandResult::SwitchHistory;
+use crate::commands::{create_command_registry, CommandParams};
 use crate::history_file::HistoryFile;
 use crate::ollama_client::OllamaClient;
 use clap::Parser;
 use std::fs::{self};
 use std::io::{self};
 use std::path::PathBuf;
-use std::process::Command;
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
@@ -52,6 +53,7 @@ fn main() -> io::Result<()> {
 
     // Parse command-line arguments
     let args = Args::parse();
+    let command_registry = create_command_registry();
 
     // Read the input file if provided
     let input_file_content = if let Some(file_path) = args.input_file {
@@ -104,42 +106,28 @@ fn main() -> io::Result<()> {
             let command_string = parts[0].to_lowercase();
             let args: Vec<&str> = parts[1..].to_vec();
 
-            match command_string.as_str() {
-                ":q" => {
-                    println!(
-                        "Ending conversation. All interactions saved to '{}'",
-                        history.filename
-                    );
-                    break;
-                }
-                ":list" => {
-                    list_command(&config.sllama_dir, args);
-                    continue;
-                }
-                ":switch" => {
-                    if let Some(new_history_file) = switch_command(args) {
-                        // Update filename, so ending conversation prints the correct filename
-                        history =
-                            HistoryFile::new(new_history_file.clone(), config.sllama_dir.clone())?;
-                        println!("{}", history.get_content());
-                        println!("Switched to history file: {}", history.filename);
+            if user_prompt.starts_with(":") {
+                let command_params = CommandParams::new(
+                    &*args,
+                    &mut ollama_client,
+                    &mut history,
+                    &config.sllama_dir,
+                );
+
+                if let Some(command_fn) = command_registry.get(command_string.as_str()) {
+                    match command_fn(command_params)? {
+                        commands::CommandResult::Quit => break,
+                        SwitchHistory(new_file) => {
+                            // Update filename, so ending conversation prints the correct filename
+                            history = HistoryFile::new(new_file, config.sllama_dir.clone())?;
+                            println!("{}", history.get_content());
+                            println!("Switched to history file: {}", history.filename);
+                            continue;
+                        }
+                        commands::CommandResult::Continue => continue,
                     }
-                    continue;
-                }
-                ":sysprompt" => {
-                    ollama_client.update_system_prompt(args.join(" "));
-                    continue;
-                }
-                ":help" => {
-                    help_command();
-                    continue;
-                }
-                ":edit" => {
-                    edit_command(&mut history);
-                    continue;
-                }
-                _ => {
-                    println!("Unknown command '{}'", command_string);
+                } else {
+                    println!("Unknown command: {}", command_string);
                     continue;
                 }
             }
@@ -157,93 +145,4 @@ fn main() -> io::Result<()> {
     }
 
     Ok(())
-}
-
-fn edit_command(history: &mut HistoryFile) {
-    let editor = env::var("EDITOR")
-        .or_else(|_| env::var("VISUAL"))
-        .unwrap_or_else(|_| {
-            if cfg!(target_os = "windows") {
-                "notepad".to_string()
-            } else {
-                "vi".to_string()
-            }
-        });
-
-    let status = Command::new(editor).arg(history.path.clone()).status();
-
-    match status {
-        Ok(status) => {
-            if !status.success() {
-                println!("Error opening file in editor");
-            }
-
-            history.reload_content();
-        }
-        Err(_) => {
-            println!("Error opening file in editor");
-        }
-    }
-}
-
-fn help_command() {
-    println!("\nAvailable commands:");
-    println!(":q - quit");
-    println!(
-        ":list <optional pattern> - list files in the sllama directory. \
-                    Optionally, you can provide a pattern to filter the results."
-    );
-    println!(
-        ":switch <history_file> - switch to a different history file. \
-                    Either relative to sllama_dir or absolute path."
-    );
-    println!(":help - show this help message");
-    println!(":edit - open the history file in your editor");
-    println!(":sysprompt <prompt> - set the system prompt for current session");
-}
-
-fn list_command(sllama_dir: &str, args: Vec<&str>) {
-    let pattern = args.get(0).unwrap_or(&"");
-
-    fn list_dir_contents(dir: &str, pattern: &str, sllama_dir: &str) -> io::Result<()> {
-        for entry in fs::read_dir(dir)? {
-            let entry = entry?;
-            let path = entry.path();
-
-            if (pattern.is_empty() || path.display().to_string().contains(pattern))
-                && !path.is_dir()
-            {
-                match path.display().to_string().strip_prefix(sllama_dir) {
-                    None => println!("{}", path.display()),
-                    Some(ds) => {
-                        let mut cleaned_ds = ds.to_string();
-                        if cleaned_ds.starts_with('/') {
-                            cleaned_ds = cleaned_ds[1..].to_string();
-                        }
-                        println!("{}", cleaned_ds)
-                    }
-                }
-            }
-            if path.is_dir() {
-                list_dir_contents(path.to_str().unwrap(), pattern, sllama_dir)?;
-            }
-        }
-        Ok(())
-    }
-
-    match list_dir_contents(sllama_dir, pattern, sllama_dir) {
-        Ok(_) => (),
-        Err(e) => eprintln!("Error reading directory: {}", e),
-    }
-}
-
-fn switch_command(args: Vec<&str>) -> Option<String> {
-    let new_history_file = args.get(0).unwrap_or(&"");
-
-    if new_history_file.is_empty() {
-        println!("Error: No history file specified. Usage: :switch <history_file>");
-        return None;
-    }
-
-    Some(new_history_file.to_string())
 }
