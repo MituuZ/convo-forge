@@ -1,3 +1,20 @@
+/*
+ * Copyright © 2025 Mitja Leino
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+ * documentation files (the “Software”), to deal in the Software without restriction, including without limitation
+ * the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
+ * and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE
+ * WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS
+ * OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+ * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ *
+ */
+
 mod config;
 mod history_file;
 mod ollama_client;
@@ -37,7 +54,7 @@ fn main() -> io::Result<()> {
     let args = Args::parse();
 
     // Get the filename from arguments
-    let filename = &args.history_file;
+    let mut filename: String = args.history_file.clone();
 
     // Read the input file if provided
     let input_file_content = if let Some(file_path) = args.input_file {
@@ -104,7 +121,8 @@ fn main() -> io::Result<()> {
                 }
                 ":switch" => {
                     if let Some(new_history_file) = switch_command(args) {
-                        let filename = new_history_file;
+                        // Update filename, so ending conversation prints the correct filename
+                        filename = new_history_file;
                         history = HistoryFile::new(filename.clone(), config.sllama_dir.clone())?;
                         println!("{}", history.get_content());
                         println!("Switched to history file: {}", filename);

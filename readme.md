@@ -6,6 +6,7 @@ A command-line interface for interacting with Ollama AI models.
 
 - Store conversations as files
 - Add context to a session with `-f/--file` flag
+- Use commands to modify and customize the current session
 - Prompts are built in the following way:
     1. System prompt
     2. Context file
@@ -133,8 +134,10 @@ You can tell where you have previously responded by --- AI Response --- (added a
 - [x] Clarify how the prompt is formed
 - [x] Add a configuration file
 - [x] Integrate rustyline
+- [ ] Implement completions with rustyline (commands and files)
+- [ ] Support multiline input with shift + enter (using rustyline)
 - [ ] Allow changing the context file during a chat
-- [ ] Implement completions with rustyline
+- [ ] Add support for knowledge directory
 - [ ] Re-implement AI response interruption
 - [ ] Add functionality to truncate a chat
 - [ ] Keep track of the model's context window and file size
