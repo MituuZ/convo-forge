@@ -19,6 +19,25 @@ use serde::Deserialize;
 use std::path::PathBuf;
 use std::{fs, io};
 
+#[derive(Debug, Clone, Copy, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum EditMode {
+    Emacs,
+    Vi,
+}
+
+impl Default for EditMode {
+    fn default() -> Self {
+        EditMode::Emacs
+    }
+}
+
+#[derive(Debug, Deserialize, Default)]
+pub struct RustylineConfig {
+    #[serde(default)]
+    pub edit_mode: EditMode,
+}
+
 #[derive(Deserialize)]
 pub struct Config {
     #[serde(default = "default_model")]
@@ -29,6 +48,9 @@ pub struct Config {
 
     #[serde(default = "default_system_prompt")]
     pub(crate) system_prompt: String,
+
+    #[serde(default)]
+    pub(crate) rustyline: RustylineConfig,
 }
 
 fn default_model() -> String {
@@ -61,6 +83,17 @@ impl Config {
             model: default_model(),
             sllama_dir: default_sllama_dir(),
             system_prompt: default_system_prompt(),
+            rustyline: RustylineConfig::default(),
+        }
+    }
+
+    pub fn create_rustyline_config(&self) -> rustyline::Config {
+        let config = rustyline::Config::builder();
+
+        // Apply edit mode setting
+        match self.rustyline.edit_mode {
+            EditMode::Emacs => config.edit_mode(rustyline::EditMode::Emacs).build(),
+            EditMode::Vi => config.edit_mode(rustyline::EditMode::Vi).build(),
         }
     }
 
@@ -102,7 +135,7 @@ fn get_home_dir() -> Result<PathBuf, &'static str> {
 
 #[cfg(test)]
 mod tests {
-    use crate::config::Config;
+    use crate::config::{Config, EditMode};
 
     #[test]
     fn test_default_config_values() {
@@ -115,5 +148,8 @@ mod tests {
         // For sllama_dir, just check that it ends with "/sllama" or "\sllama"
         // rather than testing the specific home directory path
         assert!(config.sllama_dir.ends_with("/sllama") || config.sllama_dir.ends_with("\\sllama"));
+
+        // Check rustyline default values
+        matches!(config.rustyline.edit_mode, EditMode::Emacs);
     }
 }
