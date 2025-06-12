@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.9 - 2025-06-12
+
+_Add support for rustyline modes_
+
 ## 0.1.8 - 2025-06-09
 
 _Refactor command handling and remove crossterm_

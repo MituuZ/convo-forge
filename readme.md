@@ -102,6 +102,14 @@ You can configure your sllama by creating and modifying TOML configuration locat
 
 ### Options
 
+#### rustyline
+
+##### mode
+
+Switch rustyline input mode between `Emacs` and `Vi`.
+
+Default: `Emacs`
+
 #### model
 
 Ollama model used
@@ -136,6 +144,7 @@ You can tell where you have previously responded by --- AI Response --- (added a
 - [x] Integrate rustyline
 - [ ] Implement completions with rustyline (commands and files)
 - [ ] Support multiline input with shift + enter (using rustyline)
+- [ ] Use `ollama server` and API calls instead
 - [ ] Allow changing the context file during a chat
 - [ ] Add support for knowledge directory
 - [ ] Re-implement AI response interruption
