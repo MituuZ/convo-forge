@@ -77,7 +77,6 @@ fn main() -> io::Result<()> {
     println!("{}", history.get_content());
     println!("You're conversing with {} model", &config.model);
     let mut ollama_client = OllamaClient::new(config.model.clone(), config.system_prompt.clone());
-    println!("Press Enter during AI generation to interrupt the response.");
 
     // Main conversation loop
     loop {
