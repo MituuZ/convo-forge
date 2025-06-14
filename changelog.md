@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.12 - 2025-06-14
+
+_Add support for rustyline completion type (circular and list)_
+
 ## 0.1.11 - 2025-06-14
 
 _Switch to Ollama API instead of run commands_

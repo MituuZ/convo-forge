@@ -124,8 +124,11 @@ You can tell where you have previously responded by --- AI Response --- (added a
 """
 
 [rustyline]
-# Switch rustyline input mode between `Emacs` and `Vi`.
+# Switch rustyline input mode between `emacs` and `vi`.
 mode = "emacs"
+
+# Switch completion type between `circular` and `list`.
+completion_mode = "circular"
 ```
 
 ### Configuring Ollama
