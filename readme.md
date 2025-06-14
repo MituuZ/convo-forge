@@ -16,6 +16,8 @@ A command-line interface for interacting with Ollama API.
 | system | context file                                                 |
 | user   | conversation history + current prompt (TODO: format history) |
 
+[Wishlist at docs/todo.md](docs/todo.md)
+
 ## Installation
 
 ```shell
@@ -140,26 +142,6 @@ cforge sends an empty message to preload the model before calling it and tries t
 response from the model.
 
 [Ollama Docs - Keeping a model loaded in memory](https://ollama.readthedocs.io/en/faq/?h=keep#how-do-i-keep-a-model-loaded-in-memory-or-make-it-unload-immediately)
-
-## TODO
-
-- [x] Clarify how the prompt is formed
-- [x] Add a configuration file
-- [x] Integrate rustyline
-- [x] Use ollama API instead of run commands
-- [ ] Parse the chat history to a correctly formatted JSON
-- [ ] Delimiter customization
-- [ ] Add `keep_alive` configuration that is sent with the API requests
-- [ ] Implement completions with rustyline
-    - [x] Commands
-    - [ ] Files
-- [ ] Support multiline input with shift + enter (using rustyline)
-- [ ] Allow changing the context file during a chat
-- [ ] Add support for knowledge directory
-- [ ] Re-implement AI response interruption
-- [ ] Add functionality to truncate a chat
-- [ ] Keep track of the model's context window and file size
-- [ ] Create memories, which are included in the prompt by default (session/global)
 
 ## Dependencies
 
