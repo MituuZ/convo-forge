@@ -1,4 +1,4 @@
-# silent-llama
+# convo-forge
 
 A command-line interface for interacting with Ollama API.
 
@@ -12,29 +12,29 @@ A command-line interface for interacting with Ollama API.
 
 | Role   | Content                                                      |
 |--------|--------------------------------------------------------------|
-| system | sllama system prompt                                         |
+| system | cforge system prompt                                         |
 | system | context file                                                 |
 | user   | conversation history + current prompt (TODO: format history) |
 
 ## Installation
 
 ```shell
-git clone https://github.com/mituuz/silent-llama.git
-cd silent-llama
+git clone https://github.com/mituuz/convo-forge.git
+cd convo-forge
 cargo build --release
 ```
 
 ## Usage
 
 ```shell
-sllama <HISTORY_FILE> [OPTIONS]
+cforge <HISTORY_FILE> [OPTIONS]
 ```
 
 ### Arguments
 
 - `<HISTORY_FILE>` - Path to the file that acts as chat history (will be created if it doesn't exist)
-    - If a relative path is provided, it will be created inside the `sllama_dir` directory
-    - If an absolute path is provided, it will be used as-is regardless of `sllama_dir`
+    - If a relative path is provided, it will be created inside the `cforge_dir` directory
+    - If an absolute path is provided, it will be used as-is regardless of `cforge_dir`
 
 ### Options
 
@@ -46,10 +46,10 @@ sllama <HISTORY_FILE> [OPTIONS]
 
 ```shell
 # Start a new conversation saving history to chat.txt
-sllama chat.txt
+cforge chat.txt
 
 # Continue a conversation with additional context from code.rs
-sllama chat.txt -f code.rs
+cforge chat.txt -f code.rs
 ```
 
 ### Commands
@@ -64,13 +64,13 @@ List available commands.
 
 #### List
 
-List all files in sllama_dir, optionally add a filter string.
+List all files in cforge_dir, optionally add a filter string.
 
 `:list <filter>`
 
 #### Switch
 
-Switch to a different history file. Supports either absolute or relative paths (from `sllama_dir`).
+Switch to a different history file. Supports either absolute or relative paths (from `cforge_dir`).
 
 `:switch relative/path`
 `:switch /absolute/path`
@@ -100,8 +100,8 @@ Update the system prompt for this session. Does not modify any configurations.
 
 ## Configuration
 
-You can configure your sllama by creating and modifying TOML configuration located at `~/.sllama.toml`/
-`%USERPROFILE%\.sllama.toml`.
+You can configure your cforge by creating and modifying TOML configuration located at `~/.cforge.toml`/
+`%USERPROFILE%\.cforge.toml`.
 
 An example toml populated with the default values.
 
@@ -109,14 +109,14 @@ An example toml populated with the default values.
 # Ollama model used.
 model = "gemma3:12b"
 
-# Path to the sllama directory. This will hold new history files by default.
+# Path to the cforge directory. This will hold new history files by default.
 # ~ is expanded to the user's home directory based on `$HOME` or `%USERPROFILE%`. (not verified on windows)
-sllama_dir = "~/sllama"
+cforge_dir = "~/cforge"
 
 # System prompt that configures the AI assistant's behavior.
 system_prompt = """
 You are an AI assistant receiving input from a command-line
-application called silent-llama (sllama). The user may include additional context from another file. 
+application called convo-forge (cforge). The user may include additional context from another file. 
 This supplementary content appears after the system prompt and before the history file content.
 Your responses are displayed in the terminal and saved to the history file.
 Keep your answers helpful, concise, and relevant to both the user's direct query and any file context provided.
@@ -136,7 +136,7 @@ completion_mode = "circular"
 Ollama unloads the models after a set time. This can be controlled either from an environment variable or through the
 [message itself](#todo).
 
-sllama sends an empty message to preload the model before calling it and tries to resend messages that get an empty
+cforge sends an empty message to preload the model before calling it and tries to resend messages that get an empty
 response from the model.
 
 [Ollama Docs - Keeping a model loaded in memory](https://ollama.readthedocs.io/en/faq/?h=keep#how-do-i-keep-a-model-loaded-in-memory-or-make-it-unload-immediately)

@@ -73,7 +73,7 @@ fn main() -> io::Result<()> {
     };
 
     // Get the filename from arguments
-    let mut history = HistoryFile::new(args.history_file.clone(), config.sllama_dir.clone())?;
+    let mut history = HistoryFile::new(args.history_file.clone(), config.cforge_dir.clone())?;
     println!("{}", history.get_content());
     println!("You're conversing with {} model", &config.model);
     let mut ollama_client = OllamaClient::new(config.model.clone(), config.system_prompt.clone());
@@ -125,14 +125,14 @@ fn main() -> io::Result<()> {
                     &*args,
                     &mut ollama_client,
                     &mut history,
-                    &config.sllama_dir,
+                    &config.cforge_dir,
                 );
 
                 if let Some(command_fn) = command_registry.get(command_string.as_str()) {
                     match command_fn(command_params)? {
                         commands::CommandResult::Quit => break,
                         SwitchHistory(new_file) => {
-                            history = HistoryFile::new(new_file, config.sllama_dir.clone())?;
+                            history = HistoryFile::new(new_file, config.cforge_dir.clone())?;
                             println!("{}", history.get_content());
                             println!("Switched to history file: {}", history.filename);
                             continue;
