@@ -89,8 +89,7 @@ impl OllamaClient {
             "messages": [
                 { "role": "system", "content": self.system_prompt },
                 { "role": "system", "content": format!("Additional context that the user has provided: {}", context_content.unwrap_or("")) },
-                { "role": "user", "content": format!("Here's the conversation up to this point: {}", history_content) },
-                { "role": "user", "content": user_prompt },
+                { "role": "user", "content": format!("Here's the conversation so far: {}\n\n Here's the user's latest prompt: {}", history_content, user_prompt) },
                 ],
             "stream": false,
         });

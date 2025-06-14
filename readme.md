@@ -10,12 +10,11 @@ A command-line interface for interacting with Ollama API.
 - Prompts are built in the following way and sent using the
   `/chat` [endpoint (without streaming)](https://github.com/ollama/ollama/blob/main/docs/api.md#chat-request-no-streaming)
 
-| Role   | Content                                  |
-|--------|------------------------------------------|
-| system | sllama system prompt                     |
-| system | context file                             |
-| system | conversation history (TODO: Format this) |
-| user   | current prompt                           |
+| Role   | Content                                                      |
+|--------|--------------------------------------------------------------|
+| system | sllama system prompt                                         |
+| system | context file                                                 |
+| user   | conversation history + current prompt (TODO: format history) |
 
 ## Installation
 
