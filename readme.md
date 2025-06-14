@@ -133,6 +133,9 @@ mode = "emacs"
 Ollama unloads the models after a set time. This can be controlled either from an environment variable or through the
 [message itself](#todo).
 
+sllama sends an empty message to preload the model before calling it and tries to resend messages that get an empty
+response from the model.
+
 [Ollama Docs - Keeping a model loaded in memory](https://ollama.readthedocs.io/en/faq/?h=keep#how-do-i-keep-a-model-loaded-in-memory-or-make-it-unload-immediately)
 
 ## TODO
