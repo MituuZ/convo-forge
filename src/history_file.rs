@@ -28,12 +28,12 @@ pub(crate) struct HistoryFile {
 }
 
 impl HistoryFile {
-    pub(crate) fn new(path: String, sllama_dir: String) -> io::Result<Self> {
+    pub(crate) fn new(path: String, cforge_dir: String) -> io::Result<Self> {
         let full_path = if Path::new(&path).is_absolute() {
             println!("Opening file from absolute path: {}", path);
             PathBuf::from(path)
         } else {
-            let actual_path = Path::new(&sllama_dir).join(path);
+            let actual_path = Path::new(&cforge_dir).join(path);
             let absolute_path =
                 std::fs::canonicalize(&actual_path).unwrap_or_else(|_| actual_path.clone());
             println!(
@@ -93,10 +93,7 @@ impl HistoryFile {
     }
 
     /// Append AI response to the history file and update internal content
-    pub(crate) fn append_ai_response(
-        &mut self,
-        response: &str,
-    ) -> io::Result<()> {
+    pub(crate) fn append_ai_response(&mut self, response: &str) -> io::Result<()> {
         let mut file = OpenOptions::new()
             .write(true)
             .append(true)
@@ -206,9 +203,7 @@ mod tests {
 
         let mut history_file = HistoryFile::new(path.clone(), String::new()).unwrap();
         history_file.append_user_input("User message 1").unwrap();
-        history_file
-            .append_ai_response("AI response 1")
-            .unwrap();
+        history_file.append_ai_response("AI response 1").unwrap();
         history_file.append_user_input("User message 2").unwrap();
 
         // Verify content has all entries
@@ -228,9 +223,7 @@ mod tests {
         let path = temp_file.path().to_str().unwrap().to_string();
 
         let mut history_file = HistoryFile::new(path.clone(), String::new()).unwrap();
-        history_file
-            .append_ai_response("AI response")
-            .unwrap();
+        history_file.append_ai_response("AI response").unwrap();
 
         // Verify internal content was updated
         assert_eq!(
@@ -266,18 +259,18 @@ mod tests {
 
     #[test]
     fn test_history_file_with_relative_path() {
-        // Create a temporary directory to act as sllama_dir
+        // Create a temporary directory to act as cforge_dir
         let temp_dir = tempfile::tempdir().unwrap();
-        let sllama_dir = temp_dir.path().to_string_lossy().to_string();
+        let cforge_dir = temp_dir.path().to_string_lossy().to_string();
 
         // Use a relative path for the history file
         let relative_path = "test_history.txt".to_string();
 
         // Create the history file
-        let history_file = HistoryFile::new(relative_path.clone(), sllama_dir.clone()).unwrap();
+        let history_file = HistoryFile::new(relative_path.clone(), cforge_dir.clone()).unwrap();
 
-        // Expected full path (sllama_dir + relative_path)
-        let expected_path = Path::new(&sllama_dir).join(&relative_path);
+        // Expected full path (cforge_dir + relative_path)
+        let expected_path = Path::new(&cforge_dir).join(&relative_path);
 
         // Verify the file exists at the expected path
         assert!(expected_path.exists());
@@ -294,9 +287,9 @@ mod tests {
 
     #[test]
     fn test_history_file_with_absolute_path() {
-        // Create a temporary directory to act as sllama_dir
+        // Create a temporary directory to act as cforge_dir
         let temp_dir = tempfile::tempdir().unwrap();
-        let sllama_dir = temp_dir.path().to_string_lossy().to_string();
+        let cforge_dir = temp_dir.path().to_string_lossy().to_string();
 
         // Create another temporary directory for the absolute path
         let absolute_dir = tempfile::tempdir().unwrap();
@@ -307,7 +300,7 @@ mod tests {
             .to_string();
 
         // Create the history file
-        let history_file = HistoryFile::new(absolute_path.clone(), sllama_dir).unwrap();
+        let history_file = HistoryFile::new(absolute_path.clone(), cforge_dir).unwrap();
 
         // Verify the file exists at the absolute path
         assert!(Path::new(&absolute_path).exists());

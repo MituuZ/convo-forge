@@ -30,7 +30,7 @@ pub struct CommandParams<'a, 'b> {
     args: &'a [&'b str],
     ollama_client: &'a mut OllamaClient,
     history: &'a mut HistoryFile,
-    sllama_dir: &'a str,
+    cforge_dir: &'a str,
 }
 
 impl<'a, 'b> CommandParams<'a, 'b> {
@@ -38,13 +38,13 @@ impl<'a, 'b> CommandParams<'a, 'b> {
         args: &'a [&'b str],
         ollama_client: &'a mut OllamaClient,
         history: &'a mut HistoryFile,
-        sllama_dir: &'a str,
+        cforge_dir: &'a str,
     ) -> Self {
         CommandParams {
             args,
             ollama_client,
             history,
-            sllama_dir,
+            cforge_dir,
         }
     }
 }
@@ -75,7 +75,7 @@ fn quit_command(command_params: CommandParams) -> io::Result<CommandResult> {
 fn list_command(command_params: CommandParams) -> io::Result<CommandResult> {
     let pattern = command_params.args.get(0).unwrap_or(&"");
 
-    fn list_dir_contents(dir: &str, pattern: &str, sllama_dir: &str) -> io::Result<()> {
+    fn list_dir_contents(dir: &str, pattern: &str, cforge_dir: &str) -> io::Result<()> {
         for entry in fs::read_dir(dir)? {
             let entry = entry?;
             let path = entry.path();
@@ -83,7 +83,7 @@ fn list_command(command_params: CommandParams) -> io::Result<CommandResult> {
             if (pattern.is_empty() || path.display().to_string().contains(pattern))
                 && !path.is_dir()
             {
-                match path.display().to_string().strip_prefix(sllama_dir) {
+                match path.display().to_string().strip_prefix(cforge_dir) {
                     None => println!("{}", path.display()),
                     Some(ds) => {
                         let mut cleaned_ds = ds.to_string();
@@ -95,16 +95,16 @@ fn list_command(command_params: CommandParams) -> io::Result<CommandResult> {
                 }
             }
             if path.is_dir() {
-                list_dir_contents(path.to_str().unwrap(), pattern, sllama_dir)?;
+                list_dir_contents(path.to_str().unwrap(), pattern, cforge_dir)?;
             }
         }
         Ok(())
     }
 
     list_dir_contents(
-        command_params.sllama_dir,
+        command_params.cforge_dir,
         pattern,
-        command_params.sllama_dir,
+        command_params.cforge_dir,
     )?;
     Ok(CommandResult::Continue)
 }
@@ -113,12 +113,12 @@ fn help_command(_command_params: CommandParams) -> io::Result<CommandResult> {
     println!("\nAvailable commands:");
     println!(":q - quit");
     println!(
-        ":list <optional pattern> - list files in the sllama directory. \
+        ":list <optional pattern> - list files in the cforge directory. \
                     Optionally, you can provide a pattern to filter the results."
     );
     println!(
         ":switch <history_file> - switch to a different history file. \
-                    Either relative to sllama_dir or absolute path. Creates the file if it doesn't exist."
+                    Either relative to cforge_dir or absolute path. Creates the file if it doesn't exist."
     );
     println!(":help - show this help message");
     println!(":edit - open the history file in your editor");

@@ -62,8 +62,8 @@ pub struct Config {
     #[serde(default = "default_model")]
     pub(crate) model: String,
 
-    #[serde(default = "default_sllama_dir")]
-    pub(crate) sllama_dir: String,
+    #[serde(default = "default_cforge_dir")]
+    pub(crate) cforge_dir: String,
 
     #[serde(default = "default_system_prompt")]
     pub(crate) system_prompt: String,
@@ -76,19 +76,19 @@ fn default_model() -> String {
     "gemma3:12b".to_string()
 }
 
-fn default_sllama_dir() -> String {
+fn default_cforge_dir() -> String {
     get_home_dir()
-        .map(|home_dir| home_dir.join("sllama").display().to_string())
+        .map(|home_dir| home_dir.join("cforge").display().to_string())
         .unwrap_or_else(|_| {
             eprintln!("Could not determine home directory, using current directory instead.");
-            "./sllama".to_string()
+            "./cforge".to_string()
         })
 }
 
 fn default_system_prompt() -> String {
     r#"
     You are an AI assistant receiving input from a command-line
-    application called silent-llama (sllama). The user may include additional context from another file. 
+    application called convo-forge (cforge). The user may include additional context from another file.
     This supplementary content appears after the system prompt and before the history file content.
     Your responses are displayed in the terminal and saved to the history file.
     Keep your answers helpful, concise, and relevant to both the user's direct query and any file context provided.
@@ -100,7 +100,7 @@ impl Config {
     pub fn default() -> Self {
         Self {
             model: default_model(),
-            sllama_dir: default_sllama_dir(),
+            cforge_dir: default_cforge_dir(),
             system_prompt: default_system_prompt(),
             rustyline: RustylineConfig::default(),
         }
@@ -156,7 +156,7 @@ impl Config {
 
 fn get_config_path() -> Result<PathBuf, &'static str> {
     match get_home_dir() {
-        Ok(home_dir) => Ok(home_dir.join(".sllama.toml")),
+        Ok(home_dir) => Ok(home_dir.join(".cforge.toml")),
         Err(_) => Err("Could not determine home directory"),
     }
 }
@@ -183,9 +183,9 @@ mod tests {
         assert_eq!(config.model, "gemma3:12b");
         assert!(config.system_prompt.contains("You are an AI assistant"));
 
-        // For sllama_dir, just check that it ends with "/sllama" or "\sllama"
+        // For cforge_dir, just check that it ends with "/cforge" or "\cforge"
         // rather than testing the specific home directory path
-        assert!(config.sllama_dir.ends_with("/sllama") || config.sllama_dir.ends_with("\\sllama"));
+        assert!(config.cforge_dir.ends_with("/cforge") || config.cforge_dir.ends_with("\\cforge"));
 
         // Check rustyline default values
         matches!(config.rustyline.edit_mode, EditMode::Emacs);
