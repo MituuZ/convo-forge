@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.11 - 2025-06-14
+
+_Switch to Ollama API instead of run commands_
+
+### Prompting
+Update the message format to match the `/chat` endpoint requirements.
+
 ## 0.1.10 - 2025-06-14
 
 _Implement basic command completion and hinting with rustyline_

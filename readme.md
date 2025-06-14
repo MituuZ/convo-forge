@@ -1,17 +1,20 @@
 # silent-llama
 
-A command-line interface for interacting with Ollama AI models.
+A command-line interface for interacting with Ollama API.
 
 ## Features
 
 - Store conversations as files
 - Add context to a session with `-f/--file` flag
 - Use commands to modify and customize the current session
-- Prompts are built in the following way:
-    1. System prompt
-    2. Context file
-    3. History file
-    4. Current user prompt
+- Prompts are built in the following way and sent using the
+  `/chat` [endpoint (without streaming)](https://github.com/ollama/ollama/blob/main/docs/api.md#chat-request-no-streaming)
+
+| Role   | Content                                                      |
+|--------|--------------------------------------------------------------|
+| system | sllama system prompt                                         |
+| system | context file                                                 |
+| user   | conversation history + current prompt (TODO: format history) |
 
 ## Installation
 
@@ -125,16 +128,29 @@ You can tell where you have previously responded by --- AI Response --- (added a
 mode = "emacs"
 ```
 
+### Configuring Ollama
+
+Ollama unloads the models after a set time. This can be controlled either from an environment variable or through the
+[message itself](#todo).
+
+sllama sends an empty message to preload the model before calling it and tries to resend messages that get an empty
+response from the model.
+
+[Ollama Docs - Keeping a model loaded in memory](https://ollama.readthedocs.io/en/faq/?h=keep#how-do-i-keep-a-model-loaded-in-memory-or-make-it-unload-immediately)
+
 ## TODO
 
 - [x] Clarify how the prompt is formed
 - [x] Add a configuration file
 - [x] Integrate rustyline
+- [x] Use ollama API instead of run commands
+- [ ] Parse the chat history to a correctly formatted JSON
+- [ ] Delimiter customization
+- [ ] Add `keep_alive` configuration that is sent with the API requests
 - [ ] Implement completions with rustyline
     - [x] Commands
     - [ ] Files
 - [ ] Support multiline input with shift + enter (using rustyline)
-- [ ] Use `ollama server` and API calls instead
 - [ ] Allow changing the context file during a chat
 - [ ] Add support for knowledge directory
 - [ ] Re-implement AI response interruption
@@ -146,6 +162,8 @@ mode = "emacs"
 
 - [Ollama](https://github.com/ollama/ollama) - [MIT](LICENSES/ollama-MIT)
 - [serde](https://github.com/serde-rs/serde) - [MIT](LICENSES/serde-MIT)
+- [serde_json](https://github.com/serde-rs/json) - [MIT](LICENSES/serde_json-MIT)
+- [ureq](https://github.com/algesten/ureq) - [MIT](LICENSES/serde_json-MIT)
 - [toml](https://github.com/toml-rs/toml) - [MIT](LICENSES/toml-MIT)
 - [clap](https://github.com/clap-rs/clap) - [MIT](LICENSES/clap-MIT)
 - [tempfile](https://github.com/Stebalien/tempfile) - [MIT](LICENSES/tempfile-MIT)

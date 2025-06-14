@@ -14,15 +14,40 @@
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  *
  */
+use serde::{Deserialize, Serialize};
+use std::io;
 
-use std::io::{BufReader, Read, Write};
-use std::process::{Command, Stdio};
-use std::time::Duration;
-use std::{io, thread};
+static LLM_PROTOCOL: &str = "http";
+static LLM_HOST: &str = "localhost";
+static LLM_PORT: &str = "11434";
+static LLM_ENDPOINT: &str = "/api/chat";
 
 pub(crate) struct OllamaClient {
     model: String,
     pub(crate) system_prompt: String,
+}
+
+#[derive(Serialize)]
+pub(crate) struct OllamaRequest {
+    pub(crate) message_history: String,
+    pub(crate) current_prompt: String,
+    pub(crate) context: Option<String>,
+    pub(crate) system_prompt: String,
+}
+
+#[derive(Deserialize, Debug)]
+pub(crate) struct OllamaResponse {
+    pub(crate) model: String,
+    pub(crate) created_at: String,
+    pub(crate) message: OllamaMessage,
+    pub(crate) done: bool,
+    pub(crate) done_reason: String,
+}
+
+#[derive(Deserialize, Debug)]
+pub(crate) struct OllamaMessage {
+    pub(crate) role: String,
+    pub(crate) content: String,
 }
 
 impl OllamaClient {
@@ -33,84 +58,73 @@ impl OllamaClient {
         }
     }
 
+    /// Send an empty message to ollama to preload the model.
+    pub(crate) fn verify(&self) -> io::Result<String> {
+        let send_body = serde_json::json!({
+            "model": self.model,
+        });
+
+        let mut response = ureq::post(Self::api_url())
+            .send_json(&send_body)
+            .map_err(|e| io::Error::new(io::ErrorKind::Other, e.to_string()))?;
+
+        let ollama_response = response
+            .body_mut()
+            .read_to_string()
+            .map_err(|e| io::Error::new(io::ErrorKind::Other, e.to_string()))?;
+
+        Ok(ollama_response)
+    }
+
     pub(crate) fn generate_response(
         &self,
         history_content: &str,
         user_prompt: &str,
         context_content: Option<&str>,
     ) -> io::Result<String> {
-        // Create the ollama command with stdout piped
-        let mut cmd = Command::new("ollama")
-            .args(&["run", &self.model])
-            .stdin(Stdio::piped())
-            .stdout(Stdio::piped())
-            .stderr(Stdio::inherit())
-            .spawn()?;
+        let send_body = serde_json::json!({
+            "model": self.model,
+            "messages": [
+                { "role": "system", "content": self.system_prompt },
+                { "role": "system", "content": format!("Additional context that the user has provided: {}", context_content.unwrap_or("")) },
+                { "role": "user", "content": format!("Here's the conversation so far: {}\n\n Here's the user's latest prompt: {}", history_content, user_prompt) },
+                ],
+            "stream": false,
+        });
 
-        // Create the input for the ollama process
-        if let Some(mut stdin) = cmd.stdin.take() {
-            // First, add the system prompt
-            stdin.write_all(b"Here is the system prompt: ")?;
-            stdin.write_all(self.system_prompt.as_bytes())?;
+        let mut response = ureq::post(Self::api_url())
+            .send_json(&send_body)
+            .map_err(|e| io::Error::new(io::ErrorKind::Other, e.to_string()))?;
 
-            // Then add the context file content if available
-            if let Some(ref content) = context_content {
-                stdin.write_all(b"\n\nAdditional context from file: ")?;
-                stdin.write_all(content.as_bytes())?;
-            }
+        let ollama_response: OllamaResponse = response
+            .body_mut()
+            .read_json()
+            .map_err(|e| io::Error::new(io::ErrorKind::Other, e.to_string()))?;
 
-            // Then include the full history file for context
-            stdin.write_all(b"\n\nPrevious conversation: ")?;
-            stdin.write_all(history_content.as_bytes())?;
+        if ollama_response.done
+            && ollama_response.done_reason == "load"
+            && ollama_response.message.content.is_empty()
+        {
+            println!("Model responded with an empty message. Retrying request...");
 
-            // Finally, add the user prompt
-            stdin.write_all(b"\n\nCurrent user prompt: ")?;
-            stdin.write_all(user_prompt.as_bytes())?;
+            std::thread::sleep(std::time::Duration::from_secs(1));
+
+            return self.generate_response(history_content, user_prompt, context_content);
         }
 
-        let stdout = cmd.stdout.take().expect("Failed to open stdout");
-        let mut reader = BufReader::new(stdout);
-        let full_response =
-            read_process_output_with_interrupt(&mut reader).expect("error reading process output");
-        let ollama_response = String::from_utf8_lossy(&full_response).to_string();
-
-        Ok(ollama_response)
+        Ok(ollama_response.message.content)
     }
 
     pub(crate) fn update_system_prompt(&mut self, new_system_prompt: String) {
         self.system_prompt = new_system_prompt;
     }
-}
 
-fn read_process_output_with_interrupt(reader: &mut BufReader<impl Read>) -> io::Result<Vec<u8>> {
-    let mut buffer = [0; 1024];
-    let mut full_response = Vec::new();
-
-    loop {
-        // Set up non-blocking read with timeout
-        match reader.read(&mut buffer) {
-            Ok(0) => break, // End of stream
-            Ok(bytes_read) => {
-                // Write the chunk to console
-                io::stdout().write_all(&buffer[..bytes_read])?;
-                io::stdout().flush()?;
-
-                // Store the chunk for later file writing
-                full_response.extend_from_slice(&buffer[..bytes_read]);
-            }
-            Err(ref e) if e.kind() == io::ErrorKind::WouldBlock => {
-                // Would block, just wait a bit and try again
-                thread::sleep(Duration::from_millis(10));
-                continue;
-            }
-            Err(e) => return Err(e),
-        }
-
-        // Small delay to reduce CPU usage and allow interrupt checking
-        thread::sleep(Duration::from_millis(10));
+    fn api_url() -> String {
+        format!(
+            "{}://{}:{}{}",
+            LLM_PROTOCOL, LLM_HOST, LLM_PORT, LLM_ENDPOINT
+        )
     }
-
-    Ok(full_response)
 }
 
 #[cfg(test)]
@@ -119,12 +133,24 @@ mod tests {
 
     #[test]
     fn test_ollama_client_creation() {
-        let model = "llama2".to_string();
+        let model = "gemma3:4b".to_string();
         let system_prompt = "You are a helpful assistant.".to_string();
 
         let client = OllamaClient::new(model.clone(), system_prompt.clone());
 
         assert_eq!(client.model, model);
         assert_eq!(client.system_prompt, system_prompt);
+    }
+
+    #[test]
+    fn test_update_system_prompt() {
+        let model = "gemma3:4b".to_string();
+        let initial_prompt = "Initial prompt".to_string();
+        let new_prompt = "New system prompt".to_string();
+
+        let mut client = OllamaClient::new(model, initial_prompt);
+        client.update_system_prompt(new_prompt.clone());
+
+        assert_eq!(client.system_prompt, new_prompt);
     }
 }
