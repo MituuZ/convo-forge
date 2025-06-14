@@ -152,11 +152,10 @@ fn main() -> io::Result<()> {
             input_file_content.as_deref(),
         )?;
 
-        println!("{}", ollama_response);
-
         history.append_user_input(&user_prompt)?;
 
-        history.append_ai_response(&ollama_response)?;
+        // Print the AI response with the AI delimiter to make it easier to parse
+        println!("{}", history.append_ai_response(&ollama_response)?);
     }
 
     Ok(())

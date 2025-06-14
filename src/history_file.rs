@@ -20,6 +20,19 @@ use std::io;
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 
+static DELIMITER_USER_INPUT: &str = r#"
+
+-------------------------------------------------------------------
+                        --- User Input ---
+-------------------------------------------------------------------
+"#;
+static DELIMITER_AI_RESPONSE: &str = r#"
+
+-------------------------------------------------------------------
+                        --- AI Response ---
+-------------------------------------------------------------------
+"#;
+
 #[derive(Debug)]
 pub(crate) struct HistoryFile {
     pub(crate) path: String,
@@ -77,6 +90,10 @@ impl HistoryFile {
         &self.content
     }
 
+    pub(crate) fn get_json(&self) -> serde_json::Value {
+        serde_json::from_str(&self.content).unwrap()
+    }
+
     /// Append user input to the history file and update internal content
     pub(crate) fn append_user_input(&mut self, input: &str) -> io::Result<()> {
         let mut file = OpenOptions::new()
@@ -84,7 +101,7 @@ impl HistoryFile {
             .append(true)
             .open(&self.path)?;
 
-        let entry = format!("\n\n--- User Input ---\n\n{}", input);
+        let entry = format!("{}{}", DELIMITER_USER_INPUT, input);
         file.write_all(entry.as_bytes())?;
 
         self.content.push_str(&entry);
@@ -93,7 +110,8 @@ impl HistoryFile {
     }
 
     /// Append AI response to the history file and update internal content
-    pub(crate) fn append_ai_response(&mut self, response: &str) -> io::Result<()> {
+    /// Return the response with the delimiter
+    pub(crate) fn append_ai_response(&mut self, response: &str) -> io::Result<String> {
         let mut file = OpenOptions::new()
             .write(true)
             .append(true)
@@ -101,12 +119,12 @@ impl HistoryFile {
 
         let response_with_note = response.to_string();
 
-        let entry = format!("\n\n--- AI Response ---\n\n{}", response_with_note);
+        let entry = format!("{}{}", DELIMITER_AI_RESPONSE, response_with_note);
         file.write_all(entry.as_bytes())?;
 
         self.content.push_str(&entry);
 
-        Ok(())
+        Ok(entry)
     }
 
     pub(crate) fn reload_content(&mut self) {
