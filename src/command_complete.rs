@@ -110,3 +110,169 @@ impl Validator for CommandHelper {
 
 // This is the key trait that combines all the above functionality
 impl Helper for CommandHelper {}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use rustyline::history::DefaultHistory;
+    use rustyline::Context;
+
+    #[test]
+    fn test_command_helper_new() {
+        let commands = vec!["help", "quit", "save"];
+        let helper = CommandHelper::new(commands);
+
+        assert_eq!(helper.commands, vec!["help", "quit", "save"]);
+        assert!(helper.file_commands.is_empty());
+    }
+
+    #[test]
+    fn test_command_with_arguments() {
+        let commands = vec!["help", "quit", "save"];
+        let helper = CommandHelper::new(commands);
+        let history = DefaultHistory::new();
+        let ctx = Context::new(&history);
+
+        let (pos, matches) = helper.complete(":save file.txt", 12, &ctx).unwrap();
+        assert_eq!(pos, 12);
+        assert!(matches.is_empty());
+    }
+
+    #[test]
+    fn test_no_matches() {
+        let commands = vec!["help", "quit", "save"];
+        let helper = CommandHelper::new(commands);
+        let history = DefaultHistory::new();
+        let ctx = Context::new(&history);
+
+        let (pos, matches) = helper.complete(":xyz", 4, &ctx).unwrap();
+        assert_eq!(pos, 1);
+        assert!(matches.is_empty());
+    }
+
+    #[test]
+    fn test_complete_empty_line() {
+        let commands = vec!["help", "quit", "save"];
+        let helper = CommandHelper::new(commands);
+        let history = DefaultHistory::new();
+        let ctx = Context::new(&history);
+
+        let (pos, matches) = helper.complete("", 0, &ctx).unwrap();
+        assert_eq!(pos, 0);
+        assert!(matches.is_empty());
+    }
+
+    #[test]
+    fn test_complete_non_command_line() {
+        let commands = vec!["help", "quit", "save", "hey"];
+        let helper = CommandHelper::new(commands);
+        let history = DefaultHistory::new();
+        let ctx = Context::new(&history);
+
+        let (pos, matches) = helper.complete("Hey there", 0, &ctx).unwrap();
+        assert_eq!(pos, 0);
+        assert!(matches.is_empty());
+    }
+
+    #[test]
+    fn test_hint_no_match() {
+        let commands = vec!["help", "quit", "save"];
+        let helper = CommandHelper::new(commands);
+        let history = DefaultHistory::new();
+        let ctx = Context::new(&history);
+
+        let hint = helper.hint(":xyz", 4, &ctx);
+        assert_eq!(hint, None);
+    }
+
+    #[test]
+    fn test_hint_with_space() {
+        let commands = vec!["help", "quit", "save"];
+        let helper = CommandHelper::new(commands);
+        let history = DefaultHistory::new();
+        let ctx = Context::new(&history);
+
+        let hint = helper.hint(":help ", 6, &ctx);
+        assert_eq!(hint, None);
+    }
+
+    #[test]
+    fn test_empty_commands_list() {
+        let helper = CommandHelper::new(vec![]);
+        let history = DefaultHistory::new();
+        let ctx = Context::new(&history);
+
+        // Try to complete with an empty command list
+        let (pos, matches) = helper.complete(":h", 2, &ctx).unwrap();
+        assert_eq!(pos, 1);
+        assert!(matches.is_empty());
+
+        // Try to get a hint with an empty command list
+        let hint = helper.hint(":h", 2, &ctx);
+        assert_eq!(hint, None);
+    }
+
+    #[test]
+    fn test_complete_command() {
+        let commands = vec!["help", "quit", "save"];
+        let helper = CommandHelper::new(commands);
+        let history = DefaultHistory::new();
+        let ctx = Context::new(&history);
+
+        // Partial command
+        let (pos, matches) = helper.complete(":h", 2, &ctx).unwrap();
+        assert_eq!(pos, 1);
+        assert_eq!(matches.len(), 1);
+        assert_eq!(matches[0].display, "help");
+
+        // Complete command
+        let (pos, matches) = helper.complete(":help", 5, &ctx).unwrap();
+        assert_eq!(pos, 1);
+        assert!(matches.is_empty());
+    }
+
+    #[test]
+    fn multiple_matches() {
+        let commands = vec!["help", "quit", "switch", "sysprompt"];
+        let helper = CommandHelper::new(commands);
+        let history = DefaultHistory::new();
+        let ctx = Context::new(&history);
+
+        let (pos, matches) = helper.complete(":s", 2, &ctx).unwrap();
+        assert_eq!(pos, 1);
+        assert_eq!(matches.len(), 2);
+
+        let match_strings: Vec<String> = matches.iter().map(|m| m.display.clone()).collect();
+        assert!(match_strings.contains(&"switch".to_string()));
+        assert!(match_strings.contains(&"sysprompt".to_string()));
+    }
+
+    #[test]
+    fn test_hint() {
+        let commands = vec!["help", "quit", "save"];
+        let helper = CommandHelper::new(commands);
+        let history = DefaultHistory::new();
+        let ctx = Context::new(&history);
+
+        // Partial command
+        let hint = helper.hint(":h", 2, &ctx);
+        assert_eq!(hint, Some("elp".to_string()));
+
+        // Complete command
+        let hint = helper.hint(":help", 5, &ctx);
+        assert_eq!(hint, None);
+    }
+
+    #[test]
+    fn test_highlighter() {
+        let helper = CommandHelper::new(vec!["help"]);
+
+        // Test line highlighting (currently returns unchanged)
+        let highlighted = helper.highlight("test line", 4);
+        assert_eq!(highlighted, "test line");
+
+        // Test hint highlighting (currently returns unchanged)
+        let highlighted_hint = helper.highlight_hint("hint text");
+        assert_eq!(highlighted_hint, "hint text");
+    }
+}
