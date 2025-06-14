@@ -15,14 +15,34 @@
  *
  */
 
-use std::io::{BufReader, Read, Write};
-use std::process::{Command, Stdio};
-use std::time::Duration;
-use std::{io, thread};
+use serde::{Deserialize, Serialize};
+use std::io;
 
 pub(crate) struct OllamaClient {
     model: String,
     pub(crate) system_prompt: String,
+}
+
+#[derive(Serialize)]
+pub(crate) struct OllamaRequest {
+    pub(crate) message_history: String,
+    pub(crate) current_prompt: String,
+    pub(crate) context: Option<String>,
+    pub(crate) system_prompt: String,
+}
+
+#[derive(Deserialize, Debug)]
+pub(crate) struct OllamaResponse {
+    pub(crate) model: String,
+    pub(crate) created_at: String,
+    pub(crate) message: OllamaMessage,
+    pub(crate) done: bool,
+}
+
+#[derive(Deserialize, Debug)]
+pub(crate) struct OllamaMessage {
+    pub(crate) role: String,
+    pub(crate) content: String,
 }
 
 impl OllamaClient {
@@ -39,78 +59,32 @@ impl OllamaClient {
         user_prompt: &str,
         context_content: Option<&str>,
     ) -> io::Result<String> {
-        // Create the ollama command with stdout piped
-        let mut cmd = Command::new("ollama")
-            .args(&["run", &self.model])
-            .stdin(Stdio::piped())
-            .stdout(Stdio::piped())
-            .stderr(Stdio::inherit())
-            .spawn()?;
+        let send_body = serde_json::json!({
+            "model": self.model,
+            "messages": [
+                { "role": "system", "content": self.system_prompt },
+                { "role": "system", "content": format!("Additional context that the user has provided: {}", context_content.unwrap_or("")) },
+                { "role": "system", "content": format!("The conversation so far: {}", history_content) },
+                { "role": "user", "content": user_prompt },
+                ],
+            "stream": false,
+        });
 
-        // Create the input for the ollama process
-        if let Some(mut stdin) = cmd.stdin.take() {
-            // First, add the system prompt
-            stdin.write_all(b"Here is the system prompt: ")?;
-            stdin.write_all(self.system_prompt.as_bytes())?;
+        let mut response = ureq::post("http://localhost:11434/api/chat")
+            .send_json(&send_body)
+            .map_err(|e| io::Error::new(io::ErrorKind::Other, e.to_string()))?;
 
-            // Then add the context file content if available
-            if let Some(ref content) = context_content {
-                stdin.write_all(b"\n\nAdditional context from file: ")?;
-                stdin.write_all(content.as_bytes())?;
-            }
+        let ollama_response: OllamaResponse = response
+            .body_mut()
+            .read_json()
+            .map_err(|e| io::Error::new(io::ErrorKind::Other, e.to_string()))?;
 
-            // Then include the full history file for context
-            stdin.write_all(b"\n\nPrevious conversation: ")?;
-            stdin.write_all(history_content.as_bytes())?;
-
-            // Finally, add the user prompt
-            stdin.write_all(b"\n\nCurrent user prompt: ")?;
-            stdin.write_all(user_prompt.as_bytes())?;
-        }
-
-        let stdout = cmd.stdout.take().expect("Failed to open stdout");
-        let mut reader = BufReader::new(stdout);
-        let full_response =
-            read_process_output_with_interrupt(&mut reader).expect("error reading process output");
-        let ollama_response = String::from_utf8_lossy(&full_response).to_string();
-
-        Ok(ollama_response)
+        Ok(ollama_response.message.content)
     }
 
     pub(crate) fn update_system_prompt(&mut self, new_system_prompt: String) {
         self.system_prompt = new_system_prompt;
     }
-}
-
-fn read_process_output_with_interrupt(reader: &mut BufReader<impl Read>) -> io::Result<Vec<u8>> {
-    let mut buffer = [0; 1024];
-    let mut full_response = Vec::new();
-
-    loop {
-        // Set up non-blocking read with timeout
-        match reader.read(&mut buffer) {
-            Ok(0) => break, // End of stream
-            Ok(bytes_read) => {
-                // Write the chunk to console
-                io::stdout().write_all(&buffer[..bytes_read])?;
-                io::stdout().flush()?;
-
-                // Store the chunk for later file writing
-                full_response.extend_from_slice(&buffer[..bytes_read]);
-            }
-            Err(ref e) if e.kind() == io::ErrorKind::WouldBlock => {
-                // Would block, just wait a bit and try again
-                thread::sleep(Duration::from_millis(10));
-                continue;
-            }
-            Err(e) => return Err(e),
-        }
-
-        // Small delay to reduce CPU usage and allow interrupt checking
-        thread::sleep(Duration::from_millis(10));
-    }
-
-    Ok(full_response)
 }
 
 #[cfg(test)]

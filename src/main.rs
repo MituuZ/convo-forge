@@ -139,6 +139,8 @@ fn main() -> io::Result<()> {
             input_file_content.as_deref(),
         )?;
 
+        println!("{}", ollama_response);
+
         history.append_user_input(&user_prompt)?;
 
         history.append_ai_response(&ollama_response)?;
