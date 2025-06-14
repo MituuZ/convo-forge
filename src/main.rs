@@ -77,6 +77,7 @@ fn main() -> io::Result<()> {
     println!("{}", history.get_content());
     println!("You're conversing with {} model", &config.model);
     let mut ollama_client = OllamaClient::new(config.model.clone(), config.system_prompt.clone());
+    ollama_client.verify().expect("Model is not available.");
 
     // Main conversation loop
     loop {

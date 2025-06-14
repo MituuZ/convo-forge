@@ -14,9 +14,13 @@
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  *
  */
-
 use serde::{Deserialize, Serialize};
 use std::io;
+
+static LLM_PROTOCOL: &str = "http";
+static LLM_HOST: &str = "localhost";
+static LLM_PORT: &str = "11434";
+static LLM_ENDPOINT: &str = "/api/chat";
 
 pub(crate) struct OllamaClient {
     model: String,
@@ -37,6 +41,7 @@ pub(crate) struct OllamaResponse {
     pub(crate) created_at: String,
     pub(crate) message: OllamaMessage,
     pub(crate) done: bool,
+    pub(crate) done_reason: String,
 }
 
 #[derive(Deserialize, Debug)]
@@ -53,6 +58,26 @@ impl OllamaClient {
         }
     }
 
+    /// Send an empty message to ollama to preload the model.
+    pub(crate) fn verify(&self) -> io::Result<()> {
+        let send_body = serde_json::json!({
+            "model": self.model,
+        });
+
+        let mut response = ureq::post(Self::api_url())
+            .send_json(&send_body)
+            .map_err(|e| io::Error::new(io::ErrorKind::Other, e.to_string()))?;
+
+        let ollama_response = response
+            .body_mut()
+            .read_to_string()
+            .map_err(|e| io::Error::new(io::ErrorKind::Other, e.to_string()))?;
+
+        println!("Preloaded the model: {:?}", ollama_response);
+
+        Ok(())
+    }
+
     pub(crate) fn generate_response(
         &self,
         history_content: &str,
@@ -64,13 +89,13 @@ impl OllamaClient {
             "messages": [
                 { "role": "system", "content": self.system_prompt },
                 { "role": "system", "content": format!("Additional context that the user has provided: {}", context_content.unwrap_or("")) },
-                { "role": "system", "content": format!("The conversation so far: {}", history_content) },
+                { "role": "user", "content": format!("Here's the conversation up to this point: {}", history_content) },
                 { "role": "user", "content": user_prompt },
                 ],
             "stream": false,
         });
 
-        let mut response = ureq::post("http://localhost:11434/api/chat")
+        let mut response = ureq::post(Self::api_url())
             .send_json(&send_body)
             .map_err(|e| io::Error::new(io::ErrorKind::Other, e.to_string()))?;
 
@@ -79,11 +104,29 @@ impl OllamaClient {
             .read_json()
             .map_err(|e| io::Error::new(io::ErrorKind::Other, e.to_string()))?;
 
+        if ollama_response.done
+            && ollama_response.done_reason == "load"
+            && ollama_response.message.content.is_empty()
+        {
+            println!("Model responded with an empty message. Retrying request...");
+
+            std::thread::sleep(std::time::Duration::from_secs(1));
+
+            return self.generate_response(history_content, user_prompt, context_content);
+        }
+
         Ok(ollama_response.message.content)
     }
 
     pub(crate) fn update_system_prompt(&mut self, new_system_prompt: String) {
         self.system_prompt = new_system_prompt;
+    }
+
+    fn api_url() -> String {
+        format!(
+            "{}://{}:{}{}",
+            LLM_PROTOCOL, LLM_HOST, LLM_PORT, LLM_ENDPOINT
+        )
     }
 }
 
