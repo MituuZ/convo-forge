@@ -129,6 +129,13 @@ You can tell where you have previously responded by --- AI Response --- (added a
 mode = "emacs"
 ```
 
+### Configuring Ollama
+
+Ollama unloads the models after a set time. This can be controlled either from an environment variable or through the
+[message itself](#todo).
+
+[Ollama Docs - Keeping a model loaded in memory](https://ollama.readthedocs.io/en/faq/?h=keep#how-do-i-keep-a-model-loaded-in-memory-or-make-it-unload-immediately)
+
 ## TODO
 
 - [x] Clarify how the prompt is formed
@@ -137,6 +144,7 @@ mode = "emacs"
 - [x] Use `ollama serve` and API calls instead
 - [ ] Parse the chat history to a correctly formatted JSON
 - [ ] Delimiter customization
+- [ ] Add `keep_alive` configuration that is sent with the API requests
 - [ ] Implement completions with rustyline
     - [x] Commands
     - [ ] Files
