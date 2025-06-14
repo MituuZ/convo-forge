@@ -130,7 +130,9 @@ mode = "emacs"
 - [x] Clarify how the prompt is formed
 - [x] Add a configuration file
 - [x] Integrate rustyline
-- [ ] Implement completions with rustyline (commands and files)
+- [ ] Implement completions with rustyline
+    - [x] Commands
+    - [ ] Files
 - [ ] Support multiline input with shift + enter (using rustyline)
 - [ ] Use `ollama server` and API calls instead
 - [ ] Allow changing the context file during a chat
