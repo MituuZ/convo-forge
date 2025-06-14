@@ -133,12 +133,24 @@ mod tests {
 
     #[test]
     fn test_ollama_client_creation() {
-        let model = "llama2".to_string();
+        let model = "gemma3:4b".to_string();
         let system_prompt = "You are a helpful assistant.".to_string();
 
         let client = OllamaClient::new(model.clone(), system_prompt.clone());
 
         assert_eq!(client.model, model);
         assert_eq!(client.system_prompt, system_prompt);
+    }
+
+    #[test]
+    fn test_update_system_prompt() {
+        let model = "gemma3:4b".to_string();
+        let initial_prompt = "Initial prompt".to_string();
+        let new_prompt = "New system prompt".to_string();
+
+        let mut client = OllamaClient::new(model, initial_prompt);
+        client.update_system_prompt(new_prompt.clone());
+
+        assert_eq!(client.system_prompt, new_prompt);
     }
 }
