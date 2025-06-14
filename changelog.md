@@ -1,8 +1,8 @@
 # Changelog
 
-## Next release
+## 0.1.10 - 2025-06-14
 
-_Implement basic command completion with rustyline_
+_Implement basic command completion and hinting with rustyline_
 
 ## 0.1.9 - 2025-06-12
 
