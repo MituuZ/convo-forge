@@ -146,6 +146,8 @@ mode = "emacs"
 
 - [Ollama](https://github.com/ollama/ollama) - [MIT](LICENSES/ollama-MIT)
 - [serde](https://github.com/serde-rs/serde) - [MIT](LICENSES/serde-MIT)
+- [serde_json](https://github.com/serde-rs/json) - [MIT](LICENSES/serde_json-MIT)
+- [ureq](https://github.com/algesten/ureq) - [MIT](LICENSES/serde_json-MIT)
 - [toml](https://github.com/toml-rs/toml) - [MIT](LICENSES/toml-MIT)
 - [clap](https://github.com/clap-rs/clap) - [MIT](LICENSES/clap-MIT)
 - [tempfile](https://github.com/Stebalien/tempfile) - [MIT](LICENSES/tempfile-MIT)
