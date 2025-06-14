@@ -35,10 +35,26 @@ impl Default for EditMode {
     }
 }
 
+#[derive(Debug, Clone, Copy, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum CompletionType {
+    Circular,
+    List,
+}
+
+impl Default for CompletionType {
+    fn default() -> Self {
+        CompletionType::Circular
+    }
+}
+
 #[derive(Debug, Deserialize, Default)]
 pub struct RustylineConfig {
     #[serde(default)]
     pub edit_mode: EditMode,
+
+    #[serde(default)]
+    pub completion_type: CompletionType,
 }
 
 #[derive(Deserialize)]
@@ -91,13 +107,22 @@ impl Config {
     }
 
     pub fn create_rustyline_config(&self) -> rustyline::Config {
-        let config = rustyline::Config::builder();
+        let mut config_builder = rustyline::Config::builder();
 
         // Apply edit mode setting
-        match self.rustyline.edit_mode {
-            EditMode::Emacs => config.edit_mode(rustyline::EditMode::Emacs).build(),
-            EditMode::Vi => config.edit_mode(rustyline::EditMode::Vi).build(),
-        }
+        config_builder = match self.rustyline.edit_mode {
+            EditMode::Emacs => config_builder.edit_mode(rustyline::EditMode::Emacs),
+            EditMode::Vi => config_builder.edit_mode(rustyline::EditMode::Vi),
+        };
+
+        config_builder = match self.rustyline.completion_type {
+            CompletionType::Circular => {
+                config_builder.completion_type(rustyline::CompletionType::Circular)
+            }
+            CompletionType::List => config_builder.completion_type(rustyline::CompletionType::List),
+        };
+
+        config_builder.build()
     }
 
     pub fn create_editor(&self) -> rustyline::Result<Editor<CommandHelper, DefaultHistory>> {
@@ -164,5 +189,9 @@ mod tests {
 
         // Check rustyline default values
         matches!(config.rustyline.edit_mode, EditMode::Emacs);
+        matches!(
+            config.rustyline.completion_type,
+            crate::config::CompletionType::Circular
+        );
     }
 }
