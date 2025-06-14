@@ -15,6 +15,7 @@
  *
  */
 
+mod command_complete;
 mod commands;
 mod config;
 mod history_file;
@@ -76,7 +77,6 @@ fn main() -> io::Result<()> {
     println!("{}", history.get_content());
     println!("You're conversing with {} model", &config.model);
     let mut ollama_client = OllamaClient::new(config.model.clone(), config.system_prompt.clone());
-    println!("Press Enter during AI generation to interrupt the response.");
 
     // Main conversation loop
     loop {
@@ -85,8 +85,7 @@ fn main() -> io::Result<()> {
             "\nEnter your prompt or a command (type ':q' to end or ':help' for other commands)"
         );
 
-        let rustyline_config = config.create_rustyline_config();
-        let mut rl = match rustyline::DefaultEditor::with_config(rustyline_config) {
+        let mut rl = match config.create_editor() {
             Ok(r) => r,
             Err(e) => {
                 eprintln!("Error initializing rustyline: {}", e);

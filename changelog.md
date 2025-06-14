@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.10 - 2025-06-14
+
+_Implement basic command completion and hinting with rustyline_
+
 ## 0.1.9 - 2025-06-12
 
 _Add support for rustyline modes_

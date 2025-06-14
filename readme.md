@@ -100,41 +100,29 @@ Update the system prompt for this session. Does not modify any configurations.
 You can configure your sllama by creating and modifying TOML configuration located at `~/.sllama.toml`/
 `%USERPROFILE%\.sllama.toml`.
 
-### Options
+An example toml populated with the default values.
 
-#### rustyline
+```toml
+# Ollama model used.
+model = "gemma3:12b"
 
-##### mode
+# Path to the sllama directory. This will hold new history files by default.
+# ~ is expanded to the user's home directory based on `$HOME` or `%USERPROFILE%`. (not verified on windows)
+sllama_dir = "~/sllama"
 
-Switch rustyline input mode between `Emacs` and `Vi`.
-
-Default: `Emacs`
-
-#### model
-
-Ollama model used
-
-Default: `gemma3:12b`
-
-#### sllama_dir
-
-Path to the sllama directory. This will hold new history files by default.
-
-Default: `~/sllama`
-
-#### system_prompt
-
-System prompt that configures the AI assistant's behavior.
-
-Default:
-
-```
+# System prompt that configures the AI assistant's behavior.
+system_prompt = """
 You are an AI assistant receiving input from a command-line
 application called silent-llama (sllama). The user may include additional context from another file. 
 This supplementary content appears after the system prompt and before the history file content.
 Your responses are displayed in the terminal and saved to the history file.
 Keep your answers helpful, concise, and relevant to both the user's direct query and any file context provided.
 You can tell where you have previously responded by --- AI Response --- (added automatically).
+"""
+
+[rustyline]
+# Switch rustyline input mode between `Emacs` and `Vi`.
+mode = "emacs"
 ```
 
 ## TODO
@@ -142,7 +130,9 @@ You can tell where you have previously responded by --- AI Response --- (added a
 - [x] Clarify how the prompt is formed
 - [x] Add a configuration file
 - [x] Integrate rustyline
-- [ ] Implement completions with rustyline (commands and files)
+- [ ] Implement completions with rustyline
+    - [x] Commands
+    - [ ] Files
 - [ ] Support multiline input with shift + enter (using rustyline)
 - [ ] Use `ollama server` and API calls instead
 - [ ] Allow changing the context file during a chat
