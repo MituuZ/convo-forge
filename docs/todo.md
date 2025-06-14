@@ -11,9 +11,14 @@
     - [x] Commands
     - [ ] Files
 - [ ] Support multiline input with shift + enter (using rustyline)
-- [ ] Allow changing the context file during a chat
 - [ ] Add support for knowledge directory
 - [ ] Re-implement AI response interruption
 - [ ] Add functionality to truncate a chat
 - [ ] Keep track of the model's context window and file size
 - [ ] Create memories, which are included in the prompt by default (session/global)
+
+## Commands
+
+- [ ] Copy the history file to another location
+- [ ] Allow changing the context file during a chat
+- [ ] Use prompt files with the current message
