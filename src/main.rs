@@ -77,7 +77,19 @@ fn main() -> io::Result<()> {
     println!("{}", history.get_content());
     println!("You're conversing with {} model", &config.model);
     let mut ollama_client = OllamaClient::new(config.model.clone(), config.system_prompt.clone());
-    ollama_client.verify().expect("Model is not available.");
+
+    match ollama_client.verify() {
+        Ok(s) => println!("{}", s),
+        Err(e) => {
+            println!("\n\nModel is not available: {}", e);
+            println!(
+                "Check that Ollama is installed or run `ollama pull {}` to pull the model.",
+                config.model
+            );
+
+            std::process::exit(1);
+        }
+    }
 
     // Main conversation loop
     loop {

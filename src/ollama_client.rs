@@ -59,7 +59,7 @@ impl OllamaClient {
     }
 
     /// Send an empty message to ollama to preload the model.
-    pub(crate) fn verify(&self) -> io::Result<()> {
+    pub(crate) fn verify(&self) -> io::Result<String> {
         let send_body = serde_json::json!({
             "model": self.model,
         });
@@ -73,9 +73,7 @@ impl OllamaClient {
             .read_to_string()
             .map_err(|e| io::Error::new(io::ErrorKind::Other, e.to_string()))?;
 
-        println!("Preloaded the model: {:?}", ollama_response);
-
-        Ok(())
+        Ok(ollama_response)
     }
 
     pub(crate) fn generate_response(
