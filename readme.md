@@ -143,7 +143,7 @@ response from the model.
 - [x] Clarify how the prompt is formed
 - [x] Add a configuration file
 - [x] Integrate rustyline
-- [x] Use `ollama serve` and API calls instead
+- [x] Use ollama API instead of run commands
 - [ ] Parse the chat history to a correctly formatted JSON
 - [ ] Delimiter customization
 - [ ] Add `keep_alive` configuration that is sent with the API requests
