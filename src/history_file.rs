@@ -110,25 +110,41 @@ impl HistoryFile {
         let mut messages = Vec::new();
         let mut matches_iter = DELIMITER_REGEX.find_iter(&self.content).peekable();
 
-        while let Some(current_match) = matches_iter.next() {
-            let delimiter = &self.content[current_match.start()..current_match.end()];
-            let role = if delimiter == DELIMITER_USER_INPUT {
-                "user"
-            } else {
-                "assistant"
-            };
+        if matches_iter.peek().is_none() {
+            if let Some(message) = Self::maybe_create_message("user", &self.content) {
+                messages.push(message);
+            }
+        } else {
+            if let Some(first_match) = matches_iter.peek() {
+                let start_position = first_match.start();
+                if start_position > 0 {
+                    let initial_text = &self.content[0..start_position];
+                    if let Some(message) = Self::maybe_create_message("user", initial_text) {
+                        messages.push(message);
+                    }
+                }
+            }
 
-            // Get the content after this delimiter but before the next
-            let content_start = current_match.end();
-            let content_end = matches_iter
-                .peek()
-                .map(|next_match| next_match.start())
-                .unwrap_or(self.content.len());
+            while let Some(current_match) = matches_iter.next() {
+                let delimiter = &self.content[current_match.start()..current_match.end()];
+                let role = if delimiter == DELIMITER_USER_INPUT {
+                    "user"
+                } else {
+                    "assistant"
+                };
 
-            if content_start < content_end {
-                let message_content = &self.content[content_start..content_end];
-                if let Some(message) = Self::maybe_create_message(role, message_content) {
-                    messages.push(message);
+                // Get the content after this delimiter but before the next
+                let content_start = current_match.end();
+                let content_end = matches_iter
+                    .peek()
+                    .map(|next_match| next_match.start())
+                    .unwrap_or(self.content.len());
+
+                if content_start < content_end {
+                    let message_content = &self.content[content_start..content_end];
+                    if let Some(message) = Self::maybe_create_message(role, message_content) {
+                        messages.push(message);
+                    }
                 }
             }
         }
@@ -580,17 +596,17 @@ mod tests {
 
         let relative_path = "test_history.txt".to_string();
         let mut history_file = HistoryFile::new(relative_path, cforge_dir).unwrap();
-        history_file.content = content;
+        history_file.content = content.clone();
 
         assert!(history_file.get_content_json().unwrap().is_array());
-        assert!(
-            history_file
-                .get_content_json()
-                .unwrap()
-                .as_array()
-                .unwrap()
-                .is_empty()
+        let expected = serde_json::json!([
+                {
+                    "role": "user",
+                    "content": content
+                }
+            ]
         );
+        assert_eq!(history_file.get_content_json().unwrap(), expected);
     }
 
     #[test]
