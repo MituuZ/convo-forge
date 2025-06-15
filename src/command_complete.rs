@@ -23,14 +23,14 @@ use std::borrow::Cow;
 
 pub(crate) struct CommandHelper {
     commands: Vec<String>,
-    file_commands: Vec<String>,
+    _file_commands: Vec<String>,
 }
 
 impl CommandHelper {
     pub(crate) fn new(commands: Vec<&str>) -> Self {
         CommandHelper {
             commands: commands.iter().map(|s| s.to_string()).collect(),
-            file_commands: vec![],
+            _file_commands: vec![],
         }
     }
 }
@@ -45,9 +45,6 @@ impl Completer for CommandHelper {
         _ctx: &Context<'_>,
     ) -> rustyline::Result<(usize, Vec<Self::Candidate>)> {
         if line.starts_with(":") {
-            let parts: Vec<&str> = line.split(' ').collect();
-            let command = parts[0];
-
             if line.contains(" ") {
                 // Handle args
                 Ok((pos, vec![]))
@@ -123,7 +120,7 @@ mod tests {
         let helper = CommandHelper::new(commands);
 
         assert_eq!(helper.commands, vec!["help", "quit", "save"]);
-        assert!(helper.file_commands.is_empty());
+        assert!(helper._file_commands.is_empty());
     }
 
     #[test]

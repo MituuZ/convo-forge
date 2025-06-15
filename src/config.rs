@@ -16,8 +16,8 @@
  */
 
 use crate::command_complete::CommandHelper;
+use rustyline::history::DefaultHistory;
 use rustyline::Editor;
-use rustyline::history::{DefaultHistory, FileHistory};
 use serde::Deserialize;
 use std::path::PathBuf;
 use std::{fs, io};

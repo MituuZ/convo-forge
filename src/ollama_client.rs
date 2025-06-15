@@ -14,7 +14,7 @@
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  *
  */
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use serde_json::Value;
 use std::io;
 
@@ -28,18 +28,8 @@ pub(crate) struct OllamaClient {
     pub(crate) system_prompt: String,
 }
 
-#[derive(Serialize)]
-pub(crate) struct OllamaRequest {
-    pub(crate) message_history: String,
-    pub(crate) current_prompt: String,
-    pub(crate) context: Option<String>,
-    pub(crate) system_prompt: String,
-}
-
 #[derive(Deserialize, Debug)]
 pub(crate) struct OllamaResponse {
-    pub(crate) model: String,
-    pub(crate) created_at: String,
     pub(crate) message: OllamaMessage,
     pub(crate) done: bool,
     pub(crate) done_reason: String,
@@ -47,7 +37,6 @@ pub(crate) struct OllamaResponse {
 
 #[derive(Deserialize, Debug)]
 pub(crate) struct OllamaMessage {
-    pub(crate) role: String,
     pub(crate) content: String,
 }
 
