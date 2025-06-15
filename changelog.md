@@ -6,7 +6,7 @@ _Parse history file to JSON array of messages using `user` and `assistant` roles
 
 ### "Breaking" change
 
-Because the delimiters have changed for better visibility and parsing. Messages that do now adhere to this format are
+Because the delimiters have changed for better visibility and parsing. Messages that do not adhere to this format are
 sent as a single user message.
 
 ## 0.1.13 - 2025-06-14
