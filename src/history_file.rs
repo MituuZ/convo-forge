@@ -15,6 +15,8 @@
  *
  */
 
+use lazy_static::lazy_static;
+use regex::Regex;
 use std::fs::OpenOptions;
 use std::io;
 use std::io::{Read, Write};
@@ -32,6 +34,17 @@ static DELIMITER_AI_RESPONSE: &str = r#"
                         --- AI Response ---
 -------------------------------------------------------------------
 "#;
+
+lazy_static! {
+    static ref DELIMITER_REGEX: Regex = {
+        let pattern = format!(
+            r"({}|{})",
+            regex::escape(DELIMITER_USER_INPUT),
+            regex::escape(DELIMITER_AI_RESPONSE)
+        );
+        Regex::new(&pattern).expect("Failed to compile regex pattern")
+    };
+}
 
 #[derive(Debug)]
 pub(crate) struct HistoryFile {
@@ -92,20 +105,8 @@ impl HistoryFile {
 
     /// Get the content of the history file formatted as a JSON list of role, content messages
     pub(crate) fn get_json(&self) -> io::Result<serde_json::Value> {
-        let pattern = format!(
-            r"({}|{})",
-            regex::escape(DELIMITER_USER_INPUT),
-            regex::escape(DELIMITER_AI_RESPONSE)
-        );
-        let regex = regex::Regex::new(&pattern).map_err(|e| {
-            io::Error::new(
-                io::ErrorKind::InvalidData,
-                format!("Failed to compile regex pattern: {}", e),
-            )
-        })?;
         let mut messages = Vec::new();
-
-        let mut matches_iter = regex.find_iter(&self.content).peekable();
+        let mut matches_iter = DELIMITER_REGEX.find_iter(&self.content).peekable();
 
         while let Some(current_match) = matches_iter.next() {
             let delimiter = &self.content[current_match.start()..current_match.end()];
