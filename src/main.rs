@@ -44,15 +44,7 @@ struct Args {
 }
 
 fn main() -> io::Result<()> {
-    let config = match Config::load() {
-        Ok(c) => c,
-        Err(e) => {
-            eprintln!("Error loading config: {}", e);
-            return Ok(());
-        }
-    };
-
-    // Parse command-line arguments
+    let config = Config::load()?;
     let args = Args::parse();
     let command_registry = create_command_registry();
 
@@ -91,9 +83,7 @@ fn main() -> io::Result<()> {
         }
     }
 
-    // Main conversation loop
     loop {
-        // Prompt the user for input
         println!(
             "\nEnter your prompt or a command (type ':q' to end or ':help' for other commands)"
         );
@@ -154,7 +144,7 @@ fn main() -> io::Result<()> {
 
         history.append_user_input(&user_prompt)?;
 
-        // Print the AI response with the AI delimiter to make it easier to parse
+        // Print the AI response with the delimiter to make it easier to parse
         println!("{}", history.append_ai_response(&ollama_response)?);
     }
 
