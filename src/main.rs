@@ -85,7 +85,7 @@ fn main() -> io::Result<()> {
 
     loop {
         println!(
-            "\nEnter your prompt or a command (type ':q' to end or ':help' for other commands)"
+            "\n\nEnter your prompt or a command (type ':q' to end or ':help' for other commands)"
         );
 
         let mut rl = match config.create_editor() {
