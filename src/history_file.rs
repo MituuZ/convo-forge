@@ -414,7 +414,6 @@ mod tests {
     #[test]
     fn test_json_parsing_empty_file() {
         let temp_dir = tempfile::tempdir().unwrap();
-        let temp_path = temp_dir.path().join("test.txt");
         let cforge_dir = temp_dir.path().to_string_lossy().to_string();
         let content = "";
 
