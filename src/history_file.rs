@@ -103,7 +103,9 @@ impl HistoryFile {
         &self.content
     }
 
-    /// Get the content of the history file formatted as a JSON list of role, content messages
+    /// Get the content of the history file formatted as a JSON array
+    ///
+    /// Returns a JSON array of `"role": "", "content": ""` messages
     pub(crate) fn get_content_json(&self) -> io::Result<serde_json::Value> {
         let mut messages = Vec::new();
         let mut matches_iter = DELIMITER_REGEX.find_iter(&self.content).peekable();
@@ -131,7 +133,7 @@ impl HistoryFile {
             }
         }
 
-        Ok(serde_json::json!({ "messages": messages }))
+        Ok(serde_json::Value::Array(messages))
     }
 
     /// Tries to create a message from a role and content
@@ -406,8 +408,15 @@ mod tests {
 
         history_file.content = content.to_string();
 
-        let expected = serde_json::json!({ "messages": [] });
-        assert_eq!(history_file.get_content_json().unwrap(), expected);
+        assert!(history_file.get_content_json().unwrap().is_array());
+        assert!(
+            history_file
+                .get_content_json()
+                .unwrap()
+                .as_array()
+                .unwrap()
+                .is_empty()
+        );
     }
 
     #[test]
@@ -431,8 +440,7 @@ mod tests {
 
         history_file.content = content;
 
-        let expected = serde_json::json!({
-            "messages": [
+        let expected = serde_json::json!([
                 {
                     "role": "user",
                     "content": "User message 1"
@@ -458,7 +466,7 @@ mod tests {
                     "content": "AI response 3"
                 }
             ]
-        });
+        );
         assert_eq!(history_file.get_content_json().unwrap(), expected);
     }
 
@@ -483,8 +491,7 @@ mod tests {
 
         history_file.content = content;
 
-        let expected = serde_json::json!({
-            "messages": [
+        let expected = serde_json::json!([
                 {
                     "role": "user",
                     "content": "User message 1"
@@ -510,7 +517,7 @@ mod tests {
                     "content": "AI response 3"
                 }
             ]
-        });
+        );
         assert_eq!(history_file.get_content_json().unwrap(), expected);
     }
 
@@ -528,8 +535,15 @@ mod tests {
         let mut history_file = HistoryFile::new(relative_path, cforge_dir).unwrap();
         history_file.content = content;
 
-        let expected = serde_json::json!({ "messages": [] });
-        assert_eq!(history_file.get_content_json().unwrap(), expected);
+        assert!(history_file.get_content_json().unwrap().is_array());
+        assert!(
+            history_file
+                .get_content_json()
+                .unwrap()
+                .as_array()
+                .unwrap()
+                .is_empty()
+        );
     }
 
     #[test]
@@ -546,8 +560,15 @@ mod tests {
         let mut history_file = HistoryFile::new(relative_path, cforge_dir).unwrap();
         history_file.content = content;
 
-        let expected = serde_json::json!({ "messages": [] });
-        assert_eq!(history_file.get_content_json().unwrap(), expected);
+        assert!(history_file.get_content_json().unwrap().is_array());
+        assert!(
+            history_file
+                .get_content_json()
+                .unwrap()
+                .as_array()
+                .unwrap()
+                .is_empty()
+        );
     }
 
     #[test]
@@ -561,8 +582,15 @@ mod tests {
         let mut history_file = HistoryFile::new(relative_path, cforge_dir).unwrap();
         history_file.content = content;
 
-        let expected = serde_json::json!({ "messages": [] });
-        assert_eq!(history_file.get_content_json().unwrap(), expected);
+        assert!(history_file.get_content_json().unwrap().is_array());
+        assert!(
+            history_file
+                .get_content_json()
+                .unwrap()
+                .as_array()
+                .unwrap()
+                .is_empty()
+        );
     }
 
     #[test]
@@ -582,8 +610,7 @@ mod tests {
         let mut history_file = HistoryFile::new(relative_path, cforge_dir).unwrap();
         history_file.content = content;
 
-        let expected = serde_json::json!({
-            "messages": [
+        let expected = serde_json::json!([
                 {
                     "role": "user",
                     "content": "Line 1\nLine 2\nLine 3"
@@ -593,7 +620,7 @@ mod tests {
                     "content": "Response\nWith\nMultiple\nLines"
                 }
             ]
-        });
+        );
         assert_eq!(history_file.get_content_json().unwrap(), expected);
     }
 
@@ -609,14 +636,13 @@ mod tests {
         let mut history_file = HistoryFile::new(relative_path, cforge_dir).unwrap();
         history_file.content = content;
 
-        let expected = serde_json::json!({
-            "messages": [
+        let expected = serde_json::json!([
                 {
                     "role": "user",
                     "content": large_text.trim()
                 }
             ]
-        });
+        );
         assert_eq!(history_file.get_content_json().unwrap(), expected);
     }
 

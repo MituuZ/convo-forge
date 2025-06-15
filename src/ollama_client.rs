@@ -79,6 +79,9 @@ impl OllamaClient {
             Err(e) => return Err(e),
         };
 
+        println!("json: {:?}", serde_json::to_string_pretty(&send_body)?);
+        println!("Model responded with: {}", response.message.content);
+
         Ok(response.message.content)
     }
 
@@ -140,6 +143,8 @@ impl OllamaClient {
         history_messages_json: &Value,
     ) -> Vec<Value> {
         let mut messages = vec![];
+
+        println!("history_messages_json: {:?}", history_messages_json);
 
         messages.push(serde_json::json!({ "role": "system", "content": system_prompt }));
 
