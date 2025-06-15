@@ -97,8 +97,12 @@ impl HistoryFile {
             regex::escape(DELIMITER_USER_INPUT),
             regex::escape(DELIMITER_AI_RESPONSE)
         );
-        let regex = regex::Regex::new(&pattern)
-            .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
+        let regex = regex::Regex::new(&pattern).map_err(|e| {
+            io::Error::new(
+                io::ErrorKind::InvalidData,
+                format!("Failed to compile regex pattern: {}", e),
+            )
+        })?;
         let mut messages = Vec::new();
 
         let mut matches_iter = regex.find_iter(&self.content).peekable();
