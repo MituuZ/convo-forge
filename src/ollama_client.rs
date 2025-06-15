@@ -15,6 +15,7 @@
  *
  */
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use std::io;
 
 static LLM_PROTOCOL: &str = "http";
@@ -78,17 +79,20 @@ impl OllamaClient {
 
     pub(crate) fn generate_response(
         &self,
-        history_content: &str,
+        history_messages_json: Value,
         user_prompt: &str,
         context_content: Option<&str>,
     ) -> io::Result<String> {
+        let messages = Self::create_messages(
+            &self.system_prompt,
+            context_content.unwrap_or(""),
+            user_prompt,
+            &history_messages_json,
+        );
+
         let send_body = serde_json::json!({
             "model": self.model,
-            "messages": [
-                { "role": "system", "content": self.system_prompt },
-                { "role": "system", "content": format!("Additional context that the user has provided: {}", context_content.unwrap_or("")) },
-                { "role": "user", "content": format!("Here's the conversation so far: {}\n\n Here's the user's latest prompt: {}", history_content, user_prompt) },
-                ],
+            "messages": messages,
             "stream": false,
         });
 
@@ -109,10 +113,35 @@ impl OllamaClient {
 
             std::thread::sleep(std::time::Duration::from_secs(1));
 
-            return self.generate_response(history_content, user_prompt, context_content);
+            return self.generate_response(history_messages_json, user_prompt, context_content);
         }
 
         Ok(ollama_response.message.content)
+    }
+
+    fn create_messages(
+        system_prompt: &str,
+        context_content: &str,
+        user_prompt: &str,
+        history_messages_json: &Value,
+    ) -> Vec<Value> {
+        let mut messages = vec![];
+
+        messages.push(serde_json::json!({ "role": "system", "content": system_prompt }));
+
+        if !context_content.is_empty() {
+            messages.push(serde_json::json!({ "role": "system", "content": format!("Additional context that the user has provided: {}", context_content) }));
+        }
+
+        if let Some(history_messages_json) = history_messages_json.as_array() {
+            for message in history_messages_json {
+                messages.push(message.clone());
+            }
+        }
+
+        messages.push(serde_json::json!({ "role": "user", "content": user_prompt }));
+
+        messages
     }
 
     pub(crate) fn update_system_prompt(&mut self, new_system_prompt: String) {

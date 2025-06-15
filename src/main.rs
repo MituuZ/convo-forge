@@ -136,8 +136,16 @@ fn main() -> io::Result<()> {
             }
         }
 
+        let history_json = match history.get_content_json() {
+            Ok(s) => s,
+            Err(e) => {
+                eprintln!("Error reading history file: {}", e);
+                break;
+            }
+        };
+
         let ollama_response = ollama_client.generate_response(
-            history.get_content(),
+            history_json,
             &user_prompt,
             input_file_content.as_deref(),
         )?;

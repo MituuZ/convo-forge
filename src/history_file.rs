@@ -98,13 +98,13 @@ impl HistoryFile {
         })
     }
 
-    /// Get the content of the history file
+    /// Get the content of the history file as a &str
     pub(crate) fn get_content(&self) -> &str {
         &self.content
     }
 
     /// Get the content of the history file formatted as a JSON list of role, content messages
-    pub(crate) fn get_json(&self) -> io::Result<serde_json::Value> {
+    pub(crate) fn get_content_json(&self) -> io::Result<serde_json::Value> {
         let mut messages = Vec::new();
         let mut matches_iter = DELIMITER_REGEX.find_iter(&self.content).peekable();
 
@@ -407,7 +407,7 @@ mod tests {
         history_file.content = content.to_string();
 
         let expected = serde_json::json!({ "messages": [] });
-        assert_eq!(history_file.get_json().unwrap(), expected);
+        assert_eq!(history_file.get_content_json().unwrap(), expected);
     }
 
     #[test]
@@ -459,7 +459,7 @@ mod tests {
                 }
             ]
         });
-        assert_eq!(history_file.get_json().unwrap(), expected);
+        assert_eq!(history_file.get_content_json().unwrap(), expected);
     }
 
     #[test]
@@ -511,7 +511,7 @@ mod tests {
                 }
             ]
         });
-        assert_eq!(history_file.get_json().unwrap(), expected);
+        assert_eq!(history_file.get_content_json().unwrap(), expected);
     }
 
     #[test]
@@ -529,7 +529,7 @@ mod tests {
         history_file.content = content;
 
         let expected = serde_json::json!({ "messages": [] });
-        assert_eq!(history_file.get_json().unwrap(), expected);
+        assert_eq!(history_file.get_content_json().unwrap(), expected);
     }
 
     #[test]
@@ -547,7 +547,7 @@ mod tests {
         history_file.content = content;
 
         let expected = serde_json::json!({ "messages": [] });
-        assert_eq!(history_file.get_json().unwrap(), expected);
+        assert_eq!(history_file.get_content_json().unwrap(), expected);
     }
 
     #[test]
@@ -562,7 +562,7 @@ mod tests {
         history_file.content = content;
 
         let expected = serde_json::json!({ "messages": [] });
-        assert_eq!(history_file.get_json().unwrap(), expected);
+        assert_eq!(history_file.get_content_json().unwrap(), expected);
     }
 
     #[test]
@@ -594,7 +594,7 @@ mod tests {
                 }
             ]
         });
-        assert_eq!(history_file.get_json().unwrap(), expected);
+        assert_eq!(history_file.get_content_json().unwrap(), expected);
     }
 
     #[test]
@@ -617,7 +617,7 @@ mod tests {
                 }
             ]
         });
-        assert_eq!(history_file.get_json().unwrap(), expected);
+        assert_eq!(history_file.get_content_json().unwrap(), expected);
     }
 
     #[test]

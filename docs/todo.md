@@ -5,7 +5,6 @@
 - [x] Integrate rustyline
 - [x] Use ollama API instead of run commands
 - [ ] Parse the chat history to a correctly formatted JSON
-- [ ] Delimiter customization
 - [ ] Add `keep_alive` configuration that is sent with the API requests
 - [ ] Implement completions with rustyline
     - [x] Commands
