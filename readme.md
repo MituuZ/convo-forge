@@ -153,6 +153,7 @@ response from the model.
 - [clap](https://github.com/clap-rs/clap) - [MIT](LICENSES/clap-MIT)
 - [tempfile](https://github.com/Stebalien/tempfile) - [MIT](LICENSES/tempfile-MIT)
 - [rustyline](https://github.com/kkawakam/rustyline) - [MIT](LICENSES/rustyline-MIT)
+- [regex](https://github.com/rust-lang/regex) - [MIT](LICENSES/regex-MIT)
 
 ## License
 

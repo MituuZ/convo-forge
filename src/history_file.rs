@@ -90,27 +90,50 @@ impl HistoryFile {
         &self.content
     }
 
-    pub(crate) fn get_json(&self) -> serde_json::Value {
+    pub(crate) fn get_json(&self) -> io::Result<serde_json::Value> {
+        let pattern = format!(
+            r"({}|{})",
+            regex::escape(DELIMITER_USER_INPUT),
+            regex::escape(DELIMITER_AI_RESPONSE)
+        );
+        let regex = regex::Regex::new(&pattern)
+            .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
         let mut messages = Vec::new();
-        let parts: Vec<&str> = self.content.split(DELIMITER_USER_INPUT).collect();
 
-        for part in parts.iter().skip(1) {
-            if let Some((user_msg, rest)) = part.split_once(DELIMITER_AI_RESPONSE) {
-                let message = serde_json::json!({
-                    "role": "user",
-                    "content": user_msg.trim()
-                });
-                messages.push(message);
+        let matches: Vec<_> = regex.find_iter(&self.content).collect();
 
-                let message = serde_json::json!({
-                    "role": "assistant",
-                    "content": rest.trim()
-                });
-                messages.push(message);
+        for i in 0..matches.len() {
+            let current_match = matches[i];
+            let delimiter = &self.content[current_match.start()..current_match.end()];
+
+            // Determine the role based on the delimiter
+            let role = if delimiter == DELIMITER_USER_INPUT {
+                "user"
+            } else {
+                "assistant"
+            };
+
+            // Get the content after this delimiter but before the next
+            let content_start = current_match.end();
+            let content_end = if i + 1 < matches.len() {
+                matches[i + 1].start()
+            } else {
+                self.content.len()
+            };
+
+            // Only add non-empty messages
+            if content_start < content_end {
+                let message_content = &self.content[content_start..content_end];
+                if !message_content.trim().is_empty() {
+                    messages.push(serde_json::json!({
+                        "role": role,
+                        "content": message_content.trim()
+                    }));
+                }
             }
         }
 
-        serde_json::json!({ "messages": messages })
+        Ok(serde_json::json!({ "messages": messages }))
     }
 
     /// Append user input to the history file and update internal content
@@ -371,15 +394,11 @@ mod tests {
         history_file.content = content.to_string();
 
         let expected = serde_json::json!({ "messages": [] });
-        assert_eq!(history_file.get_json(), expected);
+        assert_eq!(history_file.get_json().unwrap(), expected);
     }
 
     #[test]
-    fn test_json_parsing() {
-        fn create_message(delimiter: &str, content: &str) -> String {
-            format!("{}{}", delimiter, content)
-        }
-
+    fn test_json_parsing_linear_messages() {
         let temp_dir = tempfile::tempdir().unwrap();
         let cforge_dir = temp_dir.path().to_string_lossy().to_string();
 
@@ -427,6 +446,62 @@ mod tests {
                 }
             ]
         });
-        assert_eq!(history_file.get_json(), expected);
+        assert_eq!(history_file.get_json().unwrap(), expected);
+    }
+
+    #[test]
+    fn test_json_parsing_non_linear_messages() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let cforge_dir = temp_dir.path().to_string_lossy().to_string();
+
+        let content = format!(
+            "{}{}{}{}{}{}",
+            create_message(DELIMITER_USER_INPUT, "User message 1"),
+            create_message(DELIMITER_USER_INPUT, "User message 2"),
+            create_message(DELIMITER_AI_RESPONSE, "AI response 1"),
+            create_message(DELIMITER_USER_INPUT, "User message 3"),
+            create_message(DELIMITER_AI_RESPONSE, "AI response 2"),
+            create_message(DELIMITER_AI_RESPONSE, "AI response 3"),
+        );
+
+        // Use a relative path for the history file
+        let relative_path = "test_history.txt".to_string();
+        let mut history_file = HistoryFile::new(relative_path.clone(), cforge_dir.clone()).unwrap();
+
+        history_file.content = content;
+
+        let expected = serde_json::json!({
+            "messages": [
+                {
+                    "role": "user",
+                    "content": "User message 1"
+                },
+                {
+                    "role": "user",
+                    "content": "User message 2"
+                },
+                {
+                    "role": "assistant",
+                    "content": "AI response 1"
+                },
+                {
+                    "role": "user",
+                    "content": "User message 3"
+                },
+                {
+                    "role": "assistant",
+                    "content": "AI response 2"
+                },
+                {
+                    "role": "assistant",
+                    "content": "AI response 3"
+                }
+            ]
+        });
+        assert_eq!(history_file.get_json().unwrap(), expected);
+    }
+
+    fn create_message(delimiter: &str, content: &str) -> String {
+        format!("{}{}", delimiter, content)
     }
 }
