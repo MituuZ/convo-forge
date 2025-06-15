@@ -65,16 +65,10 @@ impl OllamaClient {
             "model": self.model,
         });
 
-        let mut response = ureq::post(Self::api_url())
-            .send_json(&send_body)
-            .map_err(|e| io::Error::new(io::ErrorKind::Other, e.to_string()))?;
-
-        let ollama_response = response
-            .body_mut()
-            .read_to_string()
-            .map_err(|e| io::Error::new(io::ErrorKind::Other, e.to_string()))?;
-
-        Ok(ollama_response)
+        match Self::send_request_and_handle_response(&send_body) {
+            Ok(response) => Ok(response.message.content),
+            Err(e) => Err(e),
+        }
     }
 
     pub(crate) fn generate_response(
@@ -83,27 +77,24 @@ impl OllamaClient {
         user_prompt: &str,
         context_content: Option<&str>,
     ) -> io::Result<String> {
-        let messages = Self::create_messages(
-            &self.system_prompt,
+        let send_body = Self::build_json_body(
+            self.model.as_str(),
+            self.system_prompt.as_str(),
             context_content.unwrap_or(""),
             user_prompt,
             &history_messages_json,
         );
 
-        let send_body = serde_json::json!({
-            "model": self.model,
-            "messages": messages,
-            "stream": false,
-        });
+        let response = match Self::poll_for_response(&send_body) {
+            Ok(response) => response,
+            Err(e) => return Err(e),
+        };
 
-        let mut response = ureq::post(Self::api_url())
-            .send_json(&send_body)
-            .map_err(|e| io::Error::new(io::ErrorKind::Other, e.to_string()))?;
+        Ok(response.message.content)
+    }
 
-        let ollama_response: OllamaResponse = response
-            .body_mut()
-            .read_json()
-            .map_err(|e| io::Error::new(io::ErrorKind::Other, e.to_string()))?;
+    fn poll_for_response(send_body: &Value) -> io::Result<OllamaResponse> {
+        let ollama_response = Self::send_request_and_handle_response(&send_body)?;
 
         if ollama_response.done
             && ollama_response.done_reason == "load"
@@ -113,10 +104,44 @@ impl OllamaClient {
 
             std::thread::sleep(std::time::Duration::from_secs(1));
 
-            return self.generate_response(history_messages_json, user_prompt, context_content);
+            return Self::poll_for_response(&send_body);
         }
 
-        Ok(ollama_response.message.content)
+        Ok(ollama_response)
+    }
+
+    fn send_request_and_handle_response(send_body: &Value) -> io::Result<OllamaResponse> {
+        let mut response = ureq::post(Self::api_url())
+            .send_json(&send_body)
+            .map_err(|e| io::Error::new(io::ErrorKind::Other, e.to_string()))?;
+
+        let ollama_response: OllamaResponse = response
+            .body_mut()
+            .read_json()
+            .map_err(|e| io::Error::new(io::ErrorKind::Other, e.to_string()))?;
+
+        Ok(ollama_response)
+    }
+
+    fn build_json_body(
+        model: &str,
+        system_prompt: &str,
+        context_content: &str,
+        user_prompt: &str,
+        history_messages_json: &Value,
+    ) -> Value {
+        let messages = Self::create_messages(
+            system_prompt,
+            context_content,
+            user_prompt,
+            &history_messages_json,
+        );
+
+        serde_json::json!({
+            "model": model,
+            "messages": messages,
+            "stream": false,
+        })
     }
 
     fn create_messages(
@@ -317,5 +342,51 @@ mod tests {
         assert_eq!(messages.len(), 2);
         assert_eq!(messages[0], json!({"role": "system", "content": ""}));
         assert_eq!(messages[1], json!({"role": "user", "content": "Hello!"}));
+    }
+
+    #[test]
+    fn test_build_json_body() {
+        let model = "gemma3:4b";
+        let system_prompt = "You are a helpful assistant.";
+        let context_content = "Sample context";
+        let user_prompt = "Hello!";
+        let history_messages = json!([{"role": "user", "content": "Previous message"}]);
+
+        let result = OllamaClient::build_json_body(
+            model,
+            system_prompt,
+            context_content,
+            user_prompt,
+            &history_messages,
+        );
+
+        assert_eq!(result["model"], json!(model));
+        assert_eq!(result["stream"], json!(false));
+        assert!(result.get("messages").is_some());
+        assert!(result["messages"].is_array());
+        assert_eq!(result["messages"].as_array().unwrap().len(), 4);
+    }
+
+    #[test]
+    fn test_build_json_body_minimal() {
+        let model = "llama3:8b";
+        let system_prompt = "Test prompt";
+        let context_content = ""; // Empty context
+        let user_prompt = "Test question";
+        let history_messages = json!([]); // Empty history
+
+        let result = OllamaClient::build_json_body(
+            model,
+            system_prompt,
+            context_content,
+            user_prompt,
+            &history_messages,
+        );
+
+        assert_eq!(result["model"], json!(model));
+        assert_eq!(result["stream"], json!(false));
+        assert!(result.get("messages").is_some());
+        assert!(result["messages"].is_array());
+        assert_eq!(result["messages"].as_array().unwrap().len(), 2);
     }
 }
