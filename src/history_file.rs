@@ -199,19 +199,19 @@ mod tests {
     fn test_append_user_input() {
         let temp_file = NamedTempFile::new().unwrap();
         let path = temp_file.path().to_str().unwrap().to_string();
+        let user_input = "User message";
 
         let mut history_file = HistoryFile::new(path.clone(), String::new()).unwrap();
-        history_file.append_user_input("User message").unwrap();
+        history_file.append_user_input(user_input).unwrap();
+
+        let expected = format!("{}{}", DELIMITER_USER_INPUT, user_input);
 
         // Verify internal content was updated
-        assert_eq!(
-            history_file.get_content(),
-            "\n\n--- User Input ---\n\nUser message"
-        );
+        assert_eq!(history_file.get_content(), expected);
 
         // Verify file content was updated
         let file_content = fs::read_to_string(path).unwrap();
-        assert_eq!(file_content, "\n\n--- User Input ---\n\nUser message");
+        assert_eq!(file_content, expected);
     }
 
     #[test]
@@ -239,40 +239,39 @@ mod tests {
     fn test_append_ai_response_normal() {
         let temp_file = NamedTempFile::new().unwrap();
         let path = temp_file.path().to_str().unwrap().to_string();
+        let ai_response = "AI response";
 
         let mut history_file = HistoryFile::new(path.clone(), String::new()).unwrap();
-        history_file.append_ai_response("AI response").unwrap();
+        history_file.append_ai_response(ai_response).unwrap();
+
+        let expected = format!("{}{}", DELIMITER_AI_RESPONSE, ai_response);
 
         // Verify internal content was updated
-        assert_eq!(
-            history_file.get_content(),
-            "\n\n--- AI Response ---\n\nAI response"
-        );
+        assert_eq!(history_file.get_content(), expected);
 
         // Verify file content was updated
         let file_content = fs::read_to_string(path).unwrap();
-        assert_eq!(file_content, "\n\n--- AI Response ---\n\nAI response");
+        assert_eq!(file_content, expected);
     }
 
     #[test]
     fn test_newline_handling() {
         let temp_file = create_temp_file_with_content("Initial content");
         let path = temp_file.path().to_str().unwrap().to_string();
+        let user_input = "User message";
 
         let mut history_file = HistoryFile::new(path, String::new()).unwrap();
 
         // First append doesn't need to add extra newline
-        history_file.append_user_input("User input").unwrap();
+        history_file.append_user_input(user_input).unwrap();
 
         // Check that we don't have double newlines
         assert!(!history_file.get_content().contains("\n\n\n"));
 
+        let expected = format!("{}{}", DELIMITER_USER_INPUT, user_input);
+
         // Check that content is properly formatted
-        assert!(
-            history_file
-                .get_content()
-                .contains("Initial content\n\n--- User Input ---")
-        );
+        assert!(history_file.get_content().contains(&expected));
     }
 
     #[test]
