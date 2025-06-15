@@ -91,7 +91,26 @@ impl HistoryFile {
     }
 
     pub(crate) fn get_json(&self) -> serde_json::Value {
-        serde_json::from_str(&self.content).unwrap()
+        let mut messages = Vec::new();
+        let parts: Vec<&str> = self.content.split(DELIMITER_USER_INPUT).collect();
+
+        for part in parts.iter().skip(1) {
+            if let Some((user_msg, rest)) = part.split_once(DELIMITER_AI_RESPONSE) {
+                let message = serde_json::json!({
+                    "role": "user",
+                    "content": user_msg.trim()
+                });
+                messages.push(message);
+
+                let message = serde_json::json!({
+                    "role": "assistant",
+                    "content": rest.trim()
+                });
+                messages.push(message);
+            }
+        }
+
+        serde_json::json!({ "messages": messages })
     }
 
     /// Append user input to the history file and update internal content
@@ -276,39 +295,31 @@ mod tests {
 
     #[test]
     fn test_history_file_with_relative_path() {
-        // Create a temporary directory to act as cforge_dir
         let temp_dir = tempfile::tempdir().unwrap();
         let cforge_dir = temp_dir.path().to_string_lossy().to_string();
 
         // Use a relative path for the history file
         let relative_path = "test_history.txt".to_string();
 
-        // Create the history file
         let history_file = HistoryFile::new(relative_path.clone(), cforge_dir.clone()).unwrap();
-
-        // Expected full path (cforge_dir + relative_path)
         let expected_path = Path::new(&cforge_dir).join(&relative_path);
 
-        // Verify the file exists at the expected path
         assert!(expected_path.exists());
 
-        // Verify the path stored in the HistoryFile is correct
         assert_eq!(
             history_file.path,
             expected_path.to_string_lossy().to_string()
         );
 
-        // Verify the filename is extracted correctly
         assert_eq!(history_file.filename, "test_history.txt");
     }
 
     #[test]
     fn test_history_file_with_absolute_path() {
-        // Create a temporary directory to act as cforge_dir
         let temp_dir = tempfile::tempdir().unwrap();
         let cforge_dir = temp_dir.path().to_string_lossy().to_string();
 
-        // Create another temporary directory for the absolute path
+        // Create a temporary directory for the absolute path
         let absolute_dir = tempfile::tempdir().unwrap();
         let absolute_path = absolute_dir
             .path()
@@ -331,7 +342,6 @@ mod tests {
 
     #[test]
     fn test_directory_path_handling() {
-        // Create a temporary directory
         let temp_dir = tempfile::tempdir().unwrap();
         let dir_path = temp_dir.path().to_string_lossy().to_string();
 
@@ -345,5 +355,78 @@ mod tests {
         // since it can vary between operating systems
         let _error = result.unwrap_err();
         println!("Got expected error when opening directory: {:?}", _error);
+    }
+
+    #[test]
+    fn test_json_parsing_empty_file() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let temp_path = temp_dir.path().join("test.txt");
+        let cforge_dir = temp_dir.path().to_string_lossy().to_string();
+        let content = "";
+
+        // Use a relative path for the history file
+        let relative_path = "test_history.txt".to_string();
+        let mut history_file = HistoryFile::new(relative_path.clone(), cforge_dir.clone()).unwrap();
+
+        history_file.content = content.to_string();
+
+        let expected = serde_json::json!({ "messages": [] });
+        assert_eq!(history_file.get_json(), expected);
+    }
+
+    #[test]
+    fn test_json_parsing() {
+        fn create_message(delimiter: &str, content: &str) -> String {
+            format!("{}{}", delimiter, content)
+        }
+
+        let temp_dir = tempfile::tempdir().unwrap();
+        let cforge_dir = temp_dir.path().to_string_lossy().to_string();
+
+        let content = format!(
+            "{}{}{}{}{}{}",
+            create_message(DELIMITER_USER_INPUT, "User message 1"),
+            create_message(DELIMITER_AI_RESPONSE, "AI response 1"),
+            create_message(DELIMITER_USER_INPUT, "User message 2"),
+            create_message(DELIMITER_AI_RESPONSE, "AI response 2"),
+            create_message(DELIMITER_USER_INPUT, "User message 3"),
+            create_message(DELIMITER_AI_RESPONSE, "AI response 3"),
+        );
+
+        // Use a relative path for the history file
+        let relative_path = "test_history.txt".to_string();
+        let mut history_file = HistoryFile::new(relative_path.clone(), cforge_dir.clone()).unwrap();
+
+        history_file.content = content;
+
+        let expected = serde_json::json!({
+            "messages": [
+                {
+                    "role": "user",
+                    "content": "User message 1"
+                },
+                {
+                    "role": "assistant",
+                    "content": "AI response 1"
+                },
+                {
+                    "role": "user",
+                    "content": "User message 2"
+                },
+                {
+                    "role": "assistant",
+                    "content": "AI response 2"
+                },
+                {
+                    "role": "user",
+                    "content": "User message 3"
+                },
+                {
+                    "role": "assistant",
+                    "content": "AI response 3"
+                }
+            ]
+        });
+        assert_eq!(history_file.get_json(), expected);
     }
 }
