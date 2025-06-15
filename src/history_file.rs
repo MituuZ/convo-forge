@@ -90,6 +90,7 @@ impl HistoryFile {
         &self.content
     }
 
+    /// Get the content of the history file formatted as a JSON list of role, content messages
     pub(crate) fn get_json(&self) -> io::Result<serde_json::Value> {
         let pattern = format!(
             r"({}|{})",
@@ -100,13 +101,10 @@ impl HistoryFile {
             .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
         let mut messages = Vec::new();
 
-        let matches: Vec<_> = regex.find_iter(&self.content).collect();
+        let mut matches_iter = regex.find_iter(&self.content).peekable();
 
-        for i in 0..matches.len() {
-            let current_match = matches[i];
+        while let Some(current_match) = matches_iter.next() {
             let delimiter = &self.content[current_match.start()..current_match.end()];
-
-            // Determine the role based on the delimiter
             let role = if delimiter == DELIMITER_USER_INPUT {
                 "user"
             } else {
@@ -115,11 +113,10 @@ impl HistoryFile {
 
             // Get the content after this delimiter but before the next
             let content_start = current_match.end();
-            let content_end = if i + 1 < matches.len() {
-                matches[i + 1].start()
-            } else {
-                self.content.len()
-            };
+            let content_end = matches_iter
+                .peek()
+                .map(|next_match| next_match.start())
+                .unwrap_or(self.content.len());
 
             // Only add non-empty messages
             if content_start < content_end {
