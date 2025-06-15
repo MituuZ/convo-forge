@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.1 - 2025-06-15
+
+_Implement directory completion for commands_
+
+### Commands
+
+Directory completion works for absolute and relative paths (in relation to `cforge_dir`) for `:list` and `:switch`
+commands.
+
 ## 0.2.0 - 2025-06-15
 
 _Parse history file to JSON array of messages using `user` and `assistant` roles_

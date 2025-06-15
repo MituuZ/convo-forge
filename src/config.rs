@@ -128,7 +128,8 @@ impl Config {
     pub fn create_editor(&self) -> rustyline::Result<Editor<CommandHelper, DefaultHistory>> {
         let config = self.create_rustyline_config();
         let commands = vec!["q", "help", "list", "switch", "edit", "sysprompt"];
-        let helper = CommandHelper::new(commands);
+        let file_commands = vec![":list", ":switch"];
+        let helper = CommandHelper::new(commands, file_commands, &self.cforge_dir);
         let mut editor = Editor::with_config(config)?;
         editor.set_helper(Some(helper));
 
