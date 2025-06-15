@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.0 - 2025-06-15
+
+_Parse history file to JSON array of messages using `user` and `assistant` roles_
+
+### "Breaking" change
+
+Because the delimiters have changed for better visibility and parsing. Messages that do not adhere to this format are
+sent as a single user message.
+
 ## 0.1.13 - 2025-06-14
 
 _Rename project to `convo-forge` (`cforge`)_

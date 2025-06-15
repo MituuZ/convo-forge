@@ -16,7 +16,7 @@
  */
 
 use crate::command_complete::CommandHelper;
-use rustyline::history::{DefaultHistory, FileHistory};
+use rustyline::history::DefaultHistory;
 use rustyline::Editor;
 use serde::Deserialize;
 use std::path::PathBuf;
@@ -138,13 +138,18 @@ impl Config {
     pub fn load() -> io::Result<Self> {
         let config_path = match get_config_path() {
             Ok(path) => path,
-            Err(_) => return Ok(Config::default()),
+            Err(e) => {
+                eprintln!("Couldn't load config_path: {}", e);
+                println!("Using default config values.");
+                return Ok(Config::default());
+            }
         };
 
         let config_str = match fs::read_to_string(&config_path) {
-            Ok(s) => s,
+            Ok(config_string) => config_string,
             Err(s) => {
                 eprintln!("Could not read config file: {}", s);
+                println!("Using default config values.");
                 return Ok(Config::default());
             }
         };
@@ -157,7 +162,7 @@ impl Config {
 fn get_config_path() -> Result<PathBuf, &'static str> {
     match get_home_dir() {
         Ok(home_dir) => Ok(home_dir.join(".cforge.toml")),
-        Err(_) => Err("Could not determine home directory"),
+        Err(_) => Err("Error loading config path: Could not determine home directory"),
     }
 }
 

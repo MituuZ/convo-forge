@@ -10,11 +10,14 @@ A command-line interface for interacting with Ollama API.
 - Prompts are built in the following way and sent using the
   `/chat` [endpoint (without streaming)](https://github.com/ollama/ollama/blob/main/docs/api.md#chat-request-no-streaming)
 
-| Role   | Content                                                      |
-|--------|--------------------------------------------------------------|
-| system | cforge system prompt                                         |
-| system | context file                                                 |
-| user   | conversation history + current prompt (TODO: format history) |
+How the messages array is formed in the request JSON:
+
+| Role           | Content                 |
+|----------------|-------------------------|
+| system         | cforge system prompt    |
+| system         | context file (optional) |
+| user/assistant | conversation history    |
+| user           | current prompt          |
 
 [Wishlist at docs/todo.md](docs/todo.md)
 
@@ -153,6 +156,8 @@ response from the model.
 - [clap](https://github.com/clap-rs/clap) - [MIT](LICENSES/clap-MIT)
 - [tempfile](https://github.com/Stebalien/tempfile) - [MIT](LICENSES/tempfile-MIT)
 - [rustyline](https://github.com/kkawakam/rustyline) - [MIT](LICENSES/rustyline-MIT)
+- [regex](https://github.com/rust-lang/regex) - [MIT](LICENSES/regex-MIT)
+- [lazy-static](https://github.com/rust-lang-nursery/lazy-static.rs) - [MIT](LICENSES/lazy_static-MIT)
 
 ## License
 

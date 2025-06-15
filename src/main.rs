@@ -44,15 +44,7 @@ struct Args {
 }
 
 fn main() -> io::Result<()> {
-    let config = match Config::load() {
-        Ok(c) => c,
-        Err(e) => {
-            eprintln!("Error loading config: {}", e);
-            return Ok(());
-        }
-    };
-
-    // Parse command-line arguments
+    let config = Config::load()?;
     let args = Args::parse();
     let command_registry = create_command_registry();
 
@@ -91,11 +83,9 @@ fn main() -> io::Result<()> {
         }
     }
 
-    // Main conversation loop
     loop {
-        // Prompt the user for input
         println!(
-            "\nEnter your prompt or a command (type ':q' to end or ':help' for other commands)"
+            "\n\nEnter your prompt or a command (type ':q' to end or ':help' for other commands)"
         );
 
         let mut rl = match config.create_editor() {
@@ -146,17 +136,24 @@ fn main() -> io::Result<()> {
             }
         }
 
+        let history_json = match history.get_content_json() {
+            Ok(s) => s,
+            Err(e) => {
+                eprintln!("Error reading history file: {}", e);
+                break;
+            }
+        };
+
         let ollama_response = ollama_client.generate_response(
-            history.get_content(),
+            history_json,
             &user_prompt,
             input_file_content.as_deref(),
         )?;
 
-        println!("{}", ollama_response);
-
         history.append_user_input(&user_prompt)?;
 
-        history.append_ai_response(&ollama_response)?;
+        // Print the AI response with the delimiter to make it easier to parse
+        println!("{}", history.append_ai_response(&ollama_response)?);
     }
 
     Ok(())
