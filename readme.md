@@ -154,6 +154,7 @@ response from the model.
 - [tempfile](https://github.com/Stebalien/tempfile) - [MIT](LICENSES/tempfile-MIT)
 - [rustyline](https://github.com/kkawakam/rustyline) - [MIT](LICENSES/rustyline-MIT)
 - [regex](https://github.com/rust-lang/regex) - [MIT](LICENSES/regex-MIT)
+- [lazy-static](https://github.com/rust-lang-nursery/lazy-static.rs) - [MIT](LICENSES/lazy_static-MIT)
 
 ## License
 
