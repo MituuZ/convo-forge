@@ -22,3 +22,4 @@
 - [ ] Copy the history file to another location
 - [ ] Allow changing the context file during a chat
 - [ ] Use prompt files with the current message
+- [ ] Truncate chat (line count, estimated tokens, or LLM assisted)
