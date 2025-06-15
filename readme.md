@@ -10,11 +10,14 @@ A command-line interface for interacting with Ollama API.
 - Prompts are built in the following way and sent using the
   `/chat` [endpoint (without streaming)](https://github.com/ollama/ollama/blob/main/docs/api.md#chat-request-no-streaming)
 
-| Role   | Content                                                      |
-|--------|--------------------------------------------------------------|
-| system | cforge system prompt                                         |
-| system | context file                                                 |
-| user   | conversation history + current prompt (TODO: format history) |
+How the messages array is formed in the request JSON:
+
+| Role           | Content                 |
+|----------------|-------------------------|
+| system         | cforge system prompt    |
+| system         | context file (optional) |
+| user/assistant | conversation history    |
+| user           | current prompt          |
 
 [Wishlist at docs/todo.md](docs/todo.md)
 
