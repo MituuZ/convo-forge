@@ -514,6 +514,138 @@ mod tests {
         assert_eq!(history_file.get_json().unwrap(), expected);
     }
 
+    #[test]
+    fn test_json_parsing_empty_messages() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let cforge_dir = temp_dir.path().to_string_lossy().to_string();
+
+        let content = format!(
+            "{}{}{}",
+            DELIMITER_USER_INPUT, DELIMITER_AI_RESPONSE, DELIMITER_USER_INPUT
+        );
+
+        let relative_path = "test_history.txt".to_string();
+        let mut history_file = HistoryFile::new(relative_path, cforge_dir).unwrap();
+        history_file.content = content;
+
+        let expected = serde_json::json!({ "messages": [] });
+        assert_eq!(history_file.get_json().unwrap(), expected);
+    }
+
+    #[test]
+    fn test_json_parsing_whitespace_only_messages() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let cforge_dir = temp_dir.path().to_string_lossy().to_string();
+
+        let content = format!(
+            "{}{}{}{}",
+            DELIMITER_USER_INPUT, "   \n  \t  ", DELIMITER_AI_RESPONSE, "  \n\n  "
+        );
+
+        let relative_path = "test_history.txt".to_string();
+        let mut history_file = HistoryFile::new(relative_path, cforge_dir).unwrap();
+        history_file.content = content;
+
+        let expected = serde_json::json!({ "messages": [] });
+        assert_eq!(history_file.get_json().unwrap(), expected);
+    }
+
+    #[test]
+    fn test_json_parsing_content_without_delimiters() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let cforge_dir = temp_dir.path().to_string_lossy().to_string();
+
+        let content = "This is some content without any delimiters.".to_string();
+
+        let relative_path = "test_history.txt".to_string();
+        let mut history_file = HistoryFile::new(relative_path, cforge_dir).unwrap();
+        history_file.content = content;
+
+        let expected = serde_json::json!({ "messages": [] });
+        assert_eq!(history_file.get_json().unwrap(), expected);
+    }
+
+    #[test]
+    fn test_json_parsing_multiline_content() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let cforge_dir = temp_dir.path().to_string_lossy().to_string();
+
+        let content = format!(
+            "{}{}{}{}",
+            DELIMITER_USER_INPUT,
+            "Line 1\nLine 2\nLine 3",
+            DELIMITER_AI_RESPONSE,
+            "Response\nWith\nMultiple\nLines"
+        );
+
+        let relative_path = "test_history.txt".to_string();
+        let mut history_file = HistoryFile::new(relative_path, cforge_dir).unwrap();
+        history_file.content = content;
+
+        let expected = serde_json::json!({
+            "messages": [
+                {
+                    "role": "user",
+                    "content": "Line 1\nLine 2\nLine 3"
+                },
+                {
+                    "role": "assistant",
+                    "content": "Response\nWith\nMultiple\nLines"
+                }
+            ]
+        });
+        assert_eq!(history_file.get_json().unwrap(), expected);
+    }
+
+    #[test]
+    fn test_json_parsing_with_large_content() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let cforge_dir = temp_dir.path().to_string_lossy().to_string();
+
+        let large_text = "A".repeat(10_000);
+        let content = format!("{}{}", DELIMITER_USER_INPUT, large_text);
+
+        let relative_path = "test_history.txt".to_string();
+        let mut history_file = HistoryFile::new(relative_path, cforge_dir).unwrap();
+        history_file.content = content;
+
+        let expected = serde_json::json!({
+            "messages": [
+                {
+                    "role": "user",
+                    "content": large_text.trim()
+                }
+            ]
+        });
+        assert_eq!(history_file.get_json().unwrap(), expected);
+    }
+
+    #[test]
+    fn test_maybe_create_message_with_empty_content() {
+        let result = HistoryFile::maybe_create_message("user", "");
+        assert_eq!(result, None);
+
+        let result = HistoryFile::maybe_create_message("user", "  \n  \t  ");
+        assert_eq!(result, None);
+    }
+
+    #[test]
+    fn test_maybe_create_message_with_valid_content() {
+        let result = HistoryFile::maybe_create_message("user", "Hello");
+        let expected = Some(serde_json::json!({
+            "role": "user",
+            "content": "Hello"
+        }));
+        assert_eq!(result, expected);
+
+        let result = HistoryFile::maybe_create_message("assistant", "  Response  ");
+        let expected = Some(serde_json::json!({
+            "role": "assistant",
+            "content": "Response"
+        }));
+        assert_eq!(result, expected);
+    }
+
     fn create_message(delimiter: &str, content: &str) -> String {
         format!("{}{}", delimiter, content)
     }
