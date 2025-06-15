@@ -123,19 +123,30 @@ impl HistoryFile {
                 .map(|next_match| next_match.start())
                 .unwrap_or(self.content.len());
 
-            // Only add non-empty messages
             if content_start < content_end {
                 let message_content = &self.content[content_start..content_end];
-                if !message_content.trim().is_empty() {
-                    messages.push(serde_json::json!({
-                        "role": role,
-                        "content": message_content.trim()
-                    }));
+                if let Some(message) = Self::maybe_create_message(role, message_content) {
+                    messages.push(message);
                 }
             }
         }
 
         Ok(serde_json::json!({ "messages": messages }))
+    }
+
+    /// Tries to create a message from a role and content
+    /// # Returns
+    /// * `Some(Message)` if the content is not empty
+    /// * `None` if the content is empty
+    fn maybe_create_message(role: &str, content: &str) -> Option<serde_json::Value> {
+        if content.trim().is_empty() {
+            return None;
+        }
+
+        Some(serde_json::json!({
+            "role": role,
+            "content": content.trim()
+        }))
     }
 
     /// Append user input to the history file and update internal content
