@@ -9,7 +9,7 @@ A command-line interface for interacting with Ollama API.
 - Use commands to modify and customize the current session
 - Prompts are built in the following way and sent using the
   `/chat` [endpoint (without streaming)](https://github.com/ollama/ollama/blob/main/docs/api.md#chat-request-no-streaming)
-- You can add a new line using ALT + ENTER
+- You can add a newline using ALT + ENTER
 
 How the messages array is formed in the request JSON:
 
