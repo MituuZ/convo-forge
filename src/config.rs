@@ -17,7 +17,7 @@
 
 use crate::command_complete::CommandHelper;
 use rustyline::history::DefaultHistory;
-use rustyline::Editor;
+use rustyline::{Cmd, Editor, EventHandler, KeyEvent, Modifiers};
 use serde::Deserialize;
 use std::path::PathBuf;
 use std::{fs, io};
@@ -132,6 +132,11 @@ impl Config {
         let helper = CommandHelper::new(commands, file_commands, &self.cforge_dir);
         let mut editor = Editor::with_config(config)?;
         editor.set_helper(Some(helper));
+
+        editor.bind_sequence(
+            KeyEvent(rustyline::KeyCode::Enter, Modifiers::ALT),
+            EventHandler::Simple(Cmd::Newline),
+        );
 
         Ok(editor)
     }

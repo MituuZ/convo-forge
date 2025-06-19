@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.2 - 2025-06-19
+
+_Support newlines using ALT + ENTER_
+
 ## 0.2.1 - 2025-06-15
 
 _Implement directory completion for commands_

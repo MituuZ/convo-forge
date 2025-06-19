@@ -8,7 +8,8 @@
 - [x] Implement simple completions with rustyline
     - [x] Commands
     - [x] Files
-- [ ] Support multiline input with shift + enter (using rustyline)
+- [x] Support multiline input with alt + enter (using rustyline)
+- [ ] Update the default sysprompt
 - [ ] Add `keep_alive` configuration that is sent with the API requests
 - [ ] Add support for knowledge directory
 - [ ] Re-implement AI response interruption
