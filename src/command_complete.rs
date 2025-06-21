@@ -76,26 +76,8 @@ impl Completer for FileCompleter {
                 .into_iter()
                 .map(|pair| {
                     let display = pair.display;
-                    let new_display = if let Some(stripped) = display.strip_prefix(&base_dir_str) {
-                        if let Some(stripped) = stripped.strip_prefix('/') {
-                            stripped.to_string()
-                        } else {
-                            stripped.to_string()
-                        }
-                    } else {
-                        display
-                    };
-
-                    let new_replacement =
-                        if let Some(stripped) = pair.replacement.strip_prefix(&base_dir_str) {
-                            if let Some(stripped) = stripped.strip_prefix('/') {
-                                stripped.to_string()
-                            } else {
-                                stripped.to_string()
-                            }
-                        } else {
-                            pair.replacement
-                        };
+                    let new_display = strip_base_dir(display, &base_dir_str);
+                    let new_replacement = strip_base_dir(pair.replacement, &base_dir_str);
 
                     Pair {
                         display: new_display,
@@ -106,6 +88,22 @@ impl Completer for FileCompleter {
 
             Ok((original_pos, modified_candidates))
         }
+    }
+}
+
+fn strip_base_dir(path: String, base_dir_str: &str) -> String {
+    if base_dir_str.is_empty() {
+        return path;
+    }
+
+    if let Some(stripped) = path.strip_prefix(base_dir_str) {
+        if let Some(stripped) = stripped.strip_prefix('/') {
+            stripped.to_string()
+        } else {
+            stripped.to_string()
+        }
+    } else {
+        path
     }
 }
 
@@ -509,5 +507,37 @@ mod tests {
         );
 
         Ok(())
+    }
+
+    #[test]
+    fn test_strip_base_dir_with_matching_prefix() {
+        let path = "/home/user/project/file.txt".to_string();
+        let base_dir = "/home/user/project";
+        let result = strip_base_dir(path, base_dir);
+        assert_eq!(result, "file.txt");
+    }
+
+    #[test]
+    fn test_strip_base_dir_without_matching_prefix() {
+        let path = "/var/log/file.txt".to_string();
+        let base_dir = "/home/user/project";
+        let result = strip_base_dir(path, base_dir);
+        assert_eq!(result, "/var/log/file.txt");
+    }
+
+    #[test]
+    fn test_strip_base_dir_with_empty_base_dir() {
+        let path = "/home/user/file.txt".to_string();
+        let base_dir = "";
+        let result = strip_base_dir(path, base_dir);
+        assert_eq!(result, "/home/user/file.txt");
+    }
+
+    #[test]
+    fn test_strip_base_dir_with_empty_path() {
+        let path = "".to_string();
+        let base_dir = "/home/user";
+        let result = strip_base_dir(path, base_dir);
+        assert_eq!(result, "");
     }
 }
