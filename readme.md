@@ -158,6 +158,7 @@ response from the model.
 - [rustyline](https://github.com/kkawakam/rustyline) - [MIT](LICENSES/rustyline-MIT)
 - [regex](https://github.com/rust-lang/regex) - [MIT](LICENSES/regex-MIT)
 - [lazy-static](https://github.com/rust-lang-nursery/lazy-static.rs) - [MIT](LICENSES/lazy_static-MIT)
+- [colored](https://github.com/colored-rs/colored) - [MPL-2.0]()
 
 ## License
 
