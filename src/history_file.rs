@@ -680,6 +680,7 @@ mod tests {
         assert_eq!(result, expected);
 
         let result = HistoryFile::maybe_create_message("assistant", "  Response  ");
+
         let expected = Some(serde_json::json!({
             "role": "assistant",
             "content": "Response"

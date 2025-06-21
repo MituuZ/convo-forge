@@ -51,15 +51,104 @@ impl<'a, 'b> CommandParams<'a, 'b> {
 
 type CommandFn = fn(CommandParams) -> io::Result<CommandResult>;
 
-pub fn create_command_registry() -> HashMap<&'static str, CommandFn> {
-    let mut commands: HashMap<&'static str, CommandFn> = HashMap::new();
+pub struct CommandStruct<'a> {
+    command_string: &'a str,
+    description: &'a str,
+    command_example: Option<&'a str>,
+    file_command: bool,
+    pub(crate) command_fn: CommandFn,
+}
 
-    commands.insert(":q", quit_command);
-    commands.insert(":list", list_command);
-    commands.insert(":switch", switch_command);
-    commands.insert(":sysprompt", sysprompt_command);
-    commands.insert(":help", help_command);
-    commands.insert(":edit", edit_command);
+impl<'a> CommandStruct<'a> {
+    pub fn new(
+        command_string: &'a str,
+        description: &'a str,
+        command_example: Option<&'a str>,
+        file_command: bool,
+        command_fn: CommandFn,
+    ) -> Self {
+        CommandStruct {
+            command_string,
+            command_example,
+            description,
+            file_command,
+            command_fn,
+        }
+    }
+
+    pub fn execute(&self, params: CommandParams) -> io::Result<CommandResult> {
+        (self.command_fn)(params)
+    }
+
+    fn display(&self) -> String {
+        match self.command_example {
+            Some(example) => format!(
+                "{:<12} - {}\n            {}",
+                self.command_string, self.description, example
+            ),
+            None => format!("{:<12} - {}", self.command_string, self.description),
+        }
+    }
+}
+
+pub(crate) fn create_command_registry<'a>() -> HashMap<String, CommandStruct<'a>> {
+    let mut commands: HashMap<String, CommandStruct> = HashMap::new();
+
+    commands.insert(
+        ":q".to_string(),
+        CommandStruct::new(":q", "Exit the program", None, false, quit_command),
+    );
+
+    commands.insert(
+        ":list".to_string(),
+        CommandStruct::new(
+            ":list",
+            "List files in the cforge directory. \
+                    Optionally, you can provide a pattern to filter the results.",
+            Some(":list <optional pattern>"),
+            true,
+            list_command,
+        ),
+    );
+
+    commands.insert(
+        ":switch".to_string(),
+        CommandStruct::new(
+            ":switch",
+            "Switch to a different history file. \
+                    Either relative to cforge_dir or absolute path. Creates the file if it doesn't exist.",
+            Some(":switch <history file>"),
+            true,
+            switch_command,
+        ),
+    );
+
+    commands.insert(
+        ":help".to_string(),
+        CommandStruct::new(":help", "Show this help message", None, false, help_command),
+    );
+
+    commands.insert(
+        ":edit".to_string(),
+        CommandStruct::new(
+            ":edit",
+            "Open the history file in your editor",
+            None,
+            false,
+            edit_command,
+        ),
+    );
+
+    commands.insert(
+        ":sysprompt".to_string(),
+        CommandStruct::new(
+            ":sysprompt",
+            "Set the system prompt for current session",
+            Some(":sysprompt <prompt>"),
+            false,
+            sysprompt_command,
+        ),
+    );
 
     commands
 }
@@ -110,19 +199,31 @@ fn list_command(command_params: CommandParams) -> io::Result<CommandResult> {
 }
 
 fn help_command(_command_params: CommandParams) -> io::Result<CommandResult> {
-    println!("\nAvailable commands:");
-    println!(":q - quit");
-    println!(
-        ":list <optional pattern> - list files in the cforge directory. \
-                    Optionally, you can provide a pattern to filter the results."
-    );
-    println!(
-        ":switch <history_file> - switch to a different history file. \
-                    Either relative to cforge_dir or absolute path. Creates the file if it doesn't exist."
-    );
-    println!(":help - show this help message");
-    println!(":edit - open the history file in your editor");
-    println!(":sysprompt <prompt> - set the system prompt for current session");
+    let registry = create_command_registry();
+    let mut commands: Vec<&CommandStruct> = registry.values().collect();
+
+    commands.sort_by(|a, b| {
+        a.file_command
+            .cmp(&b.file_command)
+            .then(a.command_string.cmp(b.command_string))
+    });
+
+    // Print regular commands first
+    println!("General commands:");
+    for cmd in &commands {
+        if !cmd.file_command {
+            println!("{}", cmd.display());
+        }
+    }
+
+    // Then print file commands
+    println!("\nFile commands (supports file completion):");
+    for cmd in &commands {
+        if cmd.file_command {
+            println!("{}", cmd.display());
+        }
+    }
+
     Ok(CommandResult::Continue)
 }
 
