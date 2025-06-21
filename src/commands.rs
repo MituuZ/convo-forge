@@ -253,8 +253,9 @@ fn edit_command(command_params: CommandParams) -> io::Result<CommandResult> {
     let status = Command::new(editor).arg(history.path.clone()).status();
     if !status.is_ok_and(|s| s.success()) {
         eprintln!("Error opening file in editor");
+    } else {
+        history.reload_content();
     }
-    history.reload_content();
 
     Ok(CommandResult::Continue)
 }

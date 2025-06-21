@@ -196,17 +196,12 @@ impl HistoryFile {
     }
 
     pub(crate) fn reload_content(&mut self) {
-        match OpenOptions::new()
-            .read(true)
-            .write(false)
-            .create(true)
-            .truncate(false)
-            .open(self.path.clone())
-        {
+        match OpenOptions::new().read(true).open(self.path.clone()) {
             Ok(mut file) => {
                 let mut content = String::new();
                 file.read_to_string(&mut content).unwrap();
                 self.content = content;
+                println!("{}", self.content);
                 println!("Reloaded file content: {}", self.path.clone());
             }
             Err(e) => println!("Error opening file: {}", e),
