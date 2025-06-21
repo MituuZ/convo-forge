@@ -128,6 +128,9 @@ Your responses are displayed in the terminal and saved to the history file.
 Keep your answers helpful, concise, and relevant to both the user's direct query and any file context provided.
 """
 
+# Show estimated token count compared to the model's on each prompt
+token_estimation = true
+
 [rustyline]
 # Switch rustyline input mode between `emacs` and `vi`.
 mode = "emacs"
@@ -139,7 +142,7 @@ completion_mode = "circular"
 ### Configuring Ollama
 
 Ollama unloads the models after a set time. This can be controlled either from an environment variable or through the
-[message itself](#todo).
+[message itself](docs/todo.md).
 
 cforge sends an empty message to preload the model before calling it and tries to resend messages that get an empty
 response from the model.

@@ -55,9 +55,8 @@ pub(crate) struct HistoryFile {
 
 impl HistoryFile {
     /// Estimates the token count of the history content
-    /// Uses a simple estimation method: 1 token ≈ 4 characters for English text
+    /// Uses a simple estimation method: 1 token ≈ 4 characters
     pub(crate) fn estimate_token_count(&self) -> usize {
-        // Simple estimation: 1 token ≈ 4 characters
         let char_count = self.content.chars().count();
         char_count / 4 + 1 // Add 1 to avoid returning 0 for very short content
     }
