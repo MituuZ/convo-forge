@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.5 - 2025-06-21
+
+_Remember the previous history file_
+
+### Args
+
+Make HISTORY_FILE arg optional if the user has opened another file previously.
+
 ## 0.2.4 - 2025-06-21
 
 _Display estimated token count_
