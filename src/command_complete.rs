@@ -77,8 +77,8 @@ impl Completer for FileCompleter {
                 .map(|pair| {
                     let display = pair.display;
                     let new_display = if let Some(stripped) = display.strip_prefix(&base_dir_str) {
-                        if stripped.starts_with('/') {
-                            stripped[1..].to_string()
+                        if let Some(stripped) = stripped.strip_prefix('/') {
+                            stripped.to_string()
                         } else {
                             stripped.to_string()
                         }
@@ -88,8 +88,8 @@ impl Completer for FileCompleter {
 
                     let new_replacement =
                         if let Some(stripped) = pair.replacement.strip_prefix(&base_dir_str) {
-                            if stripped.starts_with('/') {
-                                stripped[1..].to_string()
+                            if let Some(stripped) = stripped.strip_prefix('/') {
+                                stripped.to_string()
                             } else {
                                 stripped.to_string()
                             }
