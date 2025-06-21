@@ -24,7 +24,7 @@ mod ollama_client;
 use config::Config;
 
 use crate::commands::CommandResult::SwitchHistory;
-use crate::commands::{create_command_registry, CommandParams};
+use crate::commands::{CommandParams, create_command_registry};
 use crate::history_file::HistoryFile;
 use crate::ollama_client::OllamaClient;
 use clap::Parser;
@@ -90,6 +90,28 @@ fn main() -> io::Result<()> {
         });
 
     loop {
+        // Calculate and visualize token usage compared to model context size
+        if let Some(context_size) = model_context_size {
+            let estimated_tokens = history.estimate_token_count();
+            let percentage = (estimated_tokens as f64 / context_size as f64 * 100.0).min(100.0);
+
+            // Create a visual representation of token usage
+            let bar_width = 50;
+            let filled_width = (percentage / 100.0 * bar_width as f64) as usize;
+            let empty_width = bar_width - filled_width;
+
+            let bar = format!(
+                "[{}{}] {:.1}% ({} / {} tokens)",
+                "=".repeat(filled_width),
+                " ".repeat(empty_width),
+                percentage,
+                estimated_tokens,
+                context_size
+            );
+
+            println!("\n\nEstimated history token usage: {}", bar);
+        }
+
         println!(
             "\n\nEnter your prompt or a command (type ':q' to end or ':help' for other commands)"
         );

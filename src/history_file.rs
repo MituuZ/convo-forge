@@ -54,6 +54,14 @@ pub(crate) struct HistoryFile {
 }
 
 impl HistoryFile {
+    /// Estimates the token count of the history content
+    /// Uses a simple estimation method: 1 token ≈ 4 characters for English text
+    pub(crate) fn estimate_token_count(&self) -> usize {
+        // Simple estimation: 1 token ≈ 4 characters
+        let char_count = self.content.chars().count();
+        char_count / 4 + 1 // Add 1 to avoid returning 0 for very short content
+    }
+
     pub(crate) fn new(path: String, cforge_dir: String) -> io::Result<Self> {
         let full_path = if Path::new(&path).is_absolute() {
             println!("Opening file from absolute path: {}", path);
@@ -677,6 +685,26 @@ mod tests {
             "content": "Response"
         }));
         assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn test_estimate_token_count() {
+        // Create a history file with known content
+        let temp_file =
+            create_temp_file_with_content("This is a test content with exactly 48 characters.");
+        let path = temp_file.path().to_string_lossy().to_string();
+        let history = HistoryFile::new(path, ".".to_string()).unwrap();
+
+        // Expected token count: 48 characters / 4 + 1 = 13
+        assert_eq!(history.estimate_token_count(), 13);
+
+        // Test with empty content
+        let temp_file = create_temp_file_with_content("");
+        let path = temp_file.path().to_string_lossy().to_string();
+        let history = HistoryFile::new(path, ".".to_string()).unwrap();
+
+        // Expected token count for empty content: 0 / 4 + 1 = 1
+        assert_eq!(history.estimate_token_count(), 1);
     }
 
     fn create_message(delimiter: &str, content: &str) -> String {
