@@ -18,11 +18,11 @@
 use crate::command_complete::CommandHelper;
 use rustyline::history::DefaultHistory;
 use rustyline::{Cmd, Editor, EventHandler, KeyEvent, Modifiers};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use std::{fs, io};
 
-#[derive(Debug, Clone, Copy, Deserialize, Default)]
+#[derive(Debug, Clone, Copy, Deserialize, Default, Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum EditMode {
     #[default]
@@ -30,7 +30,7 @@ pub enum EditMode {
     Vi,
 }
 
-#[derive(Debug, Clone, Copy, Deserialize, Default)]
+#[derive(Debug, Clone, Copy, Deserialize, Default, Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum CompletionType {
     #[default]
@@ -38,7 +38,7 @@ pub enum CompletionType {
     List,
 }
 
-#[derive(Debug, Deserialize, Default)]
+#[derive(Debug, Deserialize, Default, Serialize)]
 pub struct RustylineConfig {
     #[serde(default)]
     pub edit_mode: EditMode,
@@ -47,7 +47,7 @@ pub struct RustylineConfig {
     pub completion_type: CompletionType,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Serialize)]
 pub struct Config {
     #[serde(default = "default_model")]
     pub(crate) model: String,
@@ -162,6 +162,18 @@ impl Config {
 
         // This will automatically use the default values for any missing fields
         toml::from_str(&config_str).map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))
+    }
+
+    pub(crate) fn update_last_history_file(&mut self, history_file: String) -> io::Result<()> {
+        self.last_history_file = Some(history_file);
+        self.save()
+    }
+
+    pub(crate) fn save(&self) -> io::Result<()> {
+        let config_path =
+            get_config_path().map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
+        let config_str = toml::to_string(self).map_err(|e| io::Error::other(e))?;
+        fs::write(config_path, config_str)
     }
 }
 

@@ -42,16 +42,16 @@ struct Args {
 
     /// Optional file with content to be used as input for each chat message
     #[arg(short = 'f', long = "file")]
-    input_file: Option<PathBuf>,
+    context_file: Option<PathBuf>,
 }
 
 fn main() -> io::Result<()> {
-    let config = Config::load()?;
+    let mut config = Config::load()?;
     let args = Args::parse();
     let command_registry = create_command_registry();
 
     // Read the input file if provided
-    let input_file_content = if let Some(file_path) = args.input_file {
+    let context_file_content = if let Some(file_path) = args.context_file {
         match fs::read_to_string(file_path.clone()) {
             Ok(content) => {
                 println!("Loaded input from file: {}", file_path.display());
@@ -79,6 +79,8 @@ fn main() -> io::Result<()> {
             }
         }
     });
+
+    config.update_last_history_file(history_path.clone())?;
 
     let mut history = HistoryFile::new(history_path.clone(), config.cforge_dir.clone())?;
     println!("{}", history.get_content());
@@ -146,6 +148,7 @@ fn main() -> io::Result<()> {
                     commands::CommandResult::Quit => break,
                     SwitchHistory(new_file) => {
                         history = HistoryFile::new(new_file, config.cforge_dir.clone())?;
+                        config.update_last_history_file(history.filename.clone())?;
                         println!("{}", history.get_content());
                         println!("Switched to history file: {}", history.filename);
                         continue;
@@ -169,7 +172,7 @@ fn main() -> io::Result<()> {
         let ollama_response = ollama_client.generate_response(
             history_json,
             user_prompt,
-            input_file_content.as_deref(),
+            context_file_content.as_deref(),
         )?;
 
         history.append_user_input(user_prompt)?;
