@@ -10,11 +10,11 @@
     - [x] Files
 - [x] Support multiline input with alt + enter (using rustyline)
 - [x] Update the default sysprompt
+- [x] Keep track of the model's context window and file size
 - [ ] Add `keep_alive` configuration that is sent with the API requests
 - [ ] Add support for knowledge directory
 - [ ] Re-implement AI response interruption
 - [ ] Add functionality to truncate a chat
-- [ ] Keep track of the model's context window and file size
 - [ ] Create memories, which are included in the prompt by default (session/global)
 
 ## Commands

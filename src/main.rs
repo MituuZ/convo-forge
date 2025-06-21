@@ -24,10 +24,11 @@ mod ollama_client;
 use config::Config;
 
 use crate::commands::CommandResult::SwitchHistory;
-use crate::commands::{create_command_registry, CommandParams};
+use crate::commands::{CommandParams, create_command_registry};
 use crate::history_file::HistoryFile;
 use crate::ollama_client::OllamaClient;
 use clap::Parser;
+use colored::Colorize;
 use std::fs::{self};
 use std::io::{self};
 use std::path::PathBuf;
@@ -67,7 +68,7 @@ fn main() -> io::Result<()> {
     // Get the filename from arguments
     let mut history = HistoryFile::new(args.history_file.clone(), config.cforge_dir.clone())?;
     println!("{}", history.get_content());
-    println!("You're conversing with {} model", &config.model);
+    println!("\n\nYou're conversing with {} model", &config.model);
     let mut ollama_client = OllamaClient::new(config.model.clone(), config.system_prompt.clone());
 
     match ollama_client.verify() {
@@ -83,9 +84,22 @@ fn main() -> io::Result<()> {
         }
     }
 
+    let model_context_size =
+        OllamaClient::get_model_context_size(&config.model).unwrap_or_else(|e| {
+            eprintln!("Error getting model context size: {}", e);
+            None
+        });
+
     loop {
+        if config.token_estimation {
+            print_token_usage(
+                history.estimate_token_count(),
+                model_context_size.unwrap_or(0),
+            );
+        }
+
         println!(
-            "\n\nEnter your prompt or a command (type ':q' to end or ':help' for other commands)"
+            "\nEnter your prompt or a command (type ':q' to end or ':help' for other commands)"
         );
 
         let mut rl = match config.create_editor() {
@@ -151,4 +165,35 @@ fn main() -> io::Result<()> {
     }
 
     Ok(())
+}
+
+/// Calculate and visualize token usage compared to model context size
+fn print_token_usage(estimated_tokens: usize, context_size: usize) {
+    let percentage = (estimated_tokens as f64 / context_size as f64 * 100.0).min(100.0);
+
+    let bar_width = 50;
+    let filled_width = (percentage / 100.0 * bar_width as f64) as usize;
+    let empty_width = bar_width - filled_width;
+
+    let filled_bar = if percentage < 50.0 {
+        "=".repeat(filled_width).green()
+    } else if percentage < 75.0 {
+        "=".repeat(filled_width).yellow()
+    } else {
+        "=".repeat(filled_width).red()
+    };
+
+    let bar = format!(
+        "[{}{}] {:.1}% ({} / {} tokens)",
+        filled_bar,
+        " ".repeat(empty_width),
+        percentage,
+        estimated_tokens,
+        context_size
+    );
+
+    println!(
+        "\n\nEstimated history token usage (1 token ≈ 4 characters): {}",
+        bar
+    );
 }

@@ -17,6 +17,7 @@
 use serde::Deserialize;
 use serde_json::Value;
 use std::io;
+use std::process::Command;
 
 static LLM_PROTOCOL: &str = "http";
 static LLM_HOST: &str = "localhost";
@@ -163,6 +164,50 @@ impl OllamaClient {
             "{}://{}:{}{}",
             LLM_PROTOCOL, LLM_HOST, LLM_PORT, LLM_ENDPOINT
         )
+    }
+
+    /// Gets the context size for a specific model by executing the `ollama show [model]` command.
+    pub(crate) fn get_model_context_size(model_name: &str) -> io::Result<Option<usize>> {
+        let output = Command::new("ollama")
+            .arg("show")
+            .arg(model_name)
+            .output()
+            .map_err(|e| {
+                io::Error::new(
+                    io::ErrorKind::Other,
+                    format!("Failed to execute command: {}", e),
+                )
+            })?;
+
+        if !output.status.success() {
+            let error_message = String::from_utf8_lossy(&output.stderr);
+            return Err(io::Error::new(
+                io::ErrorKind::Other,
+                format!("Command failed: {}", error_message),
+            ));
+        }
+
+        let output_str = String::from_utf8_lossy(&output.stdout);
+        Ok(Self::parse_context_size(&output_str))
+    }
+
+    /// Parses the context size from the output of `ollama show [model]` command.
+    fn parse_context_size(output: &str) -> Option<usize> {
+        // Look for the line containing "context length" in the Model section
+        for line in output.lines() {
+            let line = line.trim();
+            if line.contains("context length") {
+                // Extract the number at the end of the line
+                let parts: Vec<&str> = line.split_whitespace().collect();
+                if parts.len() >= 3 {
+                    // The context length should be the last part
+                    if let Ok(context_size) = parts.last().unwrap().parse::<usize>() {
+                        return Some(context_size);
+                    }
+                }
+            }
+        }
+        None
     }
 }
 
@@ -373,5 +418,73 @@ mod tests {
         assert!(result.get("messages").is_some());
         assert!(result["messages"].is_array());
         assert_eq!(result["messages"].as_array().unwrap().len(), 2);
+    }
+
+    #[test]
+    fn test_parse_context_size() {
+        // Test with the example output from the issue description
+        let example_output = r#"  Model
+    architecture        gemma3    
+    parameters          4.3B      
+    context length      131072    
+    embedding length    2560      
+    quantization        Q4_K_M    
+
+  Capabilities
+    completion    
+    vision        
+
+  Parameters
+    stop           "<end_of_turn>"    
+    temperature    1                  
+    top_k          64                 
+    top_p          0.95               
+
+  License
+    Gemma Terms of Use                  
+    Last modified: February 21, 2024    
+    ..."#;
+
+        let context_size = OllamaClient::parse_context_size(example_output);
+        assert_eq!(context_size, Some(131072));
+    }
+
+    #[test]
+    fn test_parse_context_size_with_different_format() {
+        // Test with a slightly different format
+        let different_format = r#"Model
+    architecture: gemma3    
+    parameters: 4.3B      
+    context length: 131072    
+    embedding length: 2560"#;
+
+        let context_size = OllamaClient::parse_context_size(different_format);
+        assert_eq!(context_size, Some(131072));
+    }
+
+    #[test]
+    fn test_parse_context_size_not_found() {
+        // Test with output that doesn't contain context length
+        let no_context_length = r#"Model
+    architecture        gemma3    
+    parameters          4.3B      
+    embedding length    2560      
+    quantization        Q4_K_M"#;
+
+        let context_size = OllamaClient::parse_context_size(no_context_length);
+        assert_eq!(context_size, None);
+    }
+
+    #[test]
+    fn test_parse_context_size_invalid_format() {
+        // Test with invalid format for context length
+        let invalid_format = r#"Model
+    architecture        gemma3    
+    parameters          4.3B      
+    context length      invalid    
+    embedding length    2560"#;
+
+        let context_size = OllamaClient::parse_context_size(invalid_format);
+        assert_eq!(context_size, None);
     }
 }

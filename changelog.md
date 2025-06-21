@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.4 - 2025-06-21
+
+_Display estimated token count_
+
+Optional print to show an estimation of history size as tokens (1 token ≈ 4 characters).
+
 ## 0.2.3 - 2025-06-21
 
 _Refactor commands to use structs_

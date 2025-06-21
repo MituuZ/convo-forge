@@ -60,10 +60,17 @@ pub struct Config {
 
     #[serde(default)]
     pub(crate) rustyline: RustylineConfig,
+
+    #[serde(default = "default_token_estimation")]
+    pub(crate) token_estimation: bool,
 }
 
 fn default_model() -> String {
     "gemma3:12b".to_string()
+}
+
+fn default_token_estimation() -> bool {
+    true
 }
 
 fn default_cforge_dir() -> String {
@@ -92,6 +99,7 @@ impl Config {
             cforge_dir: default_cforge_dir(),
             system_prompt: default_system_prompt(),
             rustyline: RustylineConfig::default(),
+            token_estimation: default_token_estimation(),
         }
     }
 
