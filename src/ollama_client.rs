@@ -167,14 +167,6 @@ impl OllamaClient {
     }
 
     /// Gets the context size for a specific model by executing the `ollama show [model]` command.
-    ///
-    /// # Arguments
-    ///
-    /// * `model_name` - The name of the model to get the context size for.
-    ///
-    /// # Returns
-    ///
-    /// * `io::Result<Option<usize>>` - The context size as a number if found, None if not found, or an error if the command fails.
     pub(crate) fn get_model_context_size(model_name: &str) -> io::Result<Option<usize>> {
         let output = Command::new("ollama")
             .arg("show")
@@ -200,14 +192,6 @@ impl OllamaClient {
     }
 
     /// Parses the context size from the output of `ollama show [model]` command.
-    ///
-    /// # Arguments
-    ///
-    /// * `output` - The output of the `ollama show [model]` command as a string.
-    ///
-    /// # Returns
-    ///
-    /// * `Option<usize>` - The context size as a number if found, None otherwise.
     fn parse_context_size(output: &str) -> Option<usize> {
         // Look for the line containing "context length" in the Model section
         for line in output.lines() {
