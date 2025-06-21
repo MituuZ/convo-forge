@@ -110,29 +110,23 @@ fn main() -> io::Result<()> {
             let command_string = parts[0].to_lowercase();
             let args: Vec<&str> = parts[1..].to_vec();
 
-            if user_prompt.starts_with(":") {
-                let command_params = CommandParams::new(
-                    &*args,
-                    &mut ollama_client,
-                    &mut history,
-                    &config.cforge_dir,
-                );
+            let command_params =
+                CommandParams::new(&args, &mut ollama_client, &mut history, &config.cforge_dir);
 
-                if let Some(command_fn) = command_registry.get(command_string.as_str()) {
-                    match command_fn(command_params)? {
-                        commands::CommandResult::Quit => break,
-                        SwitchHistory(new_file) => {
-                            history = HistoryFile::new(new_file, config.cforge_dir.clone())?;
-                            println!("{}", history.get_content());
-                            println!("Switched to history file: {}", history.filename);
-                            continue;
-                        }
-                        commands::CommandResult::Continue => continue,
+            if let Some(command) = command_registry.get(command_string.as_str()) {
+                match command.execute(command_params)? {
+                    commands::CommandResult::Quit => break,
+                    SwitchHistory(new_file) => {
+                        history = HistoryFile::new(new_file, config.cforge_dir.clone())?;
+                        println!("{}", history.get_content());
+                        println!("Switched to history file: {}", history.filename);
+                        continue;
                     }
-                } else {
-                    println!("Unknown command: {}", command_string);
-                    continue;
+                    commands::CommandResult::Continue => continue,
                 }
+            } else {
+                println!("Unknown command: {}", command_string);
+                continue;
             }
         }
 
@@ -146,11 +140,11 @@ fn main() -> io::Result<()> {
 
         let ollama_response = ollama_client.generate_response(
             history_json,
-            &user_prompt,
+            user_prompt,
             input_file_content.as_deref(),
         )?;
 
-        history.append_user_input(&user_prompt)?;
+        history.append_user_input(user_prompt)?;
 
         // Print the AI response with the delimiter to make it easier to parse
         println!("{}", history.append_ai_response(&ollama_response)?);

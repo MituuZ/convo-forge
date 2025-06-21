@@ -76,26 +76,8 @@ impl Completer for FileCompleter {
                 .into_iter()
                 .map(|pair| {
                     let display = pair.display;
-                    let new_display = if let Some(stripped) = display.strip_prefix(&base_dir_str) {
-                        if stripped.starts_with('/') {
-                            stripped[1..].to_string()
-                        } else {
-                            stripped.to_string()
-                        }
-                    } else {
-                        display
-                    };
-
-                    let new_replacement =
-                        if let Some(stripped) = pair.replacement.strip_prefix(&base_dir_str) {
-                            if stripped.starts_with('/') {
-                                stripped[1..].to_string()
-                            } else {
-                                stripped.to_string()
-                            }
-                        } else {
-                            pair.replacement
-                        };
+                    let new_display = strip_base_dir(display, &base_dir_str);
+                    let new_replacement = strip_base_dir(pair.replacement, &base_dir_str);
 
                     Pair {
                         display: new_display,
@@ -106,6 +88,22 @@ impl Completer for FileCompleter {
 
             Ok((original_pos, modified_candidates))
         }
+    }
+}
+
+fn strip_base_dir(path: String, base_dir_str: &str) -> String {
+    if base_dir_str.is_empty() {
+        return path;
+    }
+
+    if let Some(stripped) = path.strip_prefix(base_dir_str) {
+        if let Some(stripped) = stripped.strip_prefix('/') {
+            stripped.to_string()
+        } else {
+            stripped.to_string()
+        }
+    } else {
+        path
     }
 }
 
@@ -121,7 +119,7 @@ impl Completer for CommandHelper {
         if line.starts_with(":") {
             if line.contains(" ") {
                 let parts: Vec<&str> = line.split_whitespace().collect();
-                let command = parts.get(0).unwrap_or(&"");
+                let command = parts.first().unwrap_or(&"");
 
                 // if the command is not a file command, return an empty list
                 if !self.file_commands.contains(&command.to_string()) {
@@ -171,7 +169,7 @@ impl Hinter for CommandHelper {
             // Only show hints at the end of the line
             for cmd in &self.commands {
                 if cmd.starts_with(command) && cmd != command && cmd.len() > command.len() {
-                    return Some((&cmd[command.len()..]).to_string());
+                    return Some(cmd[command.len()..].to_string());
                 }
             }
         }
@@ -509,5 +507,37 @@ mod tests {
         );
 
         Ok(())
+    }
+
+    #[test]
+    fn test_strip_base_dir_with_matching_prefix() {
+        let path = "/home/user/project/file.txt".to_string();
+        let base_dir = "/home/user/project";
+        let result = strip_base_dir(path, base_dir);
+        assert_eq!(result, "file.txt");
+    }
+
+    #[test]
+    fn test_strip_base_dir_without_matching_prefix() {
+        let path = "/var/log/file.txt".to_string();
+        let base_dir = "/home/user/project";
+        let result = strip_base_dir(path, base_dir);
+        assert_eq!(result, "/var/log/file.txt");
+    }
+
+    #[test]
+    fn test_strip_base_dir_with_empty_base_dir() {
+        let path = "/home/user/file.txt".to_string();
+        let base_dir = "";
+        let result = strip_base_dir(path, base_dir);
+        assert_eq!(result, "/home/user/file.txt");
+    }
+
+    #[test]
+    fn test_strip_base_dir_with_empty_path() {
+        let path = "".to_string();
+        let base_dir = "/home/user";
+        let result = strip_base_dir(path, base_dir);
+        assert_eq!(result, "");
     }
 }

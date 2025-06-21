@@ -22,30 +22,20 @@ use serde::Deserialize;
 use std::path::PathBuf;
 use std::{fs, io};
 
-#[derive(Debug, Clone, Copy, Deserialize)]
+#[derive(Debug, Clone, Copy, Deserialize, Default)]
 #[serde(rename_all = "lowercase")]
 pub enum EditMode {
+    #[default]
     Emacs,
     Vi,
 }
 
-impl Default for EditMode {
-    fn default() -> Self {
-        EditMode::Emacs
-    }
-}
-
-#[derive(Debug, Clone, Copy, Deserialize)]
+#[derive(Debug, Clone, Copy, Deserialize, Default)]
 #[serde(rename_all = "lowercase")]
 pub enum CompletionType {
+    #[default]
     Circular,
     List,
-}
-
-impl Default for CompletionType {
-    fn default() -> Self {
-        CompletionType::Circular
-    }
 }
 
 #[derive(Debug, Deserialize, Default)]
