@@ -172,7 +172,7 @@ impl Config {
     pub(crate) fn save(&self) -> io::Result<()> {
         let config_path =
             get_config_path().map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
-        let config_str = toml::to_string(self).map_err(|e| io::Error::other(e))?;
+        let config_str = toml::to_string(self).map_err(io::Error::other)?;
         fs::write(config_path, config_str)
     }
 }
