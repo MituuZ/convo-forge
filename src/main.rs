@@ -83,6 +83,12 @@ fn main() -> io::Result<()> {
         }
     }
 
+    let model_context_size =
+        OllamaClient::get_model_context_size(&config.model).unwrap_or_else(|e| {
+            eprintln!("Error getting model context size: {}", e);
+            None
+        });
+
     loop {
         println!(
             "\n\nEnter your prompt or a command (type ':q' to end or ':help' for other commands)"
