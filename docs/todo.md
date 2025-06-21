@@ -9,7 +9,7 @@
     - [x] Commands
     - [x] Files
 - [x] Support multiline input with alt + enter (using rustyline)
-- [ ] Update the default sysprompt
+- [x] Update the default sysprompt
 - [ ] Add `keep_alive` configuration that is sent with the API requests
 - [ ] Add support for knowledge directory
 - [ ] Re-implement AI response interruption

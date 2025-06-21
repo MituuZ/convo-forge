@@ -122,11 +122,10 @@ cforge_dir = "~/cforge"
 # System prompt that configures the AI assistant's behavior.
 system_prompt = """
 You are an AI assistant receiving input from a command-line
-application called convo-forge (cforge). The user may include additional context from another file. 
-This supplementary content appears after the system prompt and before the history file content.
+application called convo-forge (cforge). The user may include additional context from another file,
+this is included as a system prompt.
 Your responses are displayed in the terminal and saved to the history file.
 Keep your answers helpful, concise, and relevant to both the user's direct query and any file context provided.
-You can tell where you have previously responded by --- AI Response --- (added automatically).
 """
 
 [rustyline]
