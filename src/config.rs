@@ -63,6 +63,8 @@ pub struct Config {
 
     #[serde(default = "default_token_estimation")]
     pub(crate) token_estimation: bool,
+
+    pub(crate) last_history_file: Option<String>,
 }
 
 fn default_model() -> String {
@@ -100,6 +102,7 @@ impl Config {
             system_prompt: default_system_prompt(),
             rustyline: RustylineConfig::default(),
             token_estimation: default_token_estimation(),
+            last_history_file: None,
         }
     }
 

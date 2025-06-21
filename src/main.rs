@@ -36,8 +36,9 @@ use std::path::PathBuf;
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
 struct Args {
-    /// Path to file containing chat history. Can be either relative (to `sslama_dir`) or absolute.
-    history_file: String,
+    /// Path to file containing chat history. Can be either relative (to `cforge_dir`) or absolute.
+    /// If not provided, the last history file will be used, which is saved in `~/.cforge.toml`.
+    history_file: Option<String>,
 
     /// Optional file with content to be used as input for each chat message
     #[arg(short = 'f', long = "file")]
@@ -65,8 +66,21 @@ fn main() -> io::Result<()> {
         None
     };
 
-    // Get the filename from arguments
-    let mut history = HistoryFile::new(args.history_file.clone(), config.cforge_dir.clone())?;
+    let history_path = args.history_file.unwrap_or_else(|| {
+        match config.last_history_file.clone() {
+            Some(path) => path,
+            None => {
+                eprintln!("No history file specified and no previous history file found.");
+                println!(
+                    "You must specify a history file `cforge <histoty_file>` for the first time."
+                );
+                println!("See `cforge --help` for more information.");
+                std::process::exit(1);
+            }
+        }
+    });
+
+    let mut history = HistoryFile::new(history_path.clone(), config.cforge_dir.clone())?;
     println!("{}", history.get_content());
     println!("\n\nYou're conversing with {} model", &config.model);
     let mut ollama_client = OllamaClient::new(config.model.clone(), config.system_prompt.clone());
