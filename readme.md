@@ -33,7 +33,11 @@ cargo build --release
 ## Usage
 
 ```shell
+# First time / optional
 cforge <HISTORY_FILE> [OPTIONS]
+
+# After first time
+cforge [OPTIONS]
 ```
 
 ### Arguments
@@ -41,6 +45,7 @@ cforge <HISTORY_FILE> [OPTIONS]
 - `<HISTORY_FILE>` - Path to the file that acts as chat history (will be created if it doesn't exist)
     - If a relative path is provided, it will be created inside the `cforge_dir` directory
     - If an absolute path is provided, it will be used as-is regardless of `cforge_dir`
+    - Mandatory for the first time, after that `.cforge.toml` contains a reference to the previously opened history file
 
 ### Options
 
