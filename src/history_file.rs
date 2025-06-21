@@ -85,6 +85,7 @@ impl HistoryFile {
             .read(true)
             .write(true)
             .create(true)
+            .truncate(false)
             .open(&full_path)?;
 
         // Read the current file content
@@ -169,10 +170,7 @@ impl HistoryFile {
 
     /// Append user input to the history file and update internal content
     pub(crate) fn append_user_input(&mut self, input: &str) -> io::Result<()> {
-        let mut file = OpenOptions::new()
-            .write(true)
-            .append(true)
-            .open(&self.path)?;
+        let mut file = OpenOptions::new().append(true).open(&self.path)?;
 
         let entry = format!("{}{}", DELIMITER_USER_INPUT, input);
         file.write_all(entry.as_bytes())?;
@@ -185,10 +183,7 @@ impl HistoryFile {
     /// Append AI response to the history file and update internal content
     /// Return the response with the delimiter
     pub(crate) fn append_ai_response(&mut self, response: &str) -> io::Result<String> {
-        let mut file = OpenOptions::new()
-            .write(true)
-            .append(true)
-            .open(&self.path)?;
+        let mut file = OpenOptions::new().append(true).open(&self.path)?;
 
         let response_with_note = response.to_string();
 
@@ -203,8 +198,9 @@ impl HistoryFile {
     pub(crate) fn reload_content(&mut self) {
         match OpenOptions::new()
             .read(true)
-            .write(true)
+            .write(false)
             .create(true)
+            .truncate(false)
             .open(self.path.clone())
         {
             Ok(mut file) => {

@@ -111,7 +111,7 @@ fn main() -> io::Result<()> {
             let args: Vec<&str> = parts[1..].to_vec();
 
             let command_params =
-                CommandParams::new(&*args, &mut ollama_client, &mut history, &config.cforge_dir);
+                CommandParams::new(&args, &mut ollama_client, &mut history, &config.cforge_dir);
 
             if let Some(command) = command_registry.get(command_string.as_str()) {
                 match command.execute(command_params)? {
@@ -140,11 +140,11 @@ fn main() -> io::Result<()> {
 
         let ollama_response = ollama_client.generate_response(
             history_json,
-            &user_prompt,
+            user_prompt,
             input_file_content.as_deref(),
         )?;
 
-        history.append_user_input(&user_prompt)?;
+        history.append_user_input(user_prompt)?;
 
         // Print the AI response with the delimiter to make it easier to parse
         println!("{}", history.append_ai_response(&ollama_response)?);

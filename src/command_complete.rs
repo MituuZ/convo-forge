@@ -121,7 +121,7 @@ impl Completer for CommandHelper {
         if line.starts_with(":") {
             if line.contains(" ") {
                 let parts: Vec<&str> = line.split_whitespace().collect();
-                let command = parts.get(0).unwrap_or(&"");
+                let command = parts.first().unwrap_or(&"");
 
                 // if the command is not a file command, return an empty list
                 if !self.file_commands.contains(&command.to_string()) {
@@ -171,7 +171,7 @@ impl Hinter for CommandHelper {
             // Only show hints at the end of the line
             for cmd in &self.commands {
                 if cmd.starts_with(command) && cmd != command && cmd.len() > command.len() {
-                    return Some((&cmd[command.len()..]).to_string());
+                    return Some(cmd[command.len()..].to_string());
                 }
             }
         }

@@ -162,7 +162,7 @@ fn quit_command(command_params: CommandParams) -> io::Result<CommandResult> {
 }
 
 fn list_command(command_params: CommandParams) -> io::Result<CommandResult> {
-    let pattern = command_params.args.get(0).unwrap_or(&"");
+    let pattern = command_params.args.first().unwrap_or(&"");
 
     fn list_dir_contents(dir: &str, pattern: &str, cforge_dir: &str) -> io::Result<()> {
         for entry in fs::read_dir(dir)? {
@@ -228,7 +228,7 @@ fn help_command(_command_params: CommandParams) -> io::Result<CommandResult> {
 }
 
 fn switch_command(command_params: CommandParams) -> io::Result<CommandResult> {
-    let new_history_file = command_params.args.get(0).unwrap_or(&"");
+    let new_history_file = command_params.args.first().unwrap_or(&"");
 
     if new_history_file.is_empty() {
         println!("Error: No history file specified. Usage: :switch <history_file>");
@@ -251,7 +251,7 @@ fn edit_command(command_params: CommandParams) -> io::Result<CommandResult> {
         });
 
     let status = Command::new(editor).arg(history.path.clone()).status();
-    if !status.map_or(false, |s| s.success()) {
+    if !status.is_ok_and(|s| s.success()) {
         eprintln!("Error opening file in editor");
     }
     history.reload_content();

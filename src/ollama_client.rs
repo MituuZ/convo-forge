@@ -74,16 +74,12 @@ impl OllamaClient {
             &history_messages_json,
         );
 
-        let response = match Self::poll_for_response(&send_body) {
-            Ok(response) => response,
-            Err(e) => return Err(e),
-        };
-
+        let response = Self::poll_for_response(&send_body)?;
         Ok(response.message.content)
     }
 
     fn poll_for_response(send_body: &Value) -> io::Result<OllamaResponse> {
-        let ollama_response = Self::send_request_and_handle_response(&send_body)?;
+        let ollama_response = Self::send_request_and_handle_response(send_body)?;
 
         if ollama_response.done
             && ollama_response.done_reason == "load"
@@ -93,7 +89,7 @@ impl OllamaClient {
 
             std::thread::sleep(std::time::Duration::from_secs(1));
 
-            return Self::poll_for_response(&send_body);
+            return Self::poll_for_response(send_body);
         }
 
         Ok(ollama_response)
@@ -101,13 +97,13 @@ impl OllamaClient {
 
     fn send_request_and_handle_response(send_body: &Value) -> io::Result<OllamaResponse> {
         let mut response = ureq::post(Self::api_url())
-            .send_json(&send_body)
-            .map_err(|e| io::Error::new(io::ErrorKind::Other, e.to_string()))?;
+            .send_json(send_body)
+            .map_err(|e| io::Error::other(e.to_string()))?;
 
         let ollama_response: OllamaResponse = response
             .body_mut()
             .read_json()
-            .map_err(|e| io::Error::new(io::ErrorKind::Other, e.to_string()))?;
+            .map_err(|e| io::Error::other(e.to_string()))?;
 
         Ok(ollama_response)
     }
@@ -123,7 +119,7 @@ impl OllamaClient {
             system_prompt,
             context_content,
             user_prompt,
-            &history_messages_json,
+            history_messages_json,
         );
 
         serde_json::json!({
