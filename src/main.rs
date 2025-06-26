@@ -95,9 +95,23 @@ fn main() -> io::Result<()> {
         });
 
     loop {
+        // Read the context file if provided
+        let context_file_content = if let Some(file_path) = &context_file_path {
+            match fs::read_to_string(file_path.clone()) {
+                Ok(content) => Some(content),
+                Err(e) => {
+                    eprintln!("Error reading context file: {}", e);
+                    None
+                }
+            }
+        } else {
+            None
+        };
+
         if config.token_estimation {
             print_token_usage(
-                history.estimate_token_count(),
+                estimate_token_count(history.get_content())
+                    + estimate_token_count(context_file_content.as_deref().unwrap_or("")),
                 model_context_size.unwrap_or(0),
             );
         }
@@ -120,19 +134,6 @@ fn main() -> io::Result<()> {
                 eprintln!("Error reading input: {}", e);
                 break;
             }
-        };
-
-        // Read the context file if provided
-        let context_file_content = if let Some(file_path) = &context_file_path {
-            match fs::read_to_string(file_path.clone()) {
-                Ok(content) => Some(content),
-                Err(e) => {
-                    eprintln!("Error reading context file: {}", e);
-                    None
-                }
-            }
-        } else {
-            None
         };
 
         let mut processor = CommandProcessor::new(
@@ -183,7 +184,12 @@ fn print_token_usage(estimated_tokens: usize, context_size: usize) {
     );
 
     println!(
-        "\n\nEstimated history token usage (1 token ≈ 4 characters): {}",
+        "\n\nEstimated token usage (1 token ≈ 4 characters): {}",
         bar
     );
+}
+
+fn estimate_token_count(prompt: &str) -> usize {
+    let char_count = prompt.chars().count();
+    char_count / 4 + 1 // Add 1 to avoid returning 0 for very short content
 }
