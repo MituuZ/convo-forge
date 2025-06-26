@@ -27,7 +27,7 @@ pub enum CommandResult {
 }
 
 pub struct CommandParams<'a> {
-    args: Vec<String>,
+    pub(crate) args: Vec<String>,
     ollama_client: &'a mut OllamaClient,
     history: &'a mut HistoryFile,
     cforge_dir: &'a str,

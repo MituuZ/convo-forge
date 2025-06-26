@@ -20,15 +20,16 @@ mod commands;
 mod config;
 mod history_file;
 mod ollama_client;
+mod processor;
 mod user_input;
 
 use config::Config;
 
 use crate::commands::CommandResult::SwitchHistory;
-use crate::commands::{create_command_registry, CommandParams};
+use crate::commands::{create_command_registry, CommandResult};
 use crate::history_file::HistoryFile;
 use crate::ollama_client::OllamaClient;
-use crate::user_input::UserInput;
+use crate::processor::CommandProcessor;
 use clap::Parser;
 use colored::Colorize;
 use std::fs::{self};
@@ -136,51 +137,21 @@ fn main() -> io::Result<()> {
             }
         };
 
-        match UserInput::parse(&user_prompt) {
-            UserInput::Command(command) => {
-                let command_params = CommandParams::new(
-                    command.args,
-                    &mut ollama_client,
-                    &mut history,
-                    &config.cforge_dir,
-                );
+        let mut processor = CommandProcessor::new(
+            &mut ollama_client,
+            &mut history,
+            &mut config,
+            &command_registry,
+            context_file_content.clone(),
+        );
 
-                if let Some(command) = command_registry.get(&command.name) {
-                    match command.execute(command_params)? {
-                        commands::CommandResult::Quit => break,
-                        SwitchHistory(new_file) => {
-                            history = HistoryFile::new(new_file, config.cforge_dir.clone())?;
-                            config.update_last_history_file(history.filename.clone())?;
-                            println!("{}", history.get_content());
-                            println!("Switched to history file: {}", history.filename);
-                            continue;
-                        }
-                        commands::CommandResult::Continue => continue,
-                    }
-                } else {
-                    println!("Unknown command: {}", command.name);
-                    continue;
-                }
-            }
-            UserInput::Prompt(prompt) => {
-                let history_json = match history.get_content_json() {
-                    Ok(s) => s,
-                    Err(e) => {
-                        eprintln!("Error reading history file: {}", e);
-                        break;
-                    }
-                };
-
-                let ollama_response = ollama_client.generate_response(
-                    history_json,
-                    &prompt,
-                    context_file_content.as_deref(),
-                )?;
-
-                history.append_user_input(&prompt)?;
-
-                // Print the AI response with the delimiter to make it easier to parse
-                println!("{}", history.append_ai_response(&ollama_response)?);
+        match processor.process(&user_prompt) {
+            Ok(CommandResult::Continue) => continue,
+            Ok(SwitchHistory(_)) => continue,
+            Ok(CommandResult::Quit) => break,
+            Err(e) => {
+                eprintln!("Error processing input: {}", e);
+                break;
             }
         }
     }
