@@ -269,7 +269,7 @@ mod tests {
         );
         assert_eq!(
             messages[1],
-            json!({"role": "system", "content": "Additional context that the user has provided: This is some context."})
+            json!({"role": "user", "content": "Additional context that should be considered: This is some context."})
         );
         assert_eq!(messages[2], json!({"role": "user", "content": "Hello!"}));
     }
@@ -323,7 +323,7 @@ mod tests {
         );
         assert_eq!(
             messages[1],
-            json!({"role": "system", "content": "Additional context that the user has provided: User is a developer."})
+            json!({"role": "user", "content": "Additional context that should be considered: User is a developer."})
         );
         assert_eq!(messages[2], json!({"role": "user", "content": "Hello!"}));
         assert_eq!(
