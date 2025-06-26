@@ -141,7 +141,7 @@ impl OllamaClient {
         messages.push(serde_json::json!({ "role": "system", "content": system_prompt }));
 
         if !context_content.is_empty() {
-            messages.push(serde_json::json!({ "role": "system", "content": format!("Additional context that the user has provided: {}", context_content) }));
+            messages.push(serde_json::json!({ "role": "user", "content": format!("Additional context that should be considered: {}", context_content) }));
         }
 
         if let Some(history_messages_json) = history_messages_json.as_array() {
