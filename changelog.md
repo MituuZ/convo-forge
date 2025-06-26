@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.2.6 - 2025-06-26
+
+_Refactoring and context file improvement_
+
+### Context file
+
+- Reload the file on each loop
+- Include the context file in the token estimation
+- Pass the context file as a user prompt instead
+
 ## 0.2.5 - 2025-06-21
 
 _Remember the previous history file_

@@ -20,13 +20,16 @@ mod commands;
 mod config;
 mod history_file;
 mod ollama_client;
+mod processor;
+mod user_input;
 
 use config::Config;
 
 use crate::commands::CommandResult::SwitchHistory;
-use crate::commands::{CommandParams, create_command_registry};
+use crate::commands::{create_command_registry, CommandResult};
 use crate::history_file::HistoryFile;
 use crate::ollama_client::OllamaClient;
+use crate::processor::CommandProcessor;
 use clap::Parser;
 use colored::Colorize;
 use std::fs::{self};
@@ -49,22 +52,7 @@ fn main() -> io::Result<()> {
     let mut config = Config::load()?;
     let args = Args::parse();
     let command_registry = create_command_registry();
-
-    // Read the input file if provided
-    let context_file_content = if let Some(file_path) = args.context_file {
-        match fs::read_to_string(file_path.clone()) {
-            Ok(content) => {
-                println!("Loaded input from file: {}", file_path.display());
-                Some(content)
-            }
-            Err(e) => {
-                eprintln!("Error reading input file: {}", e);
-                None
-            }
-        }
-    } else {
-        None
-    };
+    let context_file_path = args.context_file.clone();
 
     let history_path = args.history_file.unwrap_or_else(|| {
         match config.last_history_file.clone() {
@@ -107,9 +95,23 @@ fn main() -> io::Result<()> {
         });
 
     loop {
+        // Read the context file if provided
+        let context_file_content = if let Some(file_path) = &context_file_path {
+            match fs::read_to_string(file_path.clone()) {
+                Ok(content) => Some(content),
+                Err(e) => {
+                    eprintln!("Error reading context file: {}", e);
+                    None
+                }
+            }
+        } else {
+            None
+        };
+
         if config.token_estimation {
             print_token_usage(
-                history.estimate_token_count(),
+                estimate_token_count(history.get_content())
+                    + estimate_token_count(context_file_content.as_deref().unwrap_or("")),
                 model_context_size.unwrap_or(0),
             );
         }
@@ -134,51 +136,23 @@ fn main() -> io::Result<()> {
             }
         };
 
-        let user_prompt = user_prompt.trim();
-        if user_prompt.starts_with(":") {
-            let parts: Vec<&str> = user_prompt.split_whitespace().collect();
-            let command_string = parts[0].to_lowercase();
-            let args: Vec<&str> = parts[1..].to_vec();
+        let mut processor = CommandProcessor::new(
+            &mut ollama_client,
+            &mut history,
+            &mut config,
+            &command_registry,
+            context_file_content.clone(),
+        );
 
-            let command_params =
-                CommandParams::new(&args, &mut ollama_client, &mut history, &config.cforge_dir);
-
-            if let Some(command) = command_registry.get(command_string.as_str()) {
-                match command.execute(command_params)? {
-                    commands::CommandResult::Quit => break,
-                    SwitchHistory(new_file) => {
-                        history = HistoryFile::new(new_file, config.cforge_dir.clone())?;
-                        config.update_last_history_file(history.filename.clone())?;
-                        println!("{}", history.get_content());
-                        println!("Switched to history file: {}", history.filename);
-                        continue;
-                    }
-                    commands::CommandResult::Continue => continue,
-                }
-            } else {
-                println!("Unknown command: {}", command_string);
-                continue;
-            }
-        }
-
-        let history_json = match history.get_content_json() {
-            Ok(s) => s,
+        match processor.process(&user_prompt) {
+            Ok(CommandResult::Continue) => continue,
+            Ok(SwitchHistory(_)) => continue,
+            Ok(CommandResult::Quit) => break,
             Err(e) => {
-                eprintln!("Error reading history file: {}", e);
+                eprintln!("Error processing input: {}", e);
                 break;
             }
-        };
-
-        let ollama_response = ollama_client.generate_response(
-            history_json,
-            user_prompt,
-            context_file_content.as_deref(),
-        )?;
-
-        history.append_user_input(user_prompt)?;
-
-        // Print the AI response with the delimiter to make it easier to parse
-        println!("{}", history.append_ai_response(&ollama_response)?);
+        }
     }
 
     Ok(())
@@ -210,7 +184,12 @@ fn print_token_usage(estimated_tokens: usize, context_size: usize) {
     );
 
     println!(
-        "\n\nEstimated history token usage (1 token ≈ 4 characters): {}",
+        "\n\nEstimated token usage (1 token ≈ 4 characters): {}",
         bar
     );
+}
+
+fn estimate_token_count(prompt: &str) -> usize {
+    let char_count = prompt.chars().count();
+    char_count / 4 + 1 // Add 1 to avoid returning 0 for very short content
 }

@@ -26,16 +26,16 @@ pub enum CommandResult {
     SwitchHistory(String),
 }
 
-pub struct CommandParams<'a, 'b> {
-    args: &'a [&'b str],
+pub struct CommandParams<'a> {
+    pub(crate) args: Vec<String>,
     ollama_client: &'a mut OllamaClient,
     history: &'a mut HistoryFile,
     cforge_dir: &'a str,
 }
 
-impl<'a, 'b> CommandParams<'a, 'b> {
+impl<'a> CommandParams<'a> {
     pub fn new(
-        args: &'a [&'b str],
+        args: Vec<String>,
         ollama_client: &'a mut OllamaClient,
         history: &'a mut HistoryFile,
         cforge_dir: &'a str,
@@ -91,66 +91,55 @@ impl<'a> CommandStruct<'a> {
     }
 }
 
+/// Helper function to create a new command struct as a tuple for the registry
+fn cmd<'a>(
+    name: &'a str,
+    description: &'a str,
+    command_example: Option<&'a str>,
+    file_command: bool,
+    execute_fn: fn(CommandParams) -> io::Result<CommandResult>,
+) -> (String, CommandStruct<'a>) {
+    (
+        name.to_string(),
+        CommandStruct::new(name, description, command_example, file_command, execute_fn),
+    )
+}
+
 pub(crate) fn create_command_registry<'a>() -> HashMap<String, CommandStruct<'a>> {
-    let mut commands: HashMap<String, CommandStruct> = HashMap::new();
-
-    commands.insert(
-        ":q".to_string(),
-        CommandStruct::new(":q", "Exit the program", None, false, quit_command),
-    );
-
-    commands.insert(
-        ":list".to_string(),
-        CommandStruct::new(
-            ":list",
+    HashMap::from([
+        cmd("q", "Exit the program", None, false, quit_command),
+        cmd(
+            "list",
             "List files in the cforge directory. \
                     Optionally, you can provide a pattern to filter the results.",
             Some(":list <optional pattern>"),
             true,
             list_command,
         ),
-    );
-
-    commands.insert(
-        ":switch".to_string(),
-        CommandStruct::new(
-            ":switch",
+        cmd(
+            "switch",
             "Switch to a different history file. \
                     Either relative to cforge_dir or absolute path. Creates the file if it doesn't exist.",
             Some(":switch <history file>"),
             true,
             switch_command,
         ),
-    );
-
-    commands.insert(
-        ":help".to_string(),
-        CommandStruct::new(":help", "Show this help message", None, false, help_command),
-    );
-
-    commands.insert(
-        ":edit".to_string(),
-        CommandStruct::new(
-            ":edit",
+        cmd("help", "Show this help message", None, false, help_command),
+        cmd(
+            "edit",
             "Open the history file in your editor",
             None,
             false,
             edit_command,
         ),
-    );
-
-    commands.insert(
-        ":sysprompt".to_string(),
-        CommandStruct::new(
-            ":sysprompt",
+        cmd(
+            "sysprompt",
             "Set the system prompt for current session",
             Some(":sysprompt <prompt>"),
             false,
             sysprompt_command,
         ),
-    );
-
-    commands
+    ])
 }
 
 fn quit_command(command_params: CommandParams) -> io::Result<CommandResult> {
@@ -162,7 +151,8 @@ fn quit_command(command_params: CommandParams) -> io::Result<CommandResult> {
 }
 
 fn list_command(command_params: CommandParams) -> io::Result<CommandResult> {
-    let pattern = command_params.args.first().unwrap_or(&"");
+    let empty_string = String::from("");
+    let pattern = command_params.args.first().unwrap_or(&empty_string);
 
     fn list_dir_contents(dir: &str, pattern: &str, cforge_dir: &str) -> io::Result<()> {
         for entry in fs::read_dir(dir)? {
@@ -228,14 +218,13 @@ fn help_command(_command_params: CommandParams) -> io::Result<CommandResult> {
 }
 
 fn switch_command(command_params: CommandParams) -> io::Result<CommandResult> {
-    let new_history_file = command_params.args.first().unwrap_or(&"");
-
-    if new_history_file.is_empty() {
-        println!("Error: No history file specified. Usage: :switch <history_file>");
-        return Ok(CommandResult::Continue);
+    match command_params.args.first() {
+        Some(new_history_file) => Ok(CommandResult::SwitchHistory(new_history_file.to_string())),
+        _ => {
+            println!("Error: No history file specified. Usage: :switch <history_file>");
+            Ok(CommandResult::Continue)
+        }
     }
-
-    Ok(CommandResult::SwitchHistory(new_history_file.to_string()))
 }
 
 fn edit_command(command_params: CommandParams) -> io::Result<CommandResult> {
@@ -296,8 +285,7 @@ mod tests {
         fs::write(format!("{}/history1.txt", dir_path), "Content 1")?;
         fs::write(format!("{}/history2.txt", dir_path), "Content 2")?;
 
-        let args: Vec<&str> = vec![];
-        let params = CommandParams::new(&args, &mut ollama_client, &mut history, &dir_path);
+        let params = CommandParams::new(vec![], &mut ollama_client, &mut history, &dir_path);
 
         let result = list_command(params)?;
         assert!(matches!(result, CommandResult::Continue));
@@ -319,8 +307,8 @@ mod tests {
             "New history content",
         )?;
 
-        let args = vec![new_history_file];
-        let params = CommandParams::new(&args, &mut ollama_client, &mut history, &dir_path);
+        let args = vec![new_history_file.to_string()];
+        let params = CommandParams::new(args, &mut ollama_client, &mut history, &dir_path);
 
         let result = switch_command(params)?;
 
@@ -337,8 +325,7 @@ mod tests {
     fn test_help_command() -> io::Result<()> {
         let (mut ollama_client, mut history, _temp_dir, dir_path) = setup_test_environment();
 
-        let args: Vec<&str> = vec![];
-        let params = CommandParams::new(&args, &mut ollama_client, &mut history, &dir_path);
+        let params = CommandParams::new(vec![], &mut ollama_client, &mut history, &dir_path);
 
         let result = help_command(params)?;
         assert!(matches!(result, CommandResult::Continue));
@@ -350,8 +337,7 @@ mod tests {
     fn test_exit_command() -> io::Result<()> {
         let (mut ollama_client, mut history, _temp_dir, dir_path) = setup_test_environment();
 
-        let args: Vec<&str> = vec![];
-        let params = CommandParams::new(&args, &mut ollama_client, &mut history, &dir_path);
+        let params = CommandParams::new(vec![], &mut ollama_client, &mut history, &dir_path);
 
         let result = quit_command(params)?;
         assert!(matches!(result, CommandResult::Quit));
@@ -369,8 +355,7 @@ mod tests {
             env::set_var("EDITOR", "echo");
         }
 
-        let args: Vec<&str> = vec![];
-        let params = CommandParams::new(&args, &mut ollama_client, &mut history, &dir_path);
+        let params = CommandParams::new(vec![], &mut ollama_client, &mut history, &dir_path);
 
         let result = edit_command(params)?;
         assert!(matches!(result, CommandResult::Continue));
@@ -383,8 +368,11 @@ mod tests {
         let (mut ollama_client, mut history, _temp_dir, dir_path) = setup_test_environment();
 
         let test_prompt = "This is a test system prompt";
-        let args: Vec<&str> = test_prompt.split_whitespace().collect();
-        let params = CommandParams::new(&args, &mut ollama_client, &mut history, &dir_path);
+        let args: Vec<String> = test_prompt
+            .split_whitespace()
+            .map(|s| s.to_string())
+            .collect();
+        let params = CommandParams::new(args, &mut ollama_client, &mut history, &dir_path);
 
         let result = sysprompt_command(params)?;
         assert!(matches!(result, CommandResult::Continue));
@@ -400,12 +388,12 @@ mod tests {
         let registry = create_command_registry();
 
         // Check that all expected commands are registered
-        assert!(registry.contains_key(":q"));
-        assert!(registry.contains_key(":list"));
-        assert!(registry.contains_key(":switch"));
-        assert!(registry.contains_key(":sysprompt"));
-        assert!(registry.contains_key(":help"));
-        assert!(registry.contains_key(":edit"));
+        assert!(registry.contains_key("q"));
+        assert!(registry.contains_key("list"));
+        assert!(registry.contains_key("switch"));
+        assert!(registry.contains_key("sysprompt"));
+        assert!(registry.contains_key("help"));
+        assert!(registry.contains_key("edit"));
 
         // Check the total number of commands
         assert_eq!(registry.len(), 6);
@@ -415,8 +403,7 @@ mod tests {
     fn test_switch_command_with_no_args() -> io::Result<()> {
         let (mut ollama_client, mut history, _temp_dir, dir_path) = setup_test_environment();
 
-        let args: Vec<&str> = vec![];
-        let params = CommandParams::new(&args, &mut ollama_client, &mut history, &dir_path);
+        let params = CommandParams::new(vec![], &mut ollama_client, &mut history, &dir_path);
 
         let result = switch_command(params)?;
         assert!(matches!(result, CommandResult::Continue));
@@ -434,8 +421,8 @@ mod tests {
         fs::write(format!("{}/other.txt", dir_path), "Other content")?;
 
         // Test with a pattern that should match some files
-        let args = vec!["history"];
-        let params = CommandParams::new(&args, &mut ollama_client, &mut history, &dir_path);
+        let args = vec!["history".to_string()];
+        let params = CommandParams::new(args, &mut ollama_client, &mut history, &dir_path);
 
         let result = list_command(params)?;
         assert!(matches!(result, CommandResult::Continue));

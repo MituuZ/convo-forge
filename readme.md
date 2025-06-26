@@ -49,7 +49,8 @@ cforge [OPTIONS]
 
 ### Options
 
-- `-f, --file <INPUT_FILE>` - Optional to be used as context for **each** chat message
+- `-f, --file <INPUT_FILE>` - Optional to be used as context for **each** chat message. Context file is reloaded with
+  each message
 - `-h, -help` - Print help
 - `-v, --version` - Print version
 
@@ -128,7 +129,7 @@ cforge_dir = "~/cforge"
 system_prompt = """
 You are an AI assistant receiving input from a command-line
 application called convo-forge (cforge). The user may include additional context from another file,
-this is included as a system prompt.
+this is included as a separate user prompt.
 Your responses are displayed in the terminal and saved to the history file.
 Keep your answers helpful, concise, and relevant to both the user's direct query and any file context provided.
 """
