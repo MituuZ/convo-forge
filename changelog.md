@@ -8,6 +8,7 @@ _Refactoring and context file improvement_
 
 - Reload the file on each loop
 - Include the context file in the token estimation
+- Pass the context file as a user prompt instead
 
 ## 0.2.5 - 2025-06-21
 
