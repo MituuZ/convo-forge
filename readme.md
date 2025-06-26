@@ -49,7 +49,8 @@ cforge [OPTIONS]
 
 ### Options
 
-- `-f, --file <INPUT_FILE>` - Optional to be used as context for **each** chat message
+- `-f, --file <INPUT_FILE>` - Optional to be used as context for **each** chat message. Context file is reloaded with
+  each message
 - `-h, -help` - Print help
 - `-v, --version` - Print version
 

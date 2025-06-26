@@ -52,22 +52,7 @@ fn main() -> io::Result<()> {
     let mut config = Config::load()?;
     let args = Args::parse();
     let command_registry = create_command_registry();
-
-    // Read the input file if provided
-    let context_file_content = if let Some(file_path) = args.context_file {
-        match fs::read_to_string(file_path.clone()) {
-            Ok(content) => {
-                println!("Loaded input from file: {}", file_path.display());
-                Some(content)
-            }
-            Err(e) => {
-                eprintln!("Error reading input file: {}", e);
-                None
-            }
-        }
-    } else {
-        None
-    };
+    let context_file_path = args.context_file.clone();
 
     let history_path = args.history_file.unwrap_or_else(|| {
         match config.last_history_file.clone() {
@@ -135,6 +120,19 @@ fn main() -> io::Result<()> {
                 eprintln!("Error reading input: {}", e);
                 break;
             }
+        };
+
+        // Read the context file if provided
+        let context_file_content = if let Some(file_path) = &context_file_path {
+            match fs::read_to_string(file_path.clone()) {
+                Ok(content) => Some(content),
+                Err(e) => {
+                    eprintln!("Error reading context file: {}", e);
+                    None
+                }
+            }
+        } else {
+            None
         };
 
         let mut processor = CommandProcessor::new(
