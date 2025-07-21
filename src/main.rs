@@ -26,7 +26,7 @@ mod user_input;
 use config::Config;
 
 use crate::commands::CommandResult::SwitchHistory;
-use crate::commands::{create_command_registry, CommandResult};
+use crate::commands::{CommandResult, create_command_registry};
 use crate::history_file::HistoryFile;
 use crate::ollama_client::OllamaClient;
 use crate::processor::CommandProcessor;
@@ -52,7 +52,7 @@ fn main() -> io::Result<()> {
     let mut config = Config::load()?;
     let args = Args::parse();
     let command_registry = create_command_registry();
-    let context_file_path = args.context_file.clone();
+    let mut context_file_path = args.context_file.clone();
 
     let history_path = args.history_file.unwrap_or_else(|| {
         match config.last_history_file.clone() {
@@ -60,7 +60,7 @@ fn main() -> io::Result<()> {
             None => {
                 eprintln!("No history file specified and no previous history file found.");
                 println!(
-                    "You must specify a history file `cforge <histoty_file>` for the first time."
+                    "You must specify a history file `cforge <history_file>` for the first time."
                 );
                 println!("See `cforge --help` for more information.");
                 std::process::exit(1);
@@ -120,7 +120,7 @@ fn main() -> io::Result<()> {
             "\nEnter your prompt or a command (type ':q' to end or ':help' for other commands)"
         );
 
-        let mut rl = match config.create_editor() {
+        let mut rl = match config.create_editor(&command_registry) {
             Ok(r) => r,
             Err(e) => {
                 eprintln!("Error initializing rustyline: {}", e);
@@ -141,12 +141,14 @@ fn main() -> io::Result<()> {
             &mut history,
             &mut config,
             &command_registry,
+            &mut context_file_path,
             context_file_content.clone(),
         );
 
         match processor.process(&user_prompt) {
             Ok(CommandResult::Continue) => continue,
-            Ok(SwitchHistory(_)) => continue,
+            Ok(CommandResult::SwitchHistory(_)) => continue,
+            Ok(CommandResult::SwitchContext(_)) => continue,
             Ok(CommandResult::Quit) => break,
             Err(e) => {
                 eprintln!("Error processing input: {}", e);

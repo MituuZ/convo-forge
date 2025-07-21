@@ -16,9 +16,11 @@
  */
 
 use crate::command_complete::CommandHelper;
+use crate::commands::CommandStruct;
 use rustyline::history::DefaultHistory;
 use rustyline::{Cmd, Editor, EventHandler, KeyEvent, Modifiers};
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::path::PathBuf;
 use std::{fs, io};
 
@@ -125,10 +127,24 @@ impl Config {
         config_builder.build()
     }
 
-    pub fn create_editor(&self) -> rustyline::Result<Editor<CommandHelper, DefaultHistory>> {
+    pub fn create_editor(
+        &self,
+        command_registry: &HashMap<String, CommandStruct>,
+    ) -> rustyline::Result<Editor<CommandHelper, DefaultHistory>> {
         let config = self.create_rustyline_config();
-        let commands = vec!["q", "help", "list", "switch", "edit", "sysprompt"];
-        let file_commands = vec![":list", ":switch"];
+
+        let (commands, file_commands) = Self::get_commands(command_registry);
+
+        // let commands = vec![
+        //     "q",
+        //     "help",
+        //     "list",
+        //     "switch",
+        //     "edit",
+        //     "sysprompt",
+        //     "context",
+        // ];
+        // let file_commands = vec![":list", ":switch", ":context"];
         let helper = CommandHelper::new(commands, file_commands, &self.cforge_dir);
         let mut editor = Editor::with_config(config)?;
         editor.set_helper(Some(helper));
@@ -139,6 +155,22 @@ impl Config {
         );
 
         Ok(editor)
+    }
+
+    fn get_commands(
+        command_registry: &HashMap<String, CommandStruct>,
+    ) -> (Vec<String>, Vec<String>) {
+        (
+            command_registry
+                .iter()
+                .map(|c| c.1.command_string.to_string())
+                .collect(),
+            command_registry
+                .iter()
+                .filter(|c| c.1.file_command)
+                .map(|c| c.1.command_string.to_string())
+                .collect(),
+        )
     }
 
     pub fn load() -> io::Result<Self> {

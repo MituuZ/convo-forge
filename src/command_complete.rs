@@ -29,10 +29,10 @@ pub(crate) struct CommandHelper {
 }
 
 impl CommandHelper {
-    pub(crate) fn new(commands: Vec<&str>, file_commands: Vec<&str>, cforge_dir: &str) -> Self {
+    pub(crate) fn new(commands: Vec<String>, file_commands: Vec<String>, cforge_dir: &str) -> Self {
         CommandHelper {
-            commands: commands.iter().map(|s| s.to_string()).collect(),
-            file_commands: file_commands.iter().map(|s| s.to_string()).collect(),
+            commands: commands,
+            file_commands: file_commands,
             file_completer: FileCompleter::new(cforge_dir),
         }
     }
@@ -119,11 +119,17 @@ impl Completer for CommandHelper {
         if line.starts_with(":") {
             if line.contains(" ") {
                 let parts: Vec<&str> = line.split_whitespace().collect();
-                let command = parts.first().unwrap_or(&"");
 
                 // if the command is not a file command, return an empty list
-                if !self.file_commands.contains(&command.to_string()) {
-                    return Ok((pos, vec![]));
+                match parts.first().unwrap_or(&"").strip_prefix(":") {
+                    Some(command) => {
+                        if !self.file_commands.contains(&command.to_string()) {
+                            return Ok((pos, vec![]));
+                        }
+                    }
+                    None => {
+                        return Ok((pos, vec![]));
+                    }
                 }
 
                 let arg = parts.get(1).unwrap_or(&"");
@@ -199,8 +205,8 @@ impl Helper for CommandHelper {}
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rustyline::history::DefaultHistory;
     use rustyline::Context;
+    use rustyline::history::DefaultHistory;
     use std::collections::HashSet;
     use std::fs;
     use tempfile::TempDir;

@@ -17,6 +17,7 @@
 use crate::history_file::HistoryFile;
 use crate::ollama_client::OllamaClient;
 use std::collections::HashMap;
+use std::path::PathBuf;
 use std::process::Command;
 use std::{env, fs, io};
 
@@ -24,12 +25,14 @@ pub enum CommandResult {
     Continue,
     Quit,
     SwitchHistory(String),
+    SwitchContext(Option<PathBuf>),
 }
 
 pub struct CommandParams<'a> {
     pub(crate) args: Vec<String>,
     ollama_client: &'a mut OllamaClient,
     history: &'a mut HistoryFile,
+    context_file_path: &'a mut Option<PathBuf>,
     cforge_dir: &'a str,
 }
 
@@ -38,12 +41,14 @@ impl<'a> CommandParams<'a> {
         args: Vec<String>,
         ollama_client: &'a mut OllamaClient,
         history: &'a mut HistoryFile,
+        context_file_path: &'a mut Option<PathBuf>,
         cforge_dir: &'a str,
     ) -> Self {
         CommandParams {
             args,
             ollama_client,
             history,
+            context_file_path,
             cforge_dir,
         }
     }
@@ -52,10 +57,10 @@ impl<'a> CommandParams<'a> {
 type CommandFn = fn(CommandParams) -> io::Result<CommandResult>;
 
 pub struct CommandStruct<'a> {
-    command_string: &'a str,
+    pub(crate) command_string: &'a str,
     description: &'a str,
     command_example: Option<&'a str>,
-    file_command: bool,
+    pub(crate) file_command: bool,
     pub(crate) command_fn: CommandFn,
 }
 
@@ -138,6 +143,13 @@ pub(crate) fn create_command_registry<'a>() -> HashMap<String, CommandStruct<'a>
             Some(":sysprompt <prompt>"),
             false,
             sysprompt_command,
+        ),
+        cmd(
+            "context",
+            "Set or unset current context file",
+            Some(":context <optional path>"),
+            true,
+            context_file_command,
         ),
     ])
 }
@@ -254,6 +266,18 @@ fn sysprompt_command(command_params: CommandParams) -> io::Result<CommandResult>
         .ollama_client
         .update_system_prompt(command_params.args.join(" "));
     Ok(CommandResult::Continue)
+}
+
+fn context_file_command(command_params: CommandParams) -> io::Result<CommandResult> {
+    match command_params.args.first() {
+        Some(new_context_file) => Ok(CommandResult::SwitchContext(Some(PathBuf::from(
+            new_context_file,
+        )))),
+        _ => {
+            println!("Error: No history file specified. Usage: :context <context_file>");
+            return Ok(CommandResult::Continue);
+        }
+    }
 }
 
 #[cfg(test)]
