@@ -274,8 +274,7 @@ fn context_file_command(command_params: CommandParams) -> io::Result<CommandResu
             new_context_file,
         )))),
         _ => {
-            println!("Error: No history file specified. Usage: :context <context_file>");
-            return Ok(CommandResult::Continue);
+            return Ok(CommandResult::SwitchContext(None));
         }
     }
 }

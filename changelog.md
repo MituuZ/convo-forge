@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.0
+
+_Enable switching context file with a command_
+
 ## 0.2.6 - 2025-06-26
 
 _Refactoring and context file improvement_
