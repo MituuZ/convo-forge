@@ -30,11 +30,22 @@
 
 ## Completion overhaul
 
-Instead of having just absolute and cforge dirs, there should be few options for static dirs
+Instead of having just absolute and cforge dirs, there should be few options for static dirs.
+
+Certain commands can then be completed by defaulting to a corresponding path.
+* e.g. `switch` to cforge_dir and `context` to knowledge_dir
 
 ### Dirs
 * "/" - Absolute path
 * "" - Relative to the current dir
 * "@c/" - Relative to cforge_dir
 * "@k/" - Relative to knowledge_dir
+
+### Config
+Maybe just adding default prefixes to the toml
+
+```toml
+switch = "@c/"
+context = "@k/"
+```
 
