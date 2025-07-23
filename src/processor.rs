@@ -64,7 +64,6 @@ impl<'a> CommandProcessor<'a> {
             command.args,
             self.ollama_client,
             self.history,
-            self.context_file_path,
             &self.config.cforge_dir,
         );
 

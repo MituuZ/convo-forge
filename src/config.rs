@@ -16,7 +16,7 @@
  */
 
 use crate::command_complete::CommandHelper;
-use crate::commands::CommandStruct;
+use crate::commands::{CommandStruct, FileCommand};
 use rustyline::history::DefaultHistory;
 use rustyline::{Cmd, Editor, EventHandler, KeyEvent, Modifiers};
 use serde::{Deserialize, Serialize};
@@ -135,16 +135,6 @@ impl Config {
 
         let (commands, file_commands) = Self::get_commands(command_registry);
 
-        // let commands = vec![
-        //     "q",
-        //     "help",
-        //     "list",
-        //     "switch",
-        //     "edit",
-        //     "sysprompt",
-        //     "context",
-        // ];
-        // let file_commands = vec![":list", ":switch", ":context"];
         let helper = CommandHelper::new(commands, file_commands, &self.cforge_dir);
         let mut editor = Editor::with_config(config)?;
         editor.set_helper(Some(helper));
@@ -159,18 +149,18 @@ impl Config {
 
     fn get_commands(
         command_registry: &HashMap<String, CommandStruct>,
-    ) -> (Vec<String>, Vec<String>) {
-        (
-            command_registry
-                .iter()
-                .map(|c| c.1.command_string.to_string())
-                .collect(),
-            command_registry
-                .iter()
-                .filter(|c| c.1.file_command)
-                .map(|c| c.1.command_string.to_string())
-                .collect(),
-        )
+    ) -> (Vec<String>, Vec<(String, FileCommand)>) {
+        let mut all_commands = Vec::<String>::new();
+        let mut file_commands = Vec::<(String, FileCommand)>::new();
+
+        for command in command_registry {
+            all_commands.push(command.1.command_string.to_string());
+            if let Some(file_command) = command.1.file_command.as_ref() {
+                file_commands.push((command.1.command_string.to_string(), file_command.clone()));
+            }
+        }
+
+        (all_commands, file_commands)
     }
 
     pub fn load() -> io::Result<Self> {
