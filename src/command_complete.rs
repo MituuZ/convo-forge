@@ -35,23 +35,26 @@ impl CommandHelper {
         commands: Vec<String>,
         file_commands: Vec<(String, FileCommand)>,
         cforge_dir: &str,
+        knowledge_dir: &str,
     ) -> Self {
         CommandHelper {
             commands: commands,
             file_commands: file_commands,
-            file_completer: FileCompleter::new(cforge_dir),
+            file_completer: FileCompleter::new(cforge_dir, knowledge_dir),
         }
     }
 }
 
 struct FileCompleter {
     base_dir: PathBuf,
+    knowledge_dir: PathBuf,
 }
 
 impl FileCompleter {
-    fn new(base_dir: impl Into<PathBuf>) -> Self {
+    fn new(base_dir: impl Into<PathBuf>, knowledge_dir: impl Into<PathBuf>) -> Self {
         FileCompleter {
             base_dir: base_dir.into(),
+            knowledge_dir: knowledge_dir.into(),
         }
     }
 }
@@ -62,38 +65,27 @@ impl Completer for FileCompleter {
     fn complete(
         &self,
         line: &str,
-        original_pos: usize,
+        _: usize,
         ctx: &Context<'_>,
     ) -> rustyline::Result<(usize, Vec<Pair>)> {
         let filename_completer = FilenameCompleter::new();
 
-        if line.starts_with("/") {
-            // For absolute paths, just use the FilenameCompleter directly
-            filename_completer.complete(line, line.len(), ctx)
-        } else {
-            let absolute_path = self.base_dir.join(line);
-            let absolute_pos = absolute_path.to_string_lossy().len();
-            let (_, candidates) =
-                filename_completer.complete(&absolute_path.to_string_lossy(), absolute_pos, ctx)?;
+        if let Some(actual_query) = line.strip_prefix("@") {
+            if let Some((prefix, subpath)) = actual_query.split_once("/") {
+                let full_path = match prefix {
+                    "d" => self.base_dir.join(subpath),
+                    "k" => self.knowledge_dir.join(subpath),
+                    _ => return Result::Ok((0, vec![])),
+                };
+                let full_path_str = full_path.to_string_lossy();
+                // The cursor is at the end of the full path string now
+                let pos = full_path_str.len();
 
-            let base_dir_str = self.base_dir.to_string_lossy().to_string();
-
-            let modified_candidates: Vec<Pair> = candidates
-                .into_iter()
-                .map(|pair| {
-                    let display = pair.display;
-                    let new_display = strip_base_dir(display, &base_dir_str);
-                    let new_replacement = strip_base_dir(pair.replacement, &base_dir_str);
-
-                    Pair {
-                        display: new_display,
-                        replacement: new_replacement,
-                    }
-                })
-                .collect();
-
-            Ok((original_pos, modified_candidates))
+                return filename_completer.complete(&full_path_str, pos, ctx);
+            }
         }
+
+        filename_completer.complete(line, line.len(), ctx)
     }
 }
 

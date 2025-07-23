@@ -35,6 +35,8 @@ Instead of having just absolute and cforge dirs, there should be few options for
 Certain commands can then be completed by defaulting to a corresponding path.
 * e.g. `switch` to cforge_dir and `context` to knowledge_dir
 
+For simplicity, just expand the aliases to absolute paths on completion request
+
 ### Dirs
 * "/" - Absolute path
 * "" - Relative to the current dir

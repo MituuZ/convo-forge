@@ -57,6 +57,9 @@ pub struct Config {
     #[serde(default = "default_cforge_dir")]
     pub(crate) cforge_dir: String,
 
+    #[serde(default = "default_knowledge_dir")]
+    pub(crate) knowledge_dir: String,
+
     #[serde(default = "default_system_prompt")]
     pub(crate) system_prompt: String,
 
@@ -75,6 +78,10 @@ fn default_model() -> String {
 
 fn default_token_estimation() -> bool {
     true
+}
+
+fn default_knowledge_dir() -> String {
+    "".to_string()
 }
 
 fn default_cforge_dir() -> String {
@@ -101,6 +108,7 @@ impl Config {
         Self {
             model: default_model(),
             cforge_dir: default_cforge_dir(),
+            knowledge_dir: default_knowledge_dir(),
             system_prompt: default_system_prompt(),
             rustyline: RustylineConfig::default(),
             token_estimation: default_token_estimation(),
@@ -135,7 +143,12 @@ impl Config {
 
         let (commands, file_commands) = Self::get_commands(command_registry);
 
-        let helper = CommandHelper::new(commands, file_commands, &self.cforge_dir);
+        let helper = CommandHelper::new(
+            commands,
+            file_commands,
+            &self.cforge_dir,
+            &self.knowledge_dir,
+        );
         let mut editor = Editor::with_config(config)?;
         editor.set_helper(Some(helper));
 
