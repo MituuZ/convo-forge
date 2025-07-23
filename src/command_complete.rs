@@ -89,22 +89,6 @@ impl Completer for FileCompleter {
     }
 }
 
-fn strip_base_dir(path: String, base_dir_str: &str) -> String {
-    if base_dir_str.is_empty() {
-        return path;
-    }
-
-    if let Some(stripped) = path.strip_prefix(base_dir_str) {
-        if let Some(stripped) = stripped.strip_prefix('/') {
-            stripped.to_string()
-        } else {
-            stripped.to_string()
-        }
-    } else {
-        path
-    }
-}
-
 impl Completer for CommandHelper {
     type Candidate = Pair;
 
