@@ -27,3 +27,14 @@
 - [ ] Absolute file path completion does not work
 - [ ] Use prompt files with the current message
 - [ ] Truncate chat (line count, estimated tokens, or LLM assisted)
+
+## Completion overhaul
+
+Instead of having just absolute and cforge dirs, there should be few options for static dirs
+
+### Dirs
+* "/" - Absolute path
+* "" - Relative to the current dir
+* "@c/" - Relative to cforge_dir
+* "@k/" - Relative to knowledge_dir
+
