@@ -5,7 +5,7 @@ A command-line interface for interacting with Ollama API.
 ## Features
 
 - Store conversations as files
-- Add context to a session with `-f/--file` flag
+- Add context to a session with `-f/--file` flag and change the context file mid conversation
 - Use commands to modify and customize the current session
 - Prompts are built in the following way and sent using the
   `/chat` [endpoint (without streaming)](https://github.com/ollama/ollama/blob/main/docs/api.md#chat-request-no-streaming)
@@ -68,6 +68,13 @@ cforge chat.txt -f code.rs
 
 Commands can be entered during a chat by prepending the command with `:`. Commands are case-insensitive.
 
+#### Dir shortcuts
+
+These can be used to quickly find files from cforge and knowledge directories:
+
+**@d/** - `cforge_dir`
+**@k/** - `knowledge_dir`
+
 #### Help
 
 List available commands.
@@ -86,6 +93,8 @@ Switch to a different history file. Supports either absolute or relative paths (
 
 `:switch relative/path`
 `:switch /absolute/path`
+
+Supports [shortcuts](#dir-shortcuts)
 
 #### Edit
 
@@ -110,6 +119,15 @@ Update the system prompt for this session. Does not modify any configurations.
 
 `:sysprompt Enter the new system prompt here`
 
+#### Context
+
+Change context file for this session.
+
+`:context relative/path`
+`:context /absolute/path`
+
+Supports [shortcuts](#dir-shortcuts)
+
 ## Configuration
 
 You can configure your cforge by creating and modifying TOML configuration located at `~/.cforge.toml`/
@@ -124,6 +142,9 @@ model = "gemma3:12b"
 # Path to the cforge directory. This will hold new history files by default.
 # ~ is expanded to the user's home directory based on `$HOME` or `%USERPROFILE%`. (not verified on windows)
 cforge_dir = "~/cforge"
+
+# Path to the cforge directory. This can used as a shortcut to find files for `context` or `switch` command
+knowledge_dir = ""
 
 # System prompt that configures the AI assistant's behavior.
 system_prompt = """
