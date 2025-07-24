@@ -17,6 +17,7 @@
 use crate::history_file::HistoryFile;
 use crate::ollama_client::OllamaClient;
 use std::collections::HashMap;
+use std::path::PathBuf;
 use std::process::Command;
 use std::{env, fs, io};
 
@@ -24,6 +25,7 @@ pub enum CommandResult {
     Continue,
     Quit,
     SwitchHistory(String),
+    SwitchContext(Option<PathBuf>),
 }
 
 pub struct CommandParams<'a> {
@@ -52,11 +54,17 @@ impl<'a> CommandParams<'a> {
 type CommandFn = fn(CommandParams) -> io::Result<CommandResult>;
 
 pub struct CommandStruct<'a> {
-    command_string: &'a str,
+    pub(crate) command_string: &'a str,
     description: &'a str,
     command_example: Option<&'a str>,
-    file_command: bool,
+    pub(crate) file_command: Option<FileCommand>,
     pub(crate) command_fn: CommandFn,
+}
+
+#[derive(Clone, Debug)]
+pub(crate) enum FileCommand {
+    KnowledgeDir,
+    CforgeDir,
 }
 
 impl<'a> CommandStruct<'a> {
@@ -64,7 +72,7 @@ impl<'a> CommandStruct<'a> {
         command_string: &'a str,
         description: &'a str,
         command_example: Option<&'a str>,
-        file_command: bool,
+        file_command: Option<FileCommand>,
         command_fn: CommandFn,
     ) -> Self {
         CommandStruct {
@@ -96,7 +104,7 @@ fn cmd<'a>(
     name: &'a str,
     description: &'a str,
     command_example: Option<&'a str>,
-    file_command: bool,
+    file_command: Option<FileCommand>,
     execute_fn: fn(CommandParams) -> io::Result<CommandResult>,
 ) -> (String, CommandStruct<'a>) {
     (
@@ -107,13 +115,13 @@ fn cmd<'a>(
 
 pub(crate) fn create_command_registry<'a>() -> HashMap<String, CommandStruct<'a>> {
     HashMap::from([
-        cmd("q", "Exit the program", None, false, quit_command),
+        cmd("q", "Exit the program", None, None, quit_command),
         cmd(
             "list",
             "List files in the cforge directory. \
                     Optionally, you can provide a pattern to filter the results.",
             Some(":list <optional pattern>"),
-            true,
+            Some(FileCommand::CforgeDir),
             list_command,
         ),
         cmd(
@@ -121,23 +129,30 @@ pub(crate) fn create_command_registry<'a>() -> HashMap<String, CommandStruct<'a>
             "Switch to a different history file. \
                     Either relative to cforge_dir or absolute path. Creates the file if it doesn't exist.",
             Some(":switch <history file>"),
-            true,
+            Some(FileCommand::CforgeDir),
             switch_command,
         ),
-        cmd("help", "Show this help message", None, false, help_command),
+        cmd("help", "Show this help message", None, None, help_command),
         cmd(
             "edit",
             "Open the history file in your editor",
             None,
-            false,
+            None,
             edit_command,
         ),
         cmd(
             "sysprompt",
             "Set the system prompt for current session",
             Some(":sysprompt <prompt>"),
-            false,
+            None,
             sysprompt_command,
+        ),
+        cmd(
+            "context",
+            "Set or unset current context file",
+            Some(":context <optional path>"),
+            Some(FileCommand::KnowledgeDir),
+            context_file_command,
         ),
     ])
 }
@@ -169,7 +184,7 @@ fn list_command(command_params: CommandParams) -> io::Result<CommandResult> {
                         if cleaned_ds.starts_with('/') {
                             cleaned_ds = cleaned_ds[1..].to_string();
                         }
-                        println!("{}", cleaned_ds)
+                        println!("{cleaned_ds}")
                     }
                 }
             }
@@ -194,14 +209,15 @@ fn help_command(_command_params: CommandParams) -> io::Result<CommandResult> {
 
     commands.sort_by(|a, b| {
         a.file_command
-            .cmp(&b.file_command)
+            .is_some()
+            .cmp(&b.file_command.is_some())
             .then(a.command_string.cmp(b.command_string))
     });
 
     // Print regular commands first
     println!("General commands:");
     for cmd in &commands {
-        if !cmd.file_command {
+        if cmd.file_command.is_none() {
             println!("{}", cmd.display());
         }
     }
@@ -209,7 +225,7 @@ fn help_command(_command_params: CommandParams) -> io::Result<CommandResult> {
     // Then print file commands
     println!("\nFile commands (supports file completion):");
     for cmd in &commands {
-        if cmd.file_command {
+        if cmd.file_command.is_some() {
             println!("{}", cmd.display());
         }
     }
@@ -254,6 +270,15 @@ fn sysprompt_command(command_params: CommandParams) -> io::Result<CommandResult>
         .ollama_client
         .update_system_prompt(command_params.args.join(" "));
     Ok(CommandResult::Continue)
+}
+
+fn context_file_command(command_params: CommandParams) -> io::Result<CommandResult> {
+    match command_params.args.first() {
+        Some(new_context_file) => Ok(CommandResult::SwitchContext(Some(PathBuf::from(
+            new_context_file,
+        )))),
+        _ => Ok(CommandResult::SwitchContext(None)),
+    }
 }
 
 #[cfg(test)]
@@ -394,9 +419,10 @@ mod tests {
         assert!(registry.contains_key("sysprompt"));
         assert!(registry.contains_key("help"));
         assert!(registry.contains_key("edit"));
+        assert!(registry.contains_key("context"));
 
         // Check the total number of commands
-        assert_eq!(registry.len(), 6);
+        assert_eq!(registry.len(), 7);
     }
 
     #[test]

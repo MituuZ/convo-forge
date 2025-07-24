@@ -11,6 +11,8 @@
 - [x] Support multiline input with alt + enter (using rustyline)
 - [x] Update the default sysprompt
 - [x] Keep track of the model's context window and file size
+- [ ] The model might not realize that it has the context file available (improve prompt; either system or context file)
+- [ ] Does Rustyline support case insensitive completion?
 - [ ] Add `keep_alive` configuration that is sent with the API requests
 - [ ] Add support for knowledge directory
 - [ ] Re-implement AI response interruption
@@ -19,7 +21,25 @@
 
 ## Commands
 
-- [ ] Copy the history file to another location
-- [ ] Allow changing the context file during a chat
+- [x] Allow changing the context file during a chat
+    - [x] `config.create_editor` - Handle command/file command logic using the registry
+- [ ] `:copy` Copy the history file to another location. Edit the copy of the file?
 - [ ] Use prompt files with the current message
 - [ ] Truncate chat (line count, estimated tokens, or LLM assisted)
+
+## Completion overhaul
+- [ ] Default prefix handling
+
+Certain commands can then be completed by defaulting to a corresponding path.
+* e.g. `switch` to cforge_dir and `context` to knowledge_dir
+
+For simplicity, just expand the aliases to absolute paths on completion request
+
+### Config
+Maybe just adding default prefixes to the toml
+
+```toml
+switch = "@c/"
+context = "@k/"
+```
+

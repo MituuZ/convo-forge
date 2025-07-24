@@ -160,10 +160,7 @@ impl OllamaClient {
     }
 
     fn api_url() -> String {
-        format!(
-            "{}://{}:{}{}",
-            LLM_PROTOCOL, LLM_HOST, LLM_PORT, LLM_ENDPOINT
-        )
+        format!("{LLM_PROTOCOL}://{LLM_HOST}:{LLM_PORT}{LLM_ENDPOINT}")
     }
 
     /// Gets the context size for a specific model by executing the `ollama show [model]` command.
@@ -172,14 +169,11 @@ impl OllamaClient {
             .arg("show")
             .arg(model_name)
             .output()
-            .map_err(|e| io::Error::other(format!("Failed to execute command: {}", e)))?;
+            .map_err(|e| io::Error::other(format!("Failed to execute command: {e}")))?;
 
         if !output.status.success() {
             let error_message = String::from_utf8_lossy(&output.stderr);
-            return Err(io::Error::other(format!(
-                "Command failed: {}",
-                error_message
-            )));
+            return Err(io::Error::other(format!("Command failed: {error_message}")));
         }
 
         let output_str = String::from_utf8_lossy(&output.stdout);

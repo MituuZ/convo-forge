@@ -16,6 +16,7 @@
  */
 use std::collections::HashMap;
 use std::io;
+use std::path::PathBuf;
 
 use crate::commands::{CommandParams, CommandResult, CommandStruct};
 use crate::config::Config;
@@ -28,6 +29,7 @@ pub(crate) struct CommandProcessor<'a> {
     history: &'a mut HistoryFile,
     config: &'a mut Config,
     command_registry: &'a HashMap<String, CommandStruct<'a>>,
+    context_file_path: &'a mut Option<PathBuf>,
     context_file_content: Option<String>,
 }
 
@@ -37,6 +39,7 @@ impl<'a> CommandProcessor<'a> {
         history: &'a mut HistoryFile,
         config: &'a mut Config,
         command_registry: &'a HashMap<String, CommandStruct<'a>>,
+        context_file_path: &'a mut Option<PathBuf>,
         context_file_content: Option<String>,
     ) -> Self {
         Self {
@@ -44,6 +47,7 @@ impl<'a> CommandProcessor<'a> {
             history,
             config,
             command_registry,
+            context_file_path,
             context_file_content,
         }
     }
@@ -73,6 +77,19 @@ impl<'a> CommandProcessor<'a> {
                 println!("Switched to history file: {}", self.history.filename);
             }
 
+            if let CommandResult::SwitchContext(new_context) = &result {
+                match new_context {
+                    Some(new_path) => {
+                        *self.context_file_path = Some(new_path.clone());
+                        println!("Updated context file");
+                    }
+                    None => {
+                        *self.context_file_path = None;
+                        println!("Removed context file");
+                    }
+                }
+            }
+
             Ok(result)
         } else {
             println!("Unknown command: {}", command.name);
@@ -84,7 +101,7 @@ impl<'a> CommandProcessor<'a> {
         let history_json = match self.history.get_content_json() {
             Ok(s) => s,
             Err(e) => {
-                eprintln!("Error reading history file: {}", e);
+                eprintln!("Error reading history file: {e}");
                 return Ok(CommandResult::Quit);
             }
         };

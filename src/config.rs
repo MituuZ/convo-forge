@@ -16,9 +16,11 @@
  */
 
 use crate::command_complete::CommandHelper;
+use crate::commands::{CommandStruct, FileCommand};
 use rustyline::history::DefaultHistory;
 use rustyline::{Cmd, Editor, EventHandler, KeyEvent, Modifiers};
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::path::PathBuf;
 use std::{fs, io};
 
@@ -55,6 +57,9 @@ pub struct Config {
     #[serde(default = "default_cforge_dir")]
     pub(crate) cforge_dir: String,
 
+    #[serde(default = "default_knowledge_dir")]
+    pub(crate) knowledge_dir: String,
+
     #[serde(default = "default_system_prompt")]
     pub(crate) system_prompt: String,
 
@@ -73,6 +78,10 @@ fn default_model() -> String {
 
 fn default_token_estimation() -> bool {
     true
+}
+
+fn default_knowledge_dir() -> String {
+    "".to_string()
 }
 
 fn default_cforge_dir() -> String {
@@ -99,6 +108,7 @@ impl Config {
         Self {
             model: default_model(),
             cforge_dir: default_cforge_dir(),
+            knowledge_dir: default_knowledge_dir(),
             system_prompt: default_system_prompt(),
             rustyline: RustylineConfig::default(),
             token_estimation: default_token_estimation(),
@@ -125,11 +135,20 @@ impl Config {
         config_builder.build()
     }
 
-    pub fn create_editor(&self) -> rustyline::Result<Editor<CommandHelper, DefaultHistory>> {
+    pub fn create_editor(
+        &self,
+        command_registry: &HashMap<String, CommandStruct>,
+    ) -> rustyline::Result<Editor<CommandHelper, DefaultHistory>> {
         let config = self.create_rustyline_config();
-        let commands = vec!["q", "help", "list", "switch", "edit", "sysprompt"];
-        let file_commands = vec![":list", ":switch"];
-        let helper = CommandHelper::new(commands, file_commands, &self.cforge_dir);
+
+        let (commands, file_commands) = Self::get_commands(command_registry);
+
+        let helper = CommandHelper::new(
+            commands,
+            file_commands,
+            &self.cforge_dir,
+            &self.knowledge_dir,
+        );
         let mut editor = Editor::with_config(config)?;
         editor.set_helper(Some(helper));
 
@@ -141,11 +160,27 @@ impl Config {
         Ok(editor)
     }
 
+    fn get_commands(
+        command_registry: &HashMap<String, CommandStruct>,
+    ) -> (Vec<String>, Vec<(String, FileCommand)>) {
+        let mut all_commands = Vec::<String>::new();
+        let mut file_commands = Vec::<(String, FileCommand)>::new();
+
+        for command in command_registry {
+            all_commands.push(command.1.command_string.to_string());
+            if let Some(file_command) = command.1.file_command.as_ref() {
+                file_commands.push((command.1.command_string.to_string(), file_command.clone()));
+            }
+        }
+
+        (all_commands, file_commands)
+    }
+
     pub fn load() -> io::Result<Self> {
         let config_path = match get_config_path() {
             Ok(path) => path,
             Err(e) => {
-                eprintln!("Couldn't load config_path: {}", e);
+                eprintln!("Couldn't load config_path: {e}");
                 println!("Using default config values.");
                 return Ok(Config::default());
             }
@@ -153,8 +188,8 @@ impl Config {
 
         let config_str = match fs::read_to_string(&config_path) {
             Ok(config_string) => config_string,
-            Err(s) => {
-                eprintln!("Could not read config file: {}", s);
+            Err(e) => {
+                eprintln!("Could not read config file: {e}");
                 println!("Using default config values.");
                 return Ok(Config::default());
             }

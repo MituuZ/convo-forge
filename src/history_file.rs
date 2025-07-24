@@ -56,7 +56,7 @@ pub(crate) struct HistoryFile {
 impl HistoryFile {
     pub(crate) fn new(path: String, cforge_dir: String) -> io::Result<Self> {
         let full_path = if Path::new(&path).is_absolute() {
-            println!("Opening file from absolute path: {}", path);
+            println!("Opening file from absolute path: {path}");
             PathBuf::from(path)
         } else {
             let actual_path = Path::new(&cforge_dir).join(path);
@@ -172,7 +172,7 @@ impl HistoryFile {
     pub(crate) fn append_user_input(&mut self, input: &str) -> io::Result<()> {
         let mut file = OpenOptions::new().append(true).open(&self.path)?;
 
-        let entry = format!("{}{}", DELIMITER_USER_INPUT, input);
+        let entry = format!("{DELIMITER_USER_INPUT}{input}");
         file.write_all(entry.as_bytes())?;
 
         self.content.push_str(&entry);
@@ -187,7 +187,7 @@ impl HistoryFile {
 
         let response_with_note = response.to_string();
 
-        let entry = format!("{}{}", DELIMITER_AI_RESPONSE, response_with_note);
+        let entry = format!("{DELIMITER_AI_RESPONSE}{response_with_note}");
         file.write_all(entry.as_bytes())?;
 
         self.content.push_str(&entry);
@@ -204,7 +204,7 @@ impl HistoryFile {
                 println!("{}", self.content);
                 println!("Reloaded file content: {}", self.path.clone());
             }
-            Err(e) => println!("Error opening file: {}", e),
+            Err(e) => println!("Error opening file: {e}"),
         }
     }
 }

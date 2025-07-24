@@ -22,30 +22,41 @@ use rustyline::{Context, Helper};
 use std::borrow::Cow;
 use std::path::PathBuf;
 
+use crate::commands::FileCommand;
+
 pub(crate) struct CommandHelper {
     commands: Vec<String>,
-    file_commands: Vec<String>,
+    file_commands: Vec<(String, FileCommand)>,
     file_completer: FileCompleter,
 }
 
 impl CommandHelper {
-    pub(crate) fn new(commands: Vec<&str>, file_commands: Vec<&str>, cforge_dir: &str) -> Self {
+    pub(crate) fn new(
+        commands: Vec<String>,
+        file_commands: Vec<(String, FileCommand)>,
+        cforge_dir: &str,
+        knowledge_dir: &str,
+    ) -> Self {
         CommandHelper {
-            commands: commands.iter().map(|s| s.to_string()).collect(),
-            file_commands: file_commands.iter().map(|s| s.to_string()).collect(),
-            file_completer: FileCompleter::new(cforge_dir),
+            commands,
+            file_commands,
+            file_completer: FileCompleter::new(cforge_dir, knowledge_dir),
         }
     }
 }
 
 struct FileCompleter {
     base_dir: PathBuf,
+    knowledge_dir: PathBuf,
+    filename_completer: FilenameCompleter,
 }
 
 impl FileCompleter {
-    fn new(base_dir: impl Into<PathBuf>) -> Self {
+    fn new(base_dir: impl Into<PathBuf>, knowledge_dir: impl Into<PathBuf>) -> Self {
         FileCompleter {
             base_dir: base_dir.into(),
+            knowledge_dir: knowledge_dir.into(),
+            filename_completer: FilenameCompleter::new(),
         }
     }
 }
@@ -56,54 +67,25 @@ impl Completer for FileCompleter {
     fn complete(
         &self,
         line: &str,
-        original_pos: usize,
+        _: usize,
         ctx: &Context<'_>,
     ) -> rustyline::Result<(usize, Vec<Pair>)> {
-        let filename_completer = FilenameCompleter::new();
+        if let Some(actual_query) = line.strip_prefix("@") {
+            if let Some((prefix, subpath)) = actual_query.split_once("/") {
+                let full_path = match prefix {
+                    "c" => self.base_dir.join(subpath),
+                    "k" => self.knowledge_dir.join(subpath),
+                    _ => return Result::Ok((0, vec![])),
+                };
+                let full_path_str = full_path.to_string_lossy();
+                // The cursor is at the end of the full path string now
+                let pos = full_path_str.len();
 
-        if line.starts_with("/") {
-            // For absolute paths, just use the FilenameCompleter directly
-            filename_completer.complete(line, original_pos, ctx)
-        } else {
-            let absolute_path = self.base_dir.join(line);
-            let absolute_pos = absolute_path.to_string_lossy().len();
-            let (_, candidates) =
-                filename_completer.complete(&absolute_path.to_string_lossy(), absolute_pos, ctx)?;
-
-            let base_dir_str = self.base_dir.to_string_lossy().to_string();
-
-            let modified_candidates: Vec<Pair> = candidates
-                .into_iter()
-                .map(|pair| {
-                    let display = pair.display;
-                    let new_display = strip_base_dir(display, &base_dir_str);
-                    let new_replacement = strip_base_dir(pair.replacement, &base_dir_str);
-
-                    Pair {
-                        display: new_display,
-                        replacement: new_replacement,
-                    }
-                })
-                .collect();
-
-            Ok((original_pos, modified_candidates))
+                return self.filename_completer.complete(&full_path_str, pos, ctx);
+            }
         }
-    }
-}
 
-fn strip_base_dir(path: String, base_dir_str: &str) -> String {
-    if base_dir_str.is_empty() {
-        return path;
-    }
-
-    if let Some(stripped) = path.strip_prefix(base_dir_str) {
-        if let Some(stripped) = stripped.strip_prefix('/') {
-            stripped.to_string()
-        } else {
-            stripped.to_string()
-        }
-    } else {
-        path
+        self.filename_completer.complete(line, line.len(), ctx)
     }
 }
 
@@ -119,11 +101,20 @@ impl Completer for CommandHelper {
         if line.starts_with(":") {
             if line.contains(" ") {
                 let parts: Vec<&str> = line.split_whitespace().collect();
-                let command = parts.first().unwrap_or(&"");
 
                 // if the command is not a file command, return an empty list
-                if !self.file_commands.contains(&command.to_string()) {
-                    return Ok((pos, vec![]));
+                match parts.first().unwrap_or(&"").strip_prefix(":") {
+                    Some(command) => {
+                        if !self.file_commands.iter().any(|entry| {
+                            let (cmd, _) = entry;
+                            cmd == command
+                        }) {
+                            return Ok((pos, vec![]));
+                        }
+                    }
+                    None => {
+                        return Ok((pos, vec![]));
+                    }
                 }
 
                 let arg = parts.get(1).unwrap_or(&"");
@@ -199,16 +190,16 @@ impl Helper for CommandHelper {}
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rustyline::history::DefaultHistory;
     use rustyline::Context;
+    use rustyline::history::DefaultHistory;
     use std::collections::HashSet;
     use std::fs;
     use tempfile::TempDir;
 
     #[test]
     fn test_command_helper_new() {
-        let commands = vec!["help", "quit", "save"];
-        let helper = CommandHelper::new(commands, vec![], "");
+        let commands = vec!["help".to_string(), "quit".to_string(), "save".to_string()];
+        let helper = CommandHelper::new(commands, vec![], "", "");
 
         assert_eq!(helper.commands, vec!["help", "quit", "save"]);
         assert!(helper.file_commands.is_empty());
@@ -216,8 +207,8 @@ mod tests {
 
     #[test]
     fn test_command_with_arguments() {
-        let commands = vec!["help", "quit", "save"];
-        let helper = CommandHelper::new(commands, vec![], "");
+        let commands = vec!["help".to_string(), "quit".to_string(), "save".to_string()];
+        let helper = CommandHelper::new(commands, vec![], "", "");
         let history = DefaultHistory::new();
         let ctx = Context::new(&history);
 
@@ -228,8 +219,8 @@ mod tests {
 
     #[test]
     fn test_no_matches() {
-        let commands = vec!["help", "quit", "save"];
-        let helper = CommandHelper::new(commands, vec![], "");
+        let commands = vec!["help".to_string(), "quit".to_string(), "save".to_string()];
+        let helper = CommandHelper::new(commands, vec![], "", "");
         let history = DefaultHistory::new();
         let ctx = Context::new(&history);
 
@@ -240,8 +231,9 @@ mod tests {
 
     #[test]
     fn test_complete_empty_line() {
-        let commands = vec!["help", "quit", "save"];
-        let helper = CommandHelper::new(commands, vec![], "");
+        let commands = vec!["help".to_string(), "quit".to_string(), "save".to_string()];
+        let helper = CommandHelper::new(commands, vec![], "", "");
+
         let history = DefaultHistory::new();
         let ctx = Context::new(&history);
 
@@ -252,8 +244,13 @@ mod tests {
 
     #[test]
     fn test_complete_non_command_line() {
-        let commands = vec!["help", "quit", "save", "hey"];
-        let helper = CommandHelper::new(commands, vec![], "");
+        let commands = vec![
+            "help".to_string(),
+            "quit".to_string(),
+            "save".to_string(),
+            "hey".to_string(),
+        ];
+        let helper = CommandHelper::new(commands, vec![], "", "");
         let history = DefaultHistory::new();
         let ctx = Context::new(&history);
 
@@ -264,8 +261,8 @@ mod tests {
 
     #[test]
     fn test_hint_no_match() {
-        let commands = vec!["help", "quit", "save"];
-        let helper = CommandHelper::new(commands, vec![], "");
+        let commands = vec!["help".to_string(), "quit".to_string(), "save".to_string()];
+        let helper = CommandHelper::new(commands, vec![], "", "");
         let history = DefaultHistory::new();
         let ctx = Context::new(&history);
 
@@ -275,8 +272,8 @@ mod tests {
 
     #[test]
     fn test_hint_with_space() {
-        let commands = vec!["help", "quit", "save"];
-        let helper = CommandHelper::new(commands, vec![], "");
+        let commands = vec!["help".to_string(), "quit".to_string(), "save".to_string()];
+        let helper = CommandHelper::new(commands, vec![], "", "");
         let history = DefaultHistory::new();
         let ctx = Context::new(&history);
 
@@ -286,7 +283,7 @@ mod tests {
 
     #[test]
     fn test_empty_commands_list() {
-        let helper = CommandHelper::new(vec![], vec![], "");
+        let helper = CommandHelper::new(vec![], vec![], "", "");
         let history = DefaultHistory::new();
         let ctx = Context::new(&history);
 
@@ -302,8 +299,8 @@ mod tests {
 
     #[test]
     fn test_complete_command() {
-        let commands = vec!["help", "quit", "save"];
-        let helper = CommandHelper::new(commands, vec![], "");
+        let commands = vec!["help".to_string(), "quit".to_string(), "save".to_string()];
+        let helper = CommandHelper::new(commands, vec![], "", "");
         let history = DefaultHistory::new();
         let ctx = Context::new(&history);
 
@@ -321,8 +318,13 @@ mod tests {
 
     #[test]
     fn multiple_matches() {
-        let commands = vec!["help", "quit", "switch", "sysprompt"];
-        let helper = CommandHelper::new(commands, vec![], "");
+        let commands = vec![
+            "help".to_string(),
+            "quit".to_string(),
+            "switch".to_string(),
+            "sysprompt".to_string(),
+        ];
+        let helper = CommandHelper::new(commands, vec![], "", "");
         let history = DefaultHistory::new();
         let ctx = Context::new(&history);
 
@@ -337,8 +339,8 @@ mod tests {
 
     #[test]
     fn test_hint() {
-        let commands = vec!["help", "quit", "save"];
-        let helper = CommandHelper::new(commands, vec![], "");
+        let commands = vec!["help".to_string(), "quit".to_string(), "save".to_string()];
+        let helper = CommandHelper::new(commands, vec![], "", "");
         let history = DefaultHistory::new();
         let ctx = Context::new(&history);
 
@@ -353,7 +355,7 @@ mod tests {
 
     #[test]
     fn test_highlighter() {
-        let helper = CommandHelper::new(vec!["help"], vec![], "");
+        let helper = CommandHelper::new(vec!["help".to_string()], vec![], "", "");
 
         // Test line highlighting (currently returns unchanged)
         let highlighted = helper.highlight("test line", 4);
@@ -365,7 +367,7 @@ mod tests {
     }
 
     #[test]
-    fn test_file_completer() -> Result<(), Box<dyn std::error::Error>> {
+    fn test_file_completer_base_dir() -> Result<(), Box<dyn std::error::Error>> {
         // Create a temporary directory structure for testing
         let temp_dir = TempDir::new()?;
         let base_path = temp_dir.path().to_path_buf();
@@ -378,14 +380,14 @@ mod tests {
         fs::write(base_path.join("dir1").join("nested.txt"), b"content")?;
 
         // Create the file completer with the temp directory as base
-        let completer = FileCompleter::new(base_path.clone());
+        let completer = FileCompleter::new(base_path.clone(), "");
 
         // Create a dummy context (not used in most implementations)
         let history = DefaultHistory::new();
         let ctx = Context::new(&history);
 
         // Test empty string completion (should list all files/dirs)
-        let (pos, completions) = completer.complete("", 0, &ctx)?;
+        let (pos, completions) = completer.complete("@c/", 0, &ctx)?;
 
         // Check position
         assert_eq!(pos, 0, "Position should be 0 for empty string");
@@ -409,9 +411,9 @@ mod tests {
         );
 
         // Test partial completion
-        let (pos, completions) = completer.complete("file", 4, &ctx)?;
+        let (pos, completions) = completer.complete("@c/file", 4, &ctx)?;
 
-        assert_eq!(pos, 4, "Position should be 0 for partial completion");
+        assert_eq!(pos, 0, "Position should be 0 for partial completion");
         assert_eq!(
             completions.len(),
             2,
@@ -433,9 +435,9 @@ mod tests {
         );
 
         // Test directory completion
-        let (pos, completions) = completer.complete("dir1/", 5, &ctx)?;
+        let (pos, completions) = completer.complete("@c/dir1/", 5, &ctx)?;
 
-        assert_eq!(pos, 5, "Position should be 5 for directory completion");
+        assert_eq!(pos, 0, "Position should be 0 for directory completion");
         assert_eq!(completions.len(), 1, "Should find 1 file in dir1");
         assert_eq!(
             completions[0].display, "nested.txt",
@@ -445,7 +447,7 @@ mod tests {
         // Test completion with non-existent path
         let (pos, completions) = completer.complete("nonexistent", 11, &ctx)?;
 
-        assert_eq!(pos, 11, "Position should be 0 for non-existent path");
+        assert_eq!(pos, 0, "Position should be 0 for non-existent path");
         assert_eq!(
             completions.len(),
             0,
@@ -456,7 +458,7 @@ mod tests {
     }
 
     #[test]
-    fn test_file_completer_shared_path() -> Result<(), Box<dyn std::error::Error>> {
+    fn test_file_completer_shared_path_base_dir() -> Result<(), Box<dyn std::error::Error>> {
         let temp_dir = TempDir::new()?;
         let base_path = temp_dir.path().to_path_buf();
         let history = DefaultHistory::new();
@@ -465,10 +467,10 @@ mod tests {
         fs::create_dir(base_path.join("tests"))?;
         fs::write(base_path.join("testing.md"), b"content")?;
 
-        let completer = FileCompleter::new(base_path.clone());
-        let (pos, completions) = completer.complete("te", 2, &ctx)?;
+        let completer = FileCompleter::new(base_path.clone(), "");
+        let (pos, completions) = completer.complete("@c/te", 2, &ctx)?;
 
-        assert_eq!(pos, 2, "Position should be 0 for empty string");
+        assert_eq!(pos, 0, "Position should be 0 for empty string");
         assert_eq!(
             completions.len(),
             2,
@@ -492,10 +494,10 @@ mod tests {
         fs::create_dir(base_path.join("tests"))?;
         fs::write(base_path.join("testing.md"), b"content")?;
 
-        let completer = FileCompleter::new(base_path.clone());
-        let (pos, completions) = completer.complete("te", 2, &ctx)?;
+        let completer = FileCompleter::new(base_path.clone(), "");
+        let (pos, completions) = completer.complete("@c/te", 2, &ctx)?;
 
-        assert_eq!(pos, 2, "Position should be 0 for empty string");
+        assert_eq!(pos, 0, "Position should be 0 for empty string");
         assert_eq!(
             completions.len(),
             2,
@@ -507,37 +509,5 @@ mod tests {
         );
 
         Ok(())
-    }
-
-    #[test]
-    fn test_strip_base_dir_with_matching_prefix() {
-        let path = "/home/user/project/file.txt".to_string();
-        let base_dir = "/home/user/project";
-        let result = strip_base_dir(path, base_dir);
-        assert_eq!(result, "file.txt");
-    }
-
-    #[test]
-    fn test_strip_base_dir_without_matching_prefix() {
-        let path = "/var/log/file.txt".to_string();
-        let base_dir = "/home/user/project";
-        let result = strip_base_dir(path, base_dir);
-        assert_eq!(result, "/var/log/file.txt");
-    }
-
-    #[test]
-    fn test_strip_base_dir_with_empty_base_dir() {
-        let path = "/home/user/file.txt".to_string();
-        let base_dir = "";
-        let result = strip_base_dir(path, base_dir);
-        assert_eq!(result, "/home/user/file.txt");
-    }
-
-    #[test]
-    fn test_strip_base_dir_with_empty_path() {
-        let path = "".to_string();
-        let base_dir = "/home/user";
-        let result = strip_base_dir(path, base_dir);
-        assert_eq!(result, "");
     }
 }

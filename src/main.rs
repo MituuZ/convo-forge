@@ -25,8 +25,7 @@ mod user_input;
 
 use config::Config;
 
-use crate::commands::CommandResult::SwitchHistory;
-use crate::commands::{create_command_registry, CommandResult};
+use crate::commands::{CommandResult, create_command_registry};
 use crate::history_file::HistoryFile;
 use crate::ollama_client::OllamaClient;
 use crate::processor::CommandProcessor;
@@ -52,7 +51,7 @@ fn main() -> io::Result<()> {
     let mut config = Config::load()?;
     let args = Args::parse();
     let command_registry = create_command_registry();
-    let context_file_path = args.context_file.clone();
+    let mut context_file_path = args.context_file.clone();
 
     let history_path = args.history_file.unwrap_or_else(|| {
         match config.last_history_file.clone() {
@@ -60,7 +59,7 @@ fn main() -> io::Result<()> {
             None => {
                 eprintln!("No history file specified and no previous history file found.");
                 println!(
-                    "You must specify a history file `cforge <histoty_file>` for the first time."
+                    "You must specify a history file `cforge <history_file>` for the first time."
                 );
                 println!("See `cforge --help` for more information.");
                 std::process::exit(1);
@@ -76,9 +75,9 @@ fn main() -> io::Result<()> {
     let mut ollama_client = OllamaClient::new(config.model.clone(), config.system_prompt.clone());
 
     match ollama_client.verify() {
-        Ok(s) => println!("{}", s),
+        Ok(s) => println!("{s}"),
         Err(e) => {
-            println!("\n\nModel is not available: {}", e);
+            println!("\n\nModel is not available: {e}");
             println!(
                 "Check that Ollama is installed or run `ollama pull {}` to pull the model.",
                 config.model
@@ -90,7 +89,7 @@ fn main() -> io::Result<()> {
 
     let model_context_size =
         OllamaClient::get_model_context_size(&config.model).unwrap_or_else(|e| {
-            eprintln!("Error getting model context size: {}", e);
+            eprintln!("Error getting model context size: {e}");
             None
         });
 
@@ -100,7 +99,7 @@ fn main() -> io::Result<()> {
             match fs::read_to_string(file_path.clone()) {
                 Ok(content) => Some(content),
                 Err(e) => {
-                    eprintln!("Error reading context file: {}", e);
+                    eprintln!("Error reading context file: {e}");
                     None
                 }
             }
@@ -120,10 +119,10 @@ fn main() -> io::Result<()> {
             "\nEnter your prompt or a command (type ':q' to end or ':help' for other commands)"
         );
 
-        let mut rl = match config.create_editor() {
+        let mut rl = match config.create_editor(&command_registry) {
             Ok(r) => r,
             Err(e) => {
-                eprintln!("Error initializing rustyline: {}", e);
+                eprintln!("Error initializing rustyline: {e}");
                 break;
             }
         };
@@ -131,7 +130,7 @@ fn main() -> io::Result<()> {
         let user_prompt = match readline {
             Ok(line) => line,
             Err(e) => {
-                eprintln!("Error reading input: {}", e);
+                eprintln!("Error reading input: {e}");
                 break;
             }
         };
@@ -141,15 +140,17 @@ fn main() -> io::Result<()> {
             &mut history,
             &mut config,
             &command_registry,
+            &mut context_file_path,
             context_file_content.clone(),
         );
 
         match processor.process(&user_prompt) {
             Ok(CommandResult::Continue) => continue,
-            Ok(SwitchHistory(_)) => continue,
+            Ok(CommandResult::SwitchHistory(_)) => continue,
+            Ok(CommandResult::SwitchContext(_)) => continue,
             Ok(CommandResult::Quit) => break,
             Err(e) => {
-                eprintln!("Error processing input: {}", e);
+                eprintln!("Error processing input: {e}");
                 break;
             }
         }
@@ -183,10 +184,7 @@ fn print_token_usage(estimated_tokens: usize, context_size: usize) {
         context_size
     );
 
-    println!(
-        "\n\nEstimated token usage (1 token ≈ 4 characters): {}",
-        bar
-    );
+    println!("\n\nEstimated token usage (1 token ≈ 4 characters): {bar}");
 }
 
 fn estimate_token_count(prompt: &str) -> usize {
