@@ -6,7 +6,15 @@ _Enable switching context file with a command and add support for a separate kno
 
 ### Config
 
-`knowledge_dir` - 
+`knowledge_dir` - Add a path alias, which can be expanded using command completion
+
+### Path aliases
+Support path aliases instead of defaulting to cforge_dir.
+
+* "/" - Absolute path
+* "" - Relative to the current dir
+* "@c/" - Relative to cforge_dir
+* "@k/" - Relative to knowledge_dir
 
 ## 0.2.6 - 2025-06-26
 

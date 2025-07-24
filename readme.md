@@ -68,12 +68,14 @@ cforge chat.txt -f code.rs
 
 Commands can be entered during a chat by prepending the command with `:`. Commands are case-insensitive.
 
-#### Dir shortcuts
+#### Path aliases
 
-These can be used to quickly find files from cforge and knowledge directories:
+These can be used to quickly find files from cforge and knowledge directories without having to write the full path.
 
-**@d/** - `cforge_dir`
-**@k/** - `knowledge_dir`
+- **"/"** - Absolute path
+- **""** - Relative to the current dir
+- **"@d/"** - `cforge_dir`
+- **"@k/"** - `knowledge_dir`
 
 #### Help
 
@@ -94,7 +96,7 @@ Switch to a different history file. Supports either absolute or relative paths (
 `:switch relative/path`
 `:switch /absolute/path`
 
-Supports [shortcuts](#dir-shortcuts)
+Supports [path aliases](#path-aliases)
 
 #### Edit
 
@@ -126,7 +128,7 @@ Change context file for this session.
 `:context relative/path`
 `:context /absolute/path`
 
-Supports [shortcuts](#dir-shortcuts)
+Supports [path aliases](#path-aliases)
 
 ## Configuration
 
