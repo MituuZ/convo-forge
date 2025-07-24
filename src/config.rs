@@ -180,7 +180,7 @@ impl Config {
         let config_path = match get_config_path() {
             Ok(path) => path,
             Err(e) => {
-                eprintln!("Couldn't load config_path: {}", e);
+                eprintln!("Couldn't load config_path: {e}");
                 println!("Using default config values.");
                 return Ok(Config::default());
             }
@@ -188,8 +188,8 @@ impl Config {
 
         let config_str = match fs::read_to_string(&config_path) {
             Ok(config_string) => config_string,
-            Err(s) => {
-                eprintln!("Could not read config file: {}", s);
+            Err(e) => {
+                eprintln!("Could not read config file: {e}");
                 println!("Using default config values.");
                 return Ok(Config::default());
             }

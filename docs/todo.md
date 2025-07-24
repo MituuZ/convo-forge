@@ -12,6 +12,7 @@
 - [x] Update the default sysprompt
 - [x] Keep track of the model's context window and file size
 - [ ] The model might not realize that it has the context file available (improve prompt; either system or context file)
+- [ ] Does Rustyline support case insensitive completion?
 - [ ] Add `keep_alive` configuration that is sent with the API requests
 - [ ] Add support for knowledge directory
 - [ ] Re-implement AI response interruption

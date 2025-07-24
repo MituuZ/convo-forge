@@ -2,7 +2,11 @@
 
 ## 0.3.0
 
-_Enable switching context file with a command_
+_Enable switching context file with a command and add support for a separate knowledge directory_
+
+### Config
+
+`knowledge_dir` - 
 
 ## 0.2.6 - 2025-06-26
 

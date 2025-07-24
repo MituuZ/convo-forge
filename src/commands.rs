@@ -184,7 +184,7 @@ fn list_command(command_params: CommandParams) -> io::Result<CommandResult> {
                         if cleaned_ds.starts_with('/') {
                             cleaned_ds = cleaned_ds[1..].to_string();
                         }
-                        println!("{}", cleaned_ds)
+                        println!("{cleaned_ds}")
                     }
                 }
             }
@@ -217,7 +217,7 @@ fn help_command(_command_params: CommandParams) -> io::Result<CommandResult> {
     // Print regular commands first
     println!("General commands:");
     for cmd in &commands {
-        if !cmd.file_command.is_some() {
+        if cmd.file_command.is_none() {
             println!("{}", cmd.display());
         }
     }
@@ -277,9 +277,7 @@ fn context_file_command(command_params: CommandParams) -> io::Result<CommandResu
         Some(new_context_file) => Ok(CommandResult::SwitchContext(Some(PathBuf::from(
             new_context_file,
         )))),
-        _ => {
-            return Ok(CommandResult::SwitchContext(None));
-        }
+        _ => Ok(CommandResult::SwitchContext(None)),
     }
 }
 

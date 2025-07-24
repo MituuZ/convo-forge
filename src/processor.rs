@@ -101,7 +101,7 @@ impl<'a> CommandProcessor<'a> {
         let history_json = match self.history.get_content_json() {
             Ok(s) => s,
             Err(e) => {
-                eprintln!("Error reading history file: {}", e);
+                eprintln!("Error reading history file: {e}");
                 return Ok(CommandResult::Quit);
             }
         };
