@@ -21,12 +21,9 @@
 
 ## Commands
 
-- [ ] Allow changing the context file during a chat
+- [x] Allow changing the context file during a chat
     - [x] `config.create_editor` - Handle command/file command logic using the registry
-    - Only support absolute paths initially
-    - When support for knowledge directory is added, support relative paths
 - [ ] `:copy` Copy the history file to another location. Edit the copy of the file?
-- [ ] Absolute file path completion does not work
 - [ ] Use prompt files with the current message
 - [ ] Truncate chat (line count, estimated tokens, or LLM assisted)
 
