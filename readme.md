@@ -134,8 +134,7 @@ Supports [path aliases](#path-aliases)
 
 ## Configuration
 
-You can configure your cforge by creating and modifying TOML configuration located at `~/.config/cforge/cforge.toml`/
-`%USERPROFILE%\.cforge.toml`.
+You can configure your cforge by creating and modifying TOML configuration located at `~/.config/cforge/cforge.toml`.
 
 An example toml populated with the default values.
 
