@@ -31,6 +31,7 @@
 - [ ] Truncate chat (line count, estimated tokens, or LLM assisted)
 
 ## Completion overhaul
+- [ ] Default prefix handling
 
 Instead of having just absolute and cforge dirs, there should be few options for static dirs.
 
