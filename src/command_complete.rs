@@ -73,7 +73,7 @@ impl Completer for FileCompleter {
         if let Some(actual_query) = line.strip_prefix("@") {
             if let Some((prefix, subpath)) = actual_query.split_once("/") {
                 let full_path = match prefix {
-                    "d" => self.base_dir.join(subpath),
+                    "c" => self.base_dir.join(subpath),
                     "k" => self.knowledge_dir.join(subpath),
                     _ => return Result::Ok((0, vec![])),
                 };
@@ -387,7 +387,7 @@ mod tests {
         let ctx = Context::new(&history);
 
         // Test empty string completion (should list all files/dirs)
-        let (pos, completions) = completer.complete("@d/", 0, &ctx)?;
+        let (pos, completions) = completer.complete("@c/", 0, &ctx)?;
 
         // Check position
         assert_eq!(pos, 0, "Position should be 0 for empty string");
@@ -411,7 +411,7 @@ mod tests {
         );
 
         // Test partial completion
-        let (pos, completions) = completer.complete("@d/file", 4, &ctx)?;
+        let (pos, completions) = completer.complete("@c/file", 4, &ctx)?;
 
         assert_eq!(pos, 0, "Position should be 0 for partial completion");
         assert_eq!(
@@ -435,7 +435,7 @@ mod tests {
         );
 
         // Test directory completion
-        let (pos, completions) = completer.complete("@d/dir1/", 5, &ctx)?;
+        let (pos, completions) = completer.complete("@c/dir1/", 5, &ctx)?;
 
         assert_eq!(pos, 0, "Position should be 0 for directory completion");
         assert_eq!(completions.len(), 1, "Should find 1 file in dir1");
@@ -468,7 +468,7 @@ mod tests {
         fs::write(base_path.join("testing.md"), b"content")?;
 
         let completer = FileCompleter::new(base_path.clone(), "");
-        let (pos, completions) = completer.complete("@d/te", 2, &ctx)?;
+        let (pos, completions) = completer.complete("@c/te", 2, &ctx)?;
 
         assert_eq!(pos, 0, "Position should be 0 for empty string");
         assert_eq!(
@@ -495,7 +495,7 @@ mod tests {
         fs::write(base_path.join("testing.md"), b"content")?;
 
         let completer = FileCompleter::new(base_path.clone(), "");
-        let (pos, completions) = completer.complete("@d/te", 2, &ctx)?;
+        let (pos, completions) = completer.complete("@c/te", 2, &ctx)?;
 
         assert_eq!(pos, 0, "Position should be 0 for empty string");
         assert_eq!(

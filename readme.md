@@ -74,7 +74,7 @@ These can be used to quickly find files from cforge and knowledge directories wi
 
 - **"/"** - Absolute path
 - **""** - Relative to the current dir
-- **"@d/"** - `cforge_dir`
+- **"@c/"** - `cforge_dir`
 - **"@k/"** - `knowledge_dir`
 
 #### Help
