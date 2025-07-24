@@ -30,6 +30,8 @@ cd convo-forge
 cargo build --release
 ```
 
+cforge uses XDG paths for default chat and configuration.
+
 ## Usage
 
 ```shell
@@ -132,7 +134,7 @@ Supports [path aliases](#path-aliases)
 
 ## Configuration
 
-You can configure your cforge by creating and modifying TOML configuration located at `~/.cforge.toml`/
+You can configure your cforge by creating and modifying TOML configuration located at `~/.config/cforge/cforge.toml`/
 `%USERPROFILE%\.cforge.toml`.
 
 An example toml populated with the default values.
@@ -142,8 +144,7 @@ An example toml populated with the default values.
 model = "gemma3:12b"
 
 # Path to the cforge directory. This will hold new history files by default.
-# ~ is expanded to the user's home directory based on `$HOME` or `%USERPROFILE%`. (not verified on windows)
-cforge_dir = "~/cforge"
+cforge_dir = "~/.local/share/cforge"
 
 # Path to the cforge directory. This can used as a shortcut to find files for `context` or `switch` command
 knowledge_dir = ""
@@ -190,7 +191,9 @@ response from the model.
 - [rustyline](https://github.com/kkawakam/rustyline) - [MIT](LICENSES/rustyline-MIT)
 - [regex](https://github.com/rust-lang/regex) - [MIT](LICENSES/regex-MIT)
 - [lazy-static](https://github.com/rust-lang-nursery/lazy-static.rs) - [MIT](LICENSES/lazy_static-MIT)
-- [colored](https://github.com/colored-rs/colored) - [MPL-2.0]()
+- [colored](https://github.com/colored-rs/colored) - [MPL-2.0](LICENSES/colored-MPL-2.0)
+- [dirs-next](https://github.com/xdg-rs/dirs/tree/master/dirs) - [MIT](LICENSES/dirs-next-MIT)
+
 
 ## License
 

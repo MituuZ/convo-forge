@@ -21,7 +21,6 @@ use rustyline::history::DefaultHistory;
 use rustyline::{Cmd, Editor, EventHandler, KeyEvent, Modifiers};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::path::PathBuf;
 use std::{fs, io};
 
 #[derive(Debug, Clone, Copy, Deserialize, Default, Serialize)]
@@ -85,8 +84,8 @@ fn default_knowledge_dir() -> String {
 }
 
 fn default_cforge_dir() -> String {
-    get_home_dir()
-        .map(|home_dir| home_dir.join("cforge").display().to_string())
+    get_data_path()
+        .map(|home_dir| home_dir.display().to_string())
         .unwrap_or_else(|_| {
             eprintln!("Could not determine home directory, using current directory instead.");
             "./cforge".to_string()
@@ -178,7 +177,7 @@ impl Config {
 
     pub fn load() -> io::Result<Self> {
         let config_path = match get_config_path() {
-            Ok(path) => path,
+            Ok(path) => path.join("cforge.toml"),
             Err(e) => {
                 eprintln!("Couldn't load config_path: {e}");
                 println!("Using default config values.");
@@ -205,28 +204,34 @@ impl Config {
     }
 
     pub(crate) fn save(&self) -> io::Result<()> {
-        let config_path =
-            get_config_path().map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
+        let config_path = get_config_path()
+            .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?
+            .join("cforge.toml");
         let config_str = toml::to_string(self).map_err(io::Error::other)?;
         fs::write(config_path, config_str)
     }
 }
 
-fn get_config_path() -> Result<PathBuf, &'static str> {
-    match get_home_dir() {
-        Ok(home_dir) => Ok(home_dir.join(".cforge.toml")),
-        Err(_) => Err("Error loading config path: Could not determine home directory"),
-    }
+/// Return XDG compliant config path
+/// e.g. `~/.config/cforge`
+fn get_config_path() -> Result<std::path::PathBuf, &'static str> {
+    let config_path = dirs_next::config_dir()
+        .expect("Error getting config dir")
+        .join("cforge");
+
+    fs::create_dir_all(&config_path).map_err(|_| "Failed to create config dir")?;
+    Ok(config_path)
 }
 
-fn get_home_dir() -> Result<PathBuf, &'static str> {
-    if let Ok(home) = std::env::var("HOME") {
-        Ok(PathBuf::from(home))
-    } else if cfg!(windows) && std::env::var("USERPROFILE").is_ok() {
-        Ok(PathBuf::from(std::env::var("USERPROFILE").unwrap()))
-    } else {
-        return Err("Could not determine home directory");
-    }
+/// Return XDG compliant data path
+/// e.g. `~/.local/share/cforge`
+fn get_data_path() -> Result<std::path::PathBuf, &'static str> {
+    let data_path = dirs_next::data_dir()
+        .expect("Error getting data dir")
+        .join("cforge");
+
+    fs::create_dir_all(&data_path).map_err(|_| "Failed to create data dir")?;
+    Ok(data_path)
 }
 
 #[cfg(test)]

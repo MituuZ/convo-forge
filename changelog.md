@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.1
+
+_Switch to XDG-compliant directory structure_
+
+### Dirs
+- **Chat**: `~/.local/share/cforge`
+- **Config**: `~/.config/cforge/`
+
 ## 0.3.0
 
 _Enable switching context file with a command and add support for a separate knowledge directory_

@@ -1,6 +1,6 @@
 [package]
 name = "cforge"
-version = "0.3.0"
+version = "0.3.1"
 edition = "2024"
 
 [dependencies]
@@ -14,3 +14,4 @@ ureq = { version = "3.0.11", features = ["json"] }
 regex = "1.11.1"
 lazy_static = "1.5.0"
 colored = "3.0.0"
+dirs-next = "2.0.0"
