@@ -64,7 +64,7 @@ impl ChatApi for OllamaClient {
     }
 
     fn model_context_size(&self) -> Option<usize> {
-        None
+        self.model_context_size
     }
 
     fn update_system_prompt(&mut self, new_system_prompt: String) {
