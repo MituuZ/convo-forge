@@ -21,11 +21,11 @@ use std::path::PathBuf;
 use crate::commands::{CommandParams, CommandResult, CommandStruct};
 use crate::config::Config;
 use crate::history_file::HistoryFile;
-use crate::ollama_client::OllamaClient;
 use crate::user_input::{Command, UserInput};
+use cforge::api::ChatApi;
 
 pub(crate) struct CommandProcessor<'a> {
-    ollama_client: &'a mut OllamaClient,
+    chat_api: &'a mut Box<dyn ChatApi>,
     history: &'a mut HistoryFile,
     config: &'a mut Config,
     command_registry: &'a HashMap<String, CommandStruct<'a>>,
@@ -35,7 +35,7 @@ pub(crate) struct CommandProcessor<'a> {
 
 impl<'a> CommandProcessor<'a> {
     pub fn new(
-        ollama_client: &'a mut OllamaClient,
+        chat_api: &'a mut Box<dyn ChatApi>,
         history: &'a mut HistoryFile,
         config: &'a mut Config,
         command_registry: &'a HashMap<String, CommandStruct<'a>>,
@@ -43,7 +43,7 @@ impl<'a> CommandProcessor<'a> {
         context_file_content: Option<String>,
     ) -> Self {
         Self {
-            ollama_client,
+            chat_api,
             history,
             config,
             command_registry,
@@ -62,7 +62,7 @@ impl<'a> CommandProcessor<'a> {
     fn handle_command(&mut self, command: Command) -> io::Result<CommandResult> {
         let command_params = CommandParams::new(
             command.args,
-            self.ollama_client,
+            self.chat_api,
             self.history,
             &self.config.cforge_dir,
         );
@@ -106,7 +106,7 @@ impl<'a> CommandProcessor<'a> {
             }
         };
 
-        let ollama_response = self.ollama_client.generate_response(
+        let llm_response = self.chat_api.generate_response(
             history_json,
             &prompt,
             self.context_file_content.as_deref(),
@@ -115,7 +115,7 @@ impl<'a> CommandProcessor<'a> {
         self.history.append_user_input(&prompt)?;
 
         // Print the AI response with the delimiter to make it easier to parse
-        println!("{}", self.history.append_ai_response(&ollama_response)?);
+        println!("{}", self.history.append_ai_response(&llm_response)?);
 
         Ok(CommandResult::Continue)
     }

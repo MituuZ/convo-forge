@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.4.0
+
+_Add support for Anthropic API_
+
+### Config
+
+* `provider` - Change model provider between `ollama` and `anthropic`
+* `max_tokens` - Set the token limit for Anthropic API
+
 ## 0.3.1
 
 _Switch to XDG-compliant directory structure_

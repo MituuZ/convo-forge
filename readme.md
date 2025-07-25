@@ -1,6 +1,6 @@
 # convo-forge
 
-A command-line interface for interacting with Ollama API.
+A command-line interface for interacting with Ollama and Anthropic models.
 
 ## Features
 
@@ -22,9 +22,26 @@ How the messages array is formed in the request JSON:
 
 [Wishlist at docs/todo.md](docs/todo.md)
 
+## Quick start
+
+```bash
+git clone https://github.com/mituuz/convo-forge.git
+cd convo-forge
+cargo run -- chat.md
+
+# Basic commands
+:help   # Show available commands
+:list   # List chat files
+:q      # Exit
+```
+
+## Requirements
+- Rust (latest stable)
+- Ollama or access to Anthropic API
+
 ## Installation
 
-```shell
+```bash
 git clone https://github.com/mituuz/convo-forge.git
 cd convo-forge
 cargo build --release
@@ -34,7 +51,7 @@ cforge uses XDG paths for default chat and configuration.
 
 ## Usage
 
-```shell
+```bash
 # First time / optional
 cforge <HISTORY_FILE> [OPTIONS]
 
@@ -139,13 +156,15 @@ You can configure your cforge by creating and modifying TOML configuration locat
 An example toml populated with the default values.
 
 ```toml
-# Ollama model used.
+# AI model used.
 model = "gemma3:12b"
 
 # Path to the cforge directory. This will hold new history files by default.
+# Aliased to `@c/`
 cforge_dir = "~/.local/share/cforge"
 
-# Path to the cforge directory. This can used as a shortcut to find files for `context` or `switch` command
+# Path to the knowledge directory.
+# Aliased to `@k/`
 knowledge_dir = ""
 
 # System prompt that configures the AI assistant's behavior.
@@ -157,8 +176,18 @@ Your responses are displayed in the terminal and saved to the history file.
 Keep your answers helpful, concise, and relevant to both the user's direct query and any file context provided.
 """
 
-# Show estimated token count compared to the model's on each prompt
+# Show estimated token count compared to the model's on each prompt if the provider supports it (ollama yes, anthropic no)
 token_estimation = true
+
+# ollama/anthropic
+# To use anthropic, use must have an environment variable `ANTHROPIC_API_KEY` set with a valid API key
+provider = "ollama"
+
+# Control the token limit for anthropic models
+max_tokens = 1024
+
+# The program keeps track of the last history file here
+last_history_file = ""
 
 [rustyline]
 # Switch rustyline input mode between `emacs` and `vi`.
@@ -168,15 +197,19 @@ mode = "emacs"
 completion_mode = "circular"
 ```
 
-### Configuring Ollama
+## Security & Privacy
 
-Ollama unloads the models after a set time. This can be controlled either from an environment variable or through the
-[message itself](docs/todo.md).
+If you want to keep everything under your own control,
+you should only use your local ollama. Nothing has to leave your machine.
 
-cforge sends an empty message to preload the model before calling it and tries to resend messages that get an empty
-response from the model.
+Keep in mind that the chat files are stored on your machine and
+there is no option for temporary chats.
 
-[Ollama Docs - Keeping a model loaded in memory](https://ollama.readthedocs.io/en/faq/?h=keep#how-do-i-keep-a-model-loaded-in-memory-or-make-it-unload-immediately)
+Keep your API keys safe.
+
+## Changelog
+
+You can find the changelog [here](changelog.md "Link to changelog.md").
 
 ## Dependencies
 
