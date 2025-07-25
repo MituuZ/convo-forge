@@ -68,6 +68,12 @@ pub struct Config {
     #[serde(default = "default_token_estimation")]
     pub(crate) token_estimation: bool,
 
+    #[serde(default = "default_provider")]
+    pub(crate) provider: String,
+
+    #[serde(default = "default_max_tokens")]
+    pub(crate) max_tokens: usize,
+
     pub(crate) last_history_file: Option<String>,
 }
 
@@ -77,6 +83,14 @@ fn default_model() -> String {
 
 fn default_token_estimation() -> bool {
     true
+}
+
+fn default_provider() -> String {
+    "ollama".to_string()
+}
+
+fn default_max_tokens() -> usize {
+    1024
 }
 
 fn default_knowledge_dir() -> String {
@@ -112,6 +126,8 @@ impl Config {
             rustyline: RustylineConfig::default(),
             token_estimation: default_token_estimation(),
             last_history_file: None,
+            provider: default_provider(),
+            max_tokens: default_max_tokens(),
         }
     }
 

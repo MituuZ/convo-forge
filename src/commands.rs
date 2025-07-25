@@ -1,3 +1,5 @@
+use cforge::api::ChatApi;
+
 /*
  * Copyright © 2025 Mitja Leino
  *
@@ -15,7 +17,6 @@
  *
  */
 use crate::history_file::HistoryFile;
-use crate::ollama_client::OllamaClient;
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::process::Command;
@@ -30,7 +31,7 @@ pub enum CommandResult {
 
 pub struct CommandParams<'a> {
     pub(crate) args: Vec<String>,
-    ollama_client: &'a mut OllamaClient,
+    chat_api: &'a mut Box<dyn ChatApi>,
     history: &'a mut HistoryFile,
     cforge_dir: &'a str,
 }
@@ -38,13 +39,13 @@ pub struct CommandParams<'a> {
 impl<'a> CommandParams<'a> {
     pub fn new(
         args: Vec<String>,
-        ollama_client: &'a mut OllamaClient,
+        chat_api: &'a mut Box<dyn ChatApi>,
         history: &'a mut HistoryFile,
         cforge_dir: &'a str,
     ) -> Self {
         CommandParams {
             args,
-            ollama_client,
+            chat_api,
             history,
             cforge_dir,
         }
@@ -267,7 +268,7 @@ fn edit_command(command_params: CommandParams) -> io::Result<CommandResult> {
 
 fn sysprompt_command(command_params: CommandParams) -> io::Result<CommandResult> {
     command_params
-        .ollama_client
+        .chat_api
         .update_system_prompt(command_params.args.join(" "));
     Ok(CommandResult::Continue)
 }

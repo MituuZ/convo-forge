@@ -19,18 +19,21 @@ use serde_json::Value;
 use std::io;
 use std::process::Command;
 
+use crate::api::ChatApi;
+
 static LLM_PROTOCOL: &str = "http";
 static LLM_HOST: &str = "localhost";
 static LLM_PORT: &str = "11434";
 static LLM_ENDPOINT: &str = "/api/chat";
 
-pub(crate) struct OllamaClient {
+pub struct OllamaClient {
     model: String,
     pub(crate) system_prompt: String,
+    pub model_context_size: Option<usize>,
 }
 
 #[derive(Deserialize, Debug)]
-pub(crate) struct OllamaResponse {
+pub(crate) struct LlmResponse {
     pub(crate) message: OllamaMessage,
     pub(crate) done: bool,
     pub(crate) done_reason: String,
@@ -41,27 +44,8 @@ pub(crate) struct OllamaMessage {
     pub(crate) content: String,
 }
 
-impl OllamaClient {
-    pub(crate) fn new(model: String, system_prompt: String) -> Self {
-        Self {
-            model,
-            system_prompt,
-        }
-    }
-
-    /// Send an empty message to ollama to preload the model.
-    pub(crate) fn verify(&self) -> io::Result<String> {
-        let send_body = serde_json::json!({
-            "model": self.model,
-        });
-
-        match Self::send_request_and_handle_response(&send_body) {
-            Ok(response) => Ok(response.message.content),
-            Err(e) => Err(e),
-        }
-    }
-
-    pub(crate) fn generate_response(
+impl ChatApi for OllamaClient {
+    fn generate_response(
         &self,
         history_messages_json: Value,
         user_prompt: &str,
@@ -79,7 +63,57 @@ impl OllamaClient {
         Ok(response.message.content)
     }
 
-    fn poll_for_response(send_body: &Value) -> io::Result<OllamaResponse> {
+    fn model_context_size(&self) -> Option<usize> {
+        None
+    }
+
+    fn update_system_prompt(&mut self, new_system_prompt: String) {
+        self.system_prompt = new_system_prompt;
+    }
+}
+
+impl OllamaClient {
+    /// Create the client and verify that it is responding
+    pub(crate) fn new(model: String, system_prompt: String) -> Self {
+        let mut client = Self {
+            model: model.clone(),
+            system_prompt,
+            model_context_size: None,
+        };
+
+        match client.verify() {
+            Ok(s) => println!("{s}"),
+            Err(e) => {
+                println!("\n\nModel is not available: {e}");
+                println!(
+                    "Check that Ollama is installed or run `ollama pull {model}` to pull the model."
+                );
+
+                std::process::exit(1);
+            }
+        }
+
+        client.model_context_size = Self::get_model_context_size(&model).unwrap_or_else(|e| {
+            eprintln!("Error getting model context size: {e}");
+            None
+        });
+
+        client
+    }
+
+    /// Send an empty message to ollama to preload the model.
+    fn verify(&self) -> io::Result<String> {
+        let send_body = serde_json::json!({
+            "model": self.model,
+        });
+
+        match Self::send_request_and_handle_response(&send_body) {
+            Ok(response) => Ok(response.message.content),
+            Err(e) => Err(e),
+        }
+    }
+
+    fn poll_for_response(send_body: &Value) -> io::Result<LlmResponse> {
         let ollama_response = Self::send_request_and_handle_response(send_body)?;
 
         if ollama_response.done
@@ -96,12 +130,12 @@ impl OllamaClient {
         Ok(ollama_response)
     }
 
-    fn send_request_and_handle_response(send_body: &Value) -> io::Result<OllamaResponse> {
+    fn send_request_and_handle_response(send_body: &Value) -> io::Result<LlmResponse> {
         let mut response = ureq::post(Self::api_url())
             .send_json(send_body)
             .map_err(|e| io::Error::other(e.to_string()))?;
 
-        let ollama_response: OllamaResponse = response
+        let ollama_response: LlmResponse = response
             .body_mut()
             .read_json()
             .map_err(|e| io::Error::other(e.to_string()))?;
@@ -153,10 +187,6 @@ impl OllamaClient {
         messages.push(serde_json::json!({ "role": "user", "content": user_prompt }));
 
         messages
-    }
-
-    pub(crate) fn update_system_prompt(&mut self, new_system_prompt: String) {
-        self.system_prompt = new_system_prompt;
     }
 
     fn api_url() -> String {

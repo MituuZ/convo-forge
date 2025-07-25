@@ -19,7 +19,6 @@ mod command_complete;
 mod commands;
 mod config;
 mod history_file;
-mod ollama_client;
 mod processor;
 mod user_input;
 
@@ -27,7 +26,6 @@ use config::Config;
 
 use crate::commands::{CommandResult, create_command_registry};
 use crate::history_file::HistoryFile;
-use crate::ollama_client::OllamaClient;
 use crate::processor::CommandProcessor;
 use clap::Parser;
 use colored::Colorize;
@@ -71,27 +69,17 @@ fn main() -> io::Result<()> {
 
     let mut history = HistoryFile::new(history_path.clone(), config.cforge_dir.clone())?;
     println!("{}", history.get_content());
-    println!("\n\nYou're conversing with {} model", &config.model);
-    let mut ollama_client = OllamaClient::new(config.model.clone(), config.system_prompt.clone());
+    println!(
+        "\n\nYou're conversing with {} model from {}",
+        &config.model, &config.provider
+    );
 
-    match ollama_client.verify() {
-        Ok(s) => println!("{s}"),
-        Err(e) => {
-            println!("\n\nModel is not available: {e}");
-            println!(
-                "Check that Ollama is installed or run `ollama pull {}` to pull the model.",
-                config.model
-            );
-
-            std::process::exit(1);
-        }
-    }
-
-    let model_context_size =
-        OllamaClient::get_model_context_size(&config.model).unwrap_or_else(|e| {
-            eprintln!("Error getting model context size: {e}");
-            None
-        });
+    let mut chat_api = cforge::api::get_implementation(
+        &config.provider,
+        config.model.clone(),
+        config.system_prompt.clone(),
+        config.max_tokens,
+    );
 
     loop {
         // Read the context file if provided
@@ -107,12 +95,14 @@ fn main() -> io::Result<()> {
             None
         };
 
-        if config.token_estimation {
-            print_token_usage(
-                estimate_token_count(history.get_content())
-                    + estimate_token_count(context_file_content.as_deref().unwrap_or("")),
-                model_context_size.unwrap_or(0),
-            );
+        if let Some(model_context_size) = chat_api.model_context_size() {
+            if config.token_estimation {
+                print_token_usage(
+                    estimate_token_count(history.get_content())
+                        + estimate_token_count(context_file_content.as_deref().unwrap_or("")),
+                    model_context_size,
+                );
+            }
         }
 
         println!(
@@ -136,7 +126,7 @@ fn main() -> io::Result<()> {
         };
 
         let mut processor = CommandProcessor::new(
-            &mut ollama_client,
+            &mut chat_api,
             &mut history,
             &mut config,
             &command_registry,
