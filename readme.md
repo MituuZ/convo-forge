@@ -176,12 +176,15 @@ Your responses are displayed in the terminal and saved to the history file.
 Keep your answers helpful, concise, and relevant to both the user's direct query and any file context provided.
 """
 
-# Show estimated token count compared to the model's on each prompt if the provider supports it
+# Show estimated token count compared to the model's on each prompt if the provider supports it (ollama yes, anthropic no)
 token_estimation = true
 
 # ollama/anthropic
 # To use anthropic, use must have an environment variable `ANTHROPIC_API_KEY` set with a valid API key
 provider = "ollama"
+
+# Control the token limit for anthropic models
+max_tokens = 1024
 
 # The program keeps track of the last history file here
 last_history_file = ""
