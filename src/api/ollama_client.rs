@@ -74,35 +74,34 @@ impl ChatApi for OllamaClient {
 
 impl OllamaClient {
     /// Create the client and verify that it is responding
-    pub(crate) fn new(model: String, system_prompt: String) -> Self {
-        let mut client = Self {
+    pub fn new(model: String, system_prompt: String) -> Self {
+        Self {
             model: model.clone(),
             system_prompt,
             model_context_size: None,
-        };
+        }
+    }
 
-        match client.verify() {
+    pub fn verify(&mut self) {
+        match self.preload() {
             Ok(s) => println!("{s}"),
             Err(e) => {
                 println!("\n\nModel is not available: {e}");
-                println!(
-                    "Check that Ollama is installed or run `ollama pull {model}` to pull the model."
+                panic!(
+                    "Failed to verify ollama client\nCheck that Ollama is installed or run `ollama pull {}` to pull the model.",
+                    &self.model
                 );
-
-                std::process::exit(1);
             }
         }
 
-        client.model_context_size = Self::get_model_context_size(&model).unwrap_or_else(|e| {
+        self.model_context_size = Self::get_model_context_size(&self.model).unwrap_or_else(|e| {
             eprintln!("Error getting model context size: {e}");
             None
         });
-
-        client
     }
 
     /// Send an empty message to ollama to preload the model.
-    fn verify(&self) -> io::Result<String> {
+    fn preload(&self) -> io::Result<String> {
         let send_body = serde_json::json!({
             "model": self.model,
         });

@@ -24,7 +24,11 @@ pub fn get_implementation(
 ) -> Box<dyn ChatApi> {
     match provider.to_lowercase().as_str() {
         "anthropic" => Box::new(AnthropicClient::new(model, system_prompt, max_tokens)),
-        "ollama" => Box::new(OllamaClient::new(model, system_prompt)),
+        "ollama" => {
+            let mut client = OllamaClient::new(model, system_prompt);
+            client.verify();
+            Box::new(client)
+        }
         _ => panic!("Unsupported provider"),
     }
 }

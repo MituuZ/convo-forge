@@ -14,8 +14,10 @@
 - [x] Add support for knowledge directory
 - [ ] The model might not realize that it has the context file available (improve prompt; either system or context file)
 - [ ] Does Rustyline support case insensitive completion?
+- [ ] Keybinds for commands?
 - [ ] Maybe later support streaming the responses
 - [ ] Support memories, which are included in the prompt by default (session/global)
+- [ ] Add Anthropic context sizes manually? There doesn't seem to be an API
 
 ## Commands
 

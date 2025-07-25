@@ -26,6 +26,7 @@ impl ChatApi for AnthropicClient {
             context_content.unwrap_or(""),
             user_prompt,
             &history_messages_json,
+            self.max_tokens,
         );
 
         let response = Self::send_request_and_handle_response(&send_body)?;
@@ -87,6 +88,7 @@ impl AnthropicClient {
         context_content: &str,
         user_prompt: &str,
         history_messages_json: &Value,
+        max_tokens: usize,
     ) -> Value {
         let messages = Self::create_messages(
             system_prompt,
@@ -97,7 +99,7 @@ impl AnthropicClient {
 
         serde_json::json!({
             "model": model,
-            "max_tokens": 1024,
+            "max_tokens": max_tokens,
             "messages": messages,
         })
     }

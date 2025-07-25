@@ -55,12 +55,11 @@ fn main() -> io::Result<()> {
         match config.last_history_file.clone() {
             Some(path) => path,
             None => {
-                eprintln!("No history file specified and no previous history file found.");
                 println!(
                     "You must specify a history file `cforge <history_file>` for the first time."
                 );
                 println!("See `cforge --help` for more information.");
-                std::process::exit(1);
+                panic!("No history file specified and no previous history file found.");
             }
         }
     });
