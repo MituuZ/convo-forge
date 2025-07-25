@@ -33,7 +33,7 @@ pub struct OllamaClient {
 }
 
 #[derive(Deserialize, Debug)]
-pub(crate) struct LlmResponse {
+pub(crate) struct OllamaResponse {
     pub(crate) message: OllamaMessage,
     pub(crate) done: bool,
     pub(crate) done_reason: String,
@@ -113,7 +113,7 @@ impl OllamaClient {
         }
     }
 
-    fn poll_for_response(send_body: &Value) -> io::Result<LlmResponse> {
+    fn poll_for_response(send_body: &Value) -> io::Result<OllamaResponse> {
         let ollama_response = Self::send_request_and_handle_response(send_body)?;
 
         if ollama_response.done
@@ -130,12 +130,12 @@ impl OllamaClient {
         Ok(ollama_response)
     }
 
-    fn send_request_and_handle_response(send_body: &Value) -> io::Result<LlmResponse> {
+    fn send_request_and_handle_response(send_body: &Value) -> io::Result<OllamaResponse> {
         let mut response = ureq::post(Self::api_url())
             .send_json(send_body)
             .map_err(|e| io::Error::other(e.to_string()))?;
 
-        let ollama_response: LlmResponse = response
+        let ollama_response: OllamaResponse = response
             .body_mut()
             .read_json()
             .map_err(|e| io::Error::other(e.to_string()))?;
