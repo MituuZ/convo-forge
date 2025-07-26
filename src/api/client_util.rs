@@ -11,14 +11,14 @@ pub(crate) fn create_messages(
 
     messages.push(serde_json::json!({ "role": system_prompt_role, "content": system_prompt }));
 
-    if !context_content.is_empty() {
-        messages.push(serde_json::json!({ "role": "user", "content": format!("Additional context that should be considered: {}", context_content) }));
-    }
-
     if let Some(history_messages_json) = history_messages_json.as_array() {
         for message in history_messages_json {
             messages.push(message.clone());
         }
+    }
+
+    if !context_content.is_empty() {
+        messages.push(serde_json::json!({ "role": "user", "content": format!("Additional context that should be considered: {}", context_content) }));
     }
 
     messages.push(serde_json::json!({ "role": "user", "content": user_prompt }));
@@ -162,14 +162,14 @@ mod tests {
             messages[0],
             json!({"role": "system", "content": "You are a helpful assistant."})
         );
+        assert_eq!(messages[1], json!({"role": "user", "content": "Hello!"}));
         assert_eq!(
-            messages[1],
-            json!({"role": "user", "content": "Additional context that should be considered: User is a developer."})
+            messages[2],
+            json!({"role": "assistant", "content": "Hi there! How can I help you today?"})
         );
-        assert_eq!(messages[2], json!({"role": "user", "content": "Hello!"}));
         assert_eq!(
             messages[3],
-            json!({"role": "assistant", "content": "Hi there! How can I help you today?"})
+            json!({"role": "user", "content": "Additional context that should be considered: User is a developer."})
         );
         assert_eq!(
             messages[4],
