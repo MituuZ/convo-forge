@@ -182,9 +182,6 @@ provider = "ollama"
 # Control the token limit for anthropic models
 max_tokens = 1024
 
-# The program keeps track of the last history file here
-last_history_file = ""
-
 [rustyline]
 # Switch rustyline input mode between `emacs` and `vi`.
 mode = "emacs"
