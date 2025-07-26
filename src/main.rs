@@ -15,16 +15,17 @@
  *
  */
 
+pub mod api;
 mod command_complete;
 mod commands;
-mod config;
+pub mod config;
 mod history_file;
 mod processor;
 mod user_input;
 
-use config::Config;
-
+use crate::api::get_implementation;
 use crate::commands::{CommandResult, create_command_registry};
+use crate::config::AppConfig;
 use crate::history_file::HistoryFile;
 use crate::processor::CommandProcessor;
 use clap::Parser;
@@ -46,13 +47,13 @@ struct Args {
 }
 
 fn main() -> io::Result<()> {
-    let mut config = Config::load()?;
+    let mut app_config = AppConfig::load_config();
     let args = Args::parse();
     let command_registry = create_command_registry();
     let mut context_file_path = args.context_file.clone();
 
     let history_path = args.history_file.unwrap_or_else(|| {
-        match config.last_history_file.clone() {
+        match app_config.cache_config.last_history_file.clone() {
             Some(path) => path,
             None => {
                 println!(
@@ -64,20 +65,23 @@ fn main() -> io::Result<()> {
         }
     });
 
-    config.update_last_history_file(history_path.clone())?;
+    app_config.update_last_history_file(history_path.clone());
 
-    let mut history = HistoryFile::new(history_path.clone(), config.cforge_dir.clone())?;
+    let mut history = HistoryFile::new(
+        history_path.clone(),
+        app_config.data_dir.display().to_string(),
+    )?;
     println!("{}", history.get_content());
     println!(
         "\n\nYou're conversing with {} model from {}",
-        &config.model, &config.provider
+        &app_config.user_config.model, &app_config.user_config.provider
     );
 
-    let mut chat_api = cforge::api::get_implementation(
-        &config.provider,
-        config.model.clone(),
-        config.system_prompt.clone(),
-        config.max_tokens,
+    let mut chat_api = get_implementation(
+        &app_config.user_config.provider,
+        app_config.user_config.model.clone(),
+        app_config.user_config.system_prompt.clone(),
+        app_config.user_config.max_tokens,
     );
 
     loop {
@@ -95,7 +99,7 @@ fn main() -> io::Result<()> {
         };
 
         if let Some(model_context_size) = chat_api.model_context_size() {
-            if config.token_estimation {
+            if app_config.user_config.token_estimation {
                 print_token_usage(
                     estimate_token_count(history.get_content())
                         + estimate_token_count(context_file_content.as_deref().unwrap_or("")),
@@ -108,7 +112,7 @@ fn main() -> io::Result<()> {
             "\nEnter your prompt or a command (type ':q' to end or ':help' for other commands)"
         );
 
-        let mut rl = match config.create_editor(&command_registry) {
+        let mut rl = match app_config.create_rustyline_editor(&command_registry) {
             Ok(r) => r,
             Err(e) => {
                 eprintln!("Error initializing rustyline: {e}");
@@ -127,7 +131,7 @@ fn main() -> io::Result<()> {
         let mut processor = CommandProcessor::new(
             &mut chat_api,
             &mut history,
-            &mut config,
+            &mut app_config,
             &command_registry,
             &mut context_file_path,
             context_file_content.clone(),

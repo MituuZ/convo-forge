@@ -17,7 +17,7 @@
 use serde_json::Value;
 use std::{env, io};
 
-use crate::api::ChatApi;
+use crate::api::{ChatApi, client_util::create_messages};
 
 static LLM_PROTOCOL: &str = "https";
 static LLM_HOST: &str = "api.anthropic.com";
@@ -36,14 +36,15 @@ impl ChatApi for AnthropicClient {
         user_prompt: &str,
         context_content: Option<&str>,
     ) -> io::Result<String> {
-        let send_body = Self::build_json_body(
-            &self.model,
+        let messages = create_messages(
             &self.system_prompt,
             context_content.unwrap_or(""),
             user_prompt,
             &history_messages_json,
-            self.max_tokens,
+            "assistant",
         );
+
+        let send_body = Self::build_json_body(&self.model, self.max_tokens, messages);
 
         let response = Self::send_request_and_handle_response(&send_body)?;
         Ok(response)
@@ -98,51 +99,12 @@ impl AnthropicClient {
         format!("{LLM_PROTOCOL}://{LLM_HOST}{LLM_ENDPOINT}")
     }
 
-    fn build_json_body(
-        model: &str,
-        system_prompt: &str,
-        context_content: &str,
-        user_prompt: &str,
-        history_messages_json: &Value,
-        max_tokens: usize,
-    ) -> Value {
-        let messages = Self::create_messages(
-            system_prompt,
-            context_content,
-            user_prompt,
-            history_messages_json,
-        );
-
+    fn build_json_body(model: &str, max_tokens: usize, messages: Vec<Value>) -> Value {
         serde_json::json!({
             "model": model,
             "max_tokens": max_tokens,
             "messages": messages,
         })
-    }
-
-    fn create_messages(
-        system_prompt: &str,
-        context_content: &str,
-        user_prompt: &str,
-        history_messages_json: &Value,
-    ) -> Vec<Value> {
-        let mut messages = vec![];
-
-        messages.push(serde_json::json!({ "role": "assistant", "content": system_prompt }));
-
-        if !context_content.is_empty() {
-            messages.push(serde_json::json!({ "role": "user", "content": format!("Additional context that should be considered: {}", context_content) }));
-        }
-
-        if let Some(history_messages_json) = history_messages_json.as_array() {
-            for message in history_messages_json {
-                messages.push(message.clone());
-            }
-        }
-
-        messages.push(serde_json::json!({ "role": "user", "content": user_prompt }));
-
-        messages
     }
 
     fn get_api_key() -> io::Result<String> {

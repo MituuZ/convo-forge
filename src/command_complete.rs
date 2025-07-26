@@ -24,7 +24,7 @@ use std::path::PathBuf;
 
 use crate::commands::FileCommand;
 
-pub(crate) struct CommandHelper {
+pub struct CommandHelper {
     commands: Vec<String>,
     file_commands: Vec<(String, FileCommand)>,
     file_completer: FileCompleter,

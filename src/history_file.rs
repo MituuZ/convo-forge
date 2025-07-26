@@ -47,7 +47,7 @@ lazy_static! {
 }
 
 #[derive(Debug)]
-pub(crate) struct HistoryFile {
+pub struct HistoryFile {
     pub(crate) path: String,
     pub(crate) filename: String,
     content: String,
