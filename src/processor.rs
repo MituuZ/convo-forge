@@ -18,16 +18,16 @@ use std::collections::HashMap;
 use std::io;
 use std::path::PathBuf;
 
+use crate::api::ChatApi;
 use crate::commands::{CommandParams, CommandResult, CommandStruct};
-use crate::config::Config;
+use crate::config::AppConfig;
 use crate::history_file::HistoryFile;
 use crate::user_input::{Command, UserInput};
-use cforge::api::ChatApi;
 
 pub(crate) struct CommandProcessor<'a> {
     chat_api: &'a mut Box<dyn ChatApi>,
     history: &'a mut HistoryFile,
-    config: &'a mut Config,
+    app_config: &'a mut AppConfig,
     command_registry: &'a HashMap<String, CommandStruct<'a>>,
     context_file_path: &'a mut Option<PathBuf>,
     context_file_content: Option<String>,
@@ -37,7 +37,7 @@ impl<'a> CommandProcessor<'a> {
     pub fn new(
         chat_api: &'a mut Box<dyn ChatApi>,
         history: &'a mut HistoryFile,
-        config: &'a mut Config,
+        app_config: &'a mut AppConfig,
         command_registry: &'a HashMap<String, CommandStruct<'a>>,
         context_file_path: &'a mut Option<PathBuf>,
         context_file_content: Option<String>,
@@ -45,7 +45,7 @@ impl<'a> CommandProcessor<'a> {
         Self {
             chat_api,
             history,
-            config,
+            app_config,
             command_registry,
             context_file_path,
             context_file_content,
@@ -64,15 +64,18 @@ impl<'a> CommandProcessor<'a> {
             command.args,
             self.chat_api,
             self.history,
-            &self.config.cforge_dir,
+            self.app_config.data_dir.display().to_string(),
         );
 
         if let Some(cmd) = self.command_registry.get(&command.name) {
             let result = cmd.execute(command_params)?;
 
             if let CommandResult::SwitchHistory(new_file) = &result {
-                *self.history = HistoryFile::new(new_file.clone(), self.config.cforge_dir.clone())?;
-                self.config.update_last_history_file(new_file.clone())?;
+                *self.history = HistoryFile::new(
+                    new_file.clone(),
+                    self.app_config.data_dir.display().to_string(),
+                )?;
+                self.app_config.update_last_history_file(new_file.clone());
                 println!("{}", self.history.get_content());
                 println!("Switched to history file: {}", self.history.filename);
             }

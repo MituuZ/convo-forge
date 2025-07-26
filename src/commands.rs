@@ -1,5 +1,3 @@
-use cforge::api::ChatApi;
-
 /*
  * Copyright © 2025 Mitja Leino
  *
@@ -16,6 +14,8 @@ use cforge::api::ChatApi;
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  *
  */
+
+use crate::api::ChatApi;
 use crate::history_file::HistoryFile;
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -33,7 +33,7 @@ pub struct CommandParams<'a> {
     pub(crate) args: Vec<String>,
     chat_api: &'a mut Box<dyn ChatApi>,
     history: &'a mut HistoryFile,
-    cforge_dir: &'a str,
+    cforge_dir: String,
 }
 
 impl<'a> CommandParams<'a> {
@@ -41,7 +41,7 @@ impl<'a> CommandParams<'a> {
         args: Vec<String>,
         chat_api: &'a mut Box<dyn ChatApi>,
         history: &'a mut HistoryFile,
-        cforge_dir: &'a str,
+        cforge_dir: String,
     ) -> Self {
         CommandParams {
             args,
@@ -63,7 +63,7 @@ pub struct CommandStruct<'a> {
 }
 
 #[derive(Clone, Debug)]
-pub(crate) enum FileCommand {
+pub enum FileCommand {
     KnowledgeDir,
     CforgeDir,
 }
@@ -197,9 +197,9 @@ fn list_command(command_params: CommandParams) -> io::Result<CommandResult> {
     }
 
     list_dir_contents(
-        command_params.cforge_dir,
+        &command_params.cforge_dir,
         pattern,
-        command_params.cforge_dir,
+        &command_params.cforge_dir,
     )?;
     Ok(CommandResult::Continue)
 }
@@ -342,7 +342,7 @@ mod tests {
         fs::write(format!("{}/history1.txt", dir_path), "Content 1")?;
         fs::write(format!("{}/history2.txt", dir_path), "Content 2")?;
 
-        let params = CommandParams::new(vec![], &mut ollama_client, &mut history, &dir_path);
+        let params = CommandParams::new(vec![], &mut ollama_client, &mut history, dir_path);
 
         let result = list_command(params)?;
         assert!(matches!(result, CommandResult::Continue));
@@ -365,7 +365,7 @@ mod tests {
         )?;
 
         let args = vec![new_history_file.to_string()];
-        let params = CommandParams::new(args, &mut ollama_client, &mut history, &dir_path);
+        let params = CommandParams::new(args, &mut ollama_client, &mut history, dir_path);
 
         let result = switch_command(params)?;
 
@@ -382,7 +382,7 @@ mod tests {
     fn test_help_command() -> io::Result<()> {
         let (mut ollama_client, mut history, _temp_dir, dir_path) = setup_test_environment();
 
-        let params = CommandParams::new(vec![], &mut ollama_client, &mut history, &dir_path);
+        let params = CommandParams::new(vec![], &mut ollama_client, &mut history, dir_path);
 
         let result = help_command(params)?;
         assert!(matches!(result, CommandResult::Continue));
@@ -394,7 +394,7 @@ mod tests {
     fn test_exit_command() -> io::Result<()> {
         let (mut ollama_client, mut history, _temp_dir, dir_path) = setup_test_environment();
 
-        let params = CommandParams::new(vec![], &mut ollama_client, &mut history, &dir_path);
+        let params = CommandParams::new(vec![], &mut ollama_client, &mut history, dir_path);
 
         let result = quit_command(params)?;
         assert!(matches!(result, CommandResult::Quit));
@@ -412,7 +412,7 @@ mod tests {
             env::set_var("EDITOR", "echo");
         }
 
-        let params = CommandParams::new(vec![], &mut ollama_client, &mut history, &dir_path);
+        let params = CommandParams::new(vec![], &mut ollama_client, &mut history, dir_path);
 
         let result = edit_command(params)?;
         assert!(matches!(result, CommandResult::Continue));
@@ -429,7 +429,7 @@ mod tests {
             .split_whitespace()
             .map(|s| s.to_string())
             .collect();
-        let params = CommandParams::new(args, &mut ollama_client, &mut history, &dir_path);
+        let params = CommandParams::new(args, &mut ollama_client, &mut history, dir_path);
 
         let result = sysprompt_command(params)?;
         assert!(matches!(result, CommandResult::Continue));
@@ -461,7 +461,7 @@ mod tests {
     fn test_switch_command_with_no_args() -> io::Result<()> {
         let (mut ollama_client, mut history, _temp_dir, dir_path) = setup_test_environment();
 
-        let params = CommandParams::new(vec![], &mut ollama_client, &mut history, &dir_path);
+        let params = CommandParams::new(vec![], &mut ollama_client, &mut history, dir_path);
 
         let result = switch_command(params)?;
         assert!(matches!(result, CommandResult::Continue));
@@ -480,7 +480,7 @@ mod tests {
 
         // Test with a pattern that should match some files
         let args = vec!["history".to_string()];
-        let params = CommandParams::new(args, &mut ollama_client, &mut history, &dir_path);
+        let params = CommandParams::new(args, &mut ollama_client, &mut history, dir_path);
 
         let result = list_command(params)?;
         assert!(matches!(result, CommandResult::Continue));
