@@ -62,8 +62,8 @@ cforge [OPTIONS]
 ### Arguments
 
 - `<HISTORY_FILE>` - Path to the file that acts as chat history (will be created if it doesn't exist)
-    - If a relative path is provided, it will be created inside the `cforge_dir` directory
-    - If an absolute path is provided, it will be used as-is regardless of `cforge_dir`
+    - If a relative path is provided, it will be created inside the data directory (according to XDG)
+    - If an absolute path is provided, it will be used as-is
     - Mandatory for the first time, after that `.cforge.toml` contains a reference to the previously opened history file
 
 ### Options
@@ -93,7 +93,7 @@ These can be used to quickly find files from cforge and knowledge directories wi
 
 - **"/"** - Absolute path
 - **""** - Relative to the current dir
-- **"@c/"** - `cforge_dir`
+- **"@c/"** - Expands to the data directory
 - **"@k/"** - `knowledge_dir`
 
 #### Help
@@ -104,13 +104,13 @@ List available commands.
 
 #### List
 
-List all files in cforge_dir, optionally add a filter string.
+List all files in the data directory, optionally add a filter string.
 
 `:list <filter>`
 
 #### Switch
 
-Switch to a different history file. Supports either absolute or relative paths (from `cforge_dir`).
+Switch to a different history file. Supports either absolute or relative paths in the data directory.
 
 `:switch relative/path`
 `:switch /absolute/path`
@@ -159,10 +159,6 @@ An example toml populated with the default values.
 # AI model used.
 model = "gemma3:12b"
 
-# Path to the cforge directory. This will hold new history files by default.
-# Aliased to `@c/`
-cforge_dir = "~/.local/share/cforge"
-
 # Path to the knowledge directory.
 # Aliased to `@k/`
 knowledge_dir = ""
@@ -196,6 +192,10 @@ mode = "emacs"
 # Switch completion type between `circular` and `list`.
 completion_mode = "circular"
 ```
+
+### Env variables
+
+* **ANTHROPIC_API_KEY** - Valid API key to use Anthropic's models
 
 ## Security & Privacy
 
