@@ -68,3 +68,71 @@ impl CacheConfig {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use std::{fs::write, path::PathBuf};
+
+    use tempfile::TempDir;
+
+    use crate::config::cache_config::{CACHE_FILE, CacheConfig};
+
+    #[test]
+    fn load_invalid_cache_config() {
+        let temp_dir = create_cache_config(
+            "
+            thisisa malformed \" string !\"#¤
+            ",
+        );
+        let path_opt = Some(temp_dir.path().to_path_buf());
+        let config = CacheConfig::load(path_opt);
+
+        assert_eq!(
+            config.last_history_file,
+            CacheConfig::empty().last_history_file
+        );
+    }
+
+    #[test]
+    fn load_non_existent_cache_config() {
+        let temp_dir = create_cache_config("");
+        let path_opt = Some(temp_dir.path().join("doesnt_exist.toml").to_path_buf());
+        let config = CacheConfig::load(path_opt);
+
+        assert_eq!(
+            config.last_history_file,
+            CacheConfig::empty().last_history_file
+        );
+    }
+
+    #[test]
+    fn load_empty_cache_config() {
+        let temp_dir = create_cache_config("");
+        let path_opt = Some(temp_dir.path().to_path_buf());
+        let config = CacheConfig::load(path_opt);
+
+        assert_eq!(
+            config.last_history_file,
+            CacheConfig::empty().last_history_file
+        );
+    }
+
+    #[test]
+    fn load_valid_cache_config() {
+        let temp_dir = create_cache_config("last_history_file = \"some_history_file\"");
+        let path_opt = Some(temp_dir.path().to_path_buf());
+        let config = CacheConfig::load(path_opt);
+
+        assert_eq!(
+            config.last_history_file,
+            Some("some_history_file".to_string())
+        );
+    }
+
+    fn create_cache_config(content: &str) -> TempDir {
+        let temp_dir: TempDir = TempDir::new().unwrap();
+        let config_path: PathBuf = temp_dir.path().join(CACHE_FILE);
+        write(&config_path, content).expect("Writing to test config failed");
+        temp_dir
+    }
+}

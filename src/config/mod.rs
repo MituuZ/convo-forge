@@ -144,3 +144,49 @@ fn get_cache_path() -> Option<PathBuf> {
     eprintln!("Could not determine cache directory");
     None
 }
+
+#[cfg(test)]
+mod tests {
+    use std::{collections::HashMap, io::Result};
+
+    use crate::{
+        commands::{CommandParams, CommandResult, CommandStruct, FileCommand},
+        config::get_commands,
+    };
+
+    #[test]
+    fn get_commands_base() {
+        let command_registry = create_registry();
+
+        let (commands, file_commands) = get_commands(&command_registry);
+        assert_eq!(3, commands.len());
+        assert_eq!(2, file_commands.len());
+    }
+
+    #[test]
+    fn get_commands_empty_registry() {
+        let command_registry: HashMap<String, CommandStruct> = HashMap::new();
+
+        let (commands, file_commands) = get_commands(&command_registry);
+        assert_eq!(0, commands.len());
+        assert_eq!(0, file_commands.len());
+    }
+
+    fn create_registry<'a>() -> HashMap<String, CommandStruct<'a>> {
+        let mut command_registry: HashMap<String, CommandStruct> = HashMap::new();
+
+        let command1 = CommandStruct::new("cmd1", "", None, None, nop);
+        let command2 = CommandStruct::new("cmd2", "", None, Some(FileCommand::CforgeDir), nop);
+        let command3 = CommandStruct::new("cmd3", "", None, Some(FileCommand::KnowledgeDir), nop);
+
+        command_registry.insert("cmd1".to_string(), command1);
+        command_registry.insert("cmd2".to_string(), command2);
+        command_registry.insert("cmd3".to_string(), command3);
+
+        command_registry
+    }
+
+    fn nop(_: CommandParams) -> Result<CommandResult> {
+        Ok(CommandResult::Continue)
+    }
+}
