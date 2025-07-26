@@ -14,9 +14,9 @@ How the messages array is formed in the request JSON:
 
 | Role             | Content                 |
 |------------------|-------------------------|
-| system           | cforge system prompt    |
-| system/assistant | context file (optional) |
+| system/assistant | cforge system prompt    |
 | user/assistant   | conversation history    |
+| user             | context file (optional) |
 | user             | current prompt          |
 
 [Wishlist at docs/todo.md](docs/todo.md)
