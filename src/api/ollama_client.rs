@@ -21,6 +21,7 @@ use std::io;
 use std::process::Command;
 
 use crate::api::ChatApi;
+use crate::api::client_util::create_messages;
 
 static LLM_PROTOCOL: &str = "http";
 static LLM_HOST: &str = "localhost";
@@ -52,13 +53,15 @@ impl ChatApi for OllamaClient {
         user_prompt: &str,
         context_content: Option<&str>,
     ) -> io::Result<String> {
-        let send_body = Self::build_json_body(
-            self.model.as_str(),
-            self.system_prompt.as_str(),
+        let messages = create_messages(
+            &self.system_prompt,
             context_content.unwrap_or(""),
             user_prompt,
             &history_messages_json,
+            "system",
         );
+
+        let send_body = Self::build_json_body(self.model.as_str(), messages);
 
         let response = Self::poll_for_response(&send_body)?;
         Ok(response.message.content)
@@ -143,50 +146,12 @@ impl OllamaClient {
         Ok(ollama_response)
     }
 
-    fn build_json_body(
-        model: &str,
-        system_prompt: &str,
-        context_content: &str,
-        user_prompt: &str,
-        history_messages_json: &Value,
-    ) -> Value {
-        let messages = Self::create_messages(
-            system_prompt,
-            context_content,
-            user_prompt,
-            history_messages_json,
-        );
-
+    fn build_json_body(model: &str, messages: Vec<Value>) -> Value {
         serde_json::json!({
             "model": model,
             "messages": messages,
             "stream": false,
         })
-    }
-
-    fn create_messages(
-        system_prompt: &str,
-        context_content: &str,
-        user_prompt: &str,
-        history_messages_json: &Value,
-    ) -> Vec<Value> {
-        let mut messages = vec![];
-
-        messages.push(serde_json::json!({ "role": "system", "content": system_prompt }));
-
-        if !context_content.is_empty() {
-            messages.push(serde_json::json!({ "role": "user", "content": format!("Additional context that should be considered: {}", context_content) }));
-        }
-
-        if let Some(history_messages_json) = history_messages_json.as_array() {
-            for message in history_messages_json {
-                messages.push(message.clone());
-            }
-        }
-
-        messages.push(serde_json::json!({ "role": "user", "content": user_prompt }));
-
-        messages
     }
 
     fn api_url() -> String {
@@ -256,187 +221,6 @@ mod tests {
         client.update_system_prompt(new_prompt.clone());
 
         assert_eq!(client.system_prompt, new_prompt);
-    }
-
-    #[test]
-    fn test_create_messages_basic() {
-        let system_prompt = "You are a helpful assistant.";
-        let context_content = "";
-        let user_prompt = "Hello!";
-        let history = json!([]);
-
-        let messages =
-            OllamaClient::create_messages(system_prompt, context_content, user_prompt, &history);
-
-        assert_eq!(messages.len(), 2);
-        assert_eq!(
-            messages[0],
-            json!({"role": "system", "content": "You are a helpful assistant."})
-        );
-        assert_eq!(messages[1], json!({"role": "user", "content": "Hello!"}));
-    }
-
-    #[test]
-    fn test_create_messages_with_context() {
-        let system_prompt = "You are a helpful assistant.";
-        let context_content = "This is some context.";
-        let user_prompt = "Hello!";
-        let history = json!([]);
-
-        let messages =
-            OllamaClient::create_messages(system_prompt, context_content, user_prompt, &history);
-
-        assert_eq!(messages.len(), 3);
-        assert_eq!(
-            messages[0],
-            json!({"role": "system", "content": "You are a helpful assistant."})
-        );
-        assert_eq!(
-            messages[1],
-            json!({"role": "user", "content": "Additional context that should be considered: This is some context."})
-        );
-        assert_eq!(messages[2], json!({"role": "user", "content": "Hello!"}));
-    }
-
-    #[test]
-    fn test_create_messages_with_history() {
-        let system_prompt = "You are a helpful assistant.";
-        let context_content = "";
-        let user_prompt = "How are you?";
-        let history = json!([
-            {"role": "user", "content": "Hello!"},
-            {"role": "assistant", "content": "Hi there! How can I help you today?"}
-        ]);
-
-        let messages =
-            OllamaClient::create_messages(system_prompt, context_content, user_prompt, &history);
-
-        assert_eq!(messages.len(), 4);
-        assert_eq!(
-            messages[0],
-            json!({"role": "system", "content": "You are a helpful assistant."})
-        );
-        assert_eq!(messages[1], json!({"role": "user", "content": "Hello!"}));
-        assert_eq!(
-            messages[2],
-            json!({"role": "assistant", "content": "Hi there! How can I help you today?"})
-        );
-        assert_eq!(
-            messages[3],
-            json!({"role": "user", "content": "How are you?"})
-        );
-    }
-
-    #[test]
-    fn test_create_messages_with_context_and_history() {
-        let system_prompt = "You are a helpful assistant.";
-        let context_content = "User is a developer.";
-        let user_prompt = "Can you explain async/await?";
-        let history = json!([
-            {"role": "user", "content": "Hello!"},
-            {"role": "assistant", "content": "Hi there! How can I help you today?"}
-        ]);
-
-        let messages =
-            OllamaClient::create_messages(system_prompt, context_content, user_prompt, &history);
-
-        assert_eq!(messages.len(), 5);
-        assert_eq!(
-            messages[0],
-            json!({"role": "system", "content": "You are a helpful assistant."})
-        );
-        assert_eq!(
-            messages[1],
-            json!({"role": "user", "content": "Additional context that should be considered: User is a developer."})
-        );
-        assert_eq!(messages[2], json!({"role": "user", "content": "Hello!"}));
-        assert_eq!(
-            messages[3],
-            json!({"role": "assistant", "content": "Hi there! How can I help you today?"})
-        );
-        assert_eq!(
-            messages[4],
-            json!({"role": "user", "content": "Can you explain async/await?"})
-        );
-    }
-
-    #[test]
-    fn test_create_messages_with_invalid_history() {
-        let system_prompt = "You are a helpful assistant.";
-        let context_content = "";
-        let user_prompt = "Hello!";
-        let history = json!({"invalid": "not an array"}); // Not an array
-
-        let messages =
-            OllamaClient::create_messages(system_prompt, context_content, user_prompt, &history);
-
-        assert_eq!(messages.len(), 2);
-        assert_eq!(
-            messages[0],
-            json!({"role": "system", "content": "You are a helpful assistant."})
-        );
-        assert_eq!(messages[1], json!({"role": "user", "content": "Hello!"}));
-    }
-
-    #[test]
-    fn test_create_messages_with_empty_system_prompt() {
-        let system_prompt = "";
-        let context_content = "";
-        let user_prompt = "Hello!";
-        let history = json!([]);
-
-        let messages =
-            OllamaClient::create_messages(system_prompt, context_content, user_prompt, &history);
-
-        assert_eq!(messages.len(), 2);
-        assert_eq!(messages[0], json!({"role": "system", "content": ""}));
-        assert_eq!(messages[1], json!({"role": "user", "content": "Hello!"}));
-    }
-
-    #[test]
-    fn test_build_json_body() {
-        let model = "gemma3:4b";
-        let system_prompt = "You are a helpful assistant.";
-        let context_content = "Sample context";
-        let user_prompt = "Hello!";
-        let history_messages = json!([{"role": "user", "content": "Previous message"}]);
-
-        let result = OllamaClient::build_json_body(
-            model,
-            system_prompt,
-            context_content,
-            user_prompt,
-            &history_messages,
-        );
-
-        assert_eq!(result["model"], json!(model));
-        assert_eq!(result["stream"], json!(false));
-        assert!(result.get("messages").is_some());
-        assert!(result["messages"].is_array());
-        assert_eq!(result["messages"].as_array().unwrap().len(), 4);
-    }
-
-    #[test]
-    fn test_build_json_body_minimal() {
-        let model = "llama3:8b";
-        let system_prompt = "Test prompt";
-        let context_content = ""; // Empty context
-        let user_prompt = "Test question";
-        let history_messages = json!([]); // Empty history
-
-        let result = OllamaClient::build_json_body(
-            model,
-            system_prompt,
-            context_content,
-            user_prompt,
-            &history_messages,
-        );
-
-        assert_eq!(result["model"], json!(model));
-        assert_eq!(result["stream"], json!(false));
-        assert!(result.get("messages").is_some());
-        assert!(result["messages"].is_array());
-        assert_eq!(result["messages"].as_array().unwrap().len(), 2);
     }
 
     #[test]

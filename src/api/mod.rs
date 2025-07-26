@@ -18,6 +18,7 @@
 use crate::api::{anthropic_client::AnthropicClient, ollama_client::OllamaClient};
 
 pub mod anthropic_client;
+mod client_util;
 pub mod ollama_client;
 
 pub trait ChatApi {
