@@ -102,3 +102,64 @@ fn default_system_prompt() -> String {
     Keep your answers helpful, concise, and relevant to both the user's direct query and any file context provided.
     \n\n"#.to_string()
 }
+
+#[cfg(test)]
+mod tests {
+    use std::{fs::write, path::PathBuf};
+
+    use tempfile::TempDir;
+
+    use crate::config::user_config::{CONFIG_FILE, UserConfig};
+
+    #[test]
+    #[should_panic]
+    fn load_invalid_config_file() {
+        let temp_dir = create_config(
+            "
+            thisisa malformed \" string !\"#¤
+            ",
+        );
+        UserConfig::load(temp_dir.path().to_path_buf());
+    }
+
+    #[test]
+    #[should_panic]
+    fn load_non_existent_config_file() {
+        let temp_dir = create_config("");
+        UserConfig::load(temp_dir.path().join("doesnt_exist.toml").to_path_buf());
+    }
+
+    #[test]
+    fn load_valid_config_file() {
+        let temp_dir = create_config(
+            "
+            token_estimation = false
+            provider = \"anthropic\"
+            ",
+        );
+        let config = UserConfig::load(temp_dir.path().to_path_buf());
+
+        assert_eq!(false, config.token_estimation);
+        assert_eq!("anthropic", config.provider);
+    }
+
+    #[test]
+    fn load_empty_config_file() {
+        let temp_dir = create_config("");
+        let config = UserConfig::load(temp_dir.path().to_path_buf());
+
+        // Should use defaults
+        assert_eq!(true, config.token_estimation);
+        assert_eq!("ollama", config.provider);
+        assert_eq!("gemma3:12b", config.model);
+        assert_eq!(1024, config.max_tokens);
+        assert_eq!("", config.knowledge_dir);
+    }
+
+    fn create_config(content: &str) -> TempDir {
+        let temp_dir: TempDir = TempDir::new().unwrap();
+        let config_path: PathBuf = temp_dir.path().join(CONFIG_FILE);
+        write(&config_path, content).expect("Writing to test config failed");
+        temp_dir
+    }
+}
