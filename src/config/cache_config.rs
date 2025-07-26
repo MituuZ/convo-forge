@@ -1,9 +1,3 @@
-use std::{
-    fs::{read_to_string, write},
-    io,
-    path::PathBuf,
-};
-
 /*
  * Copyright © 2025 Mitja Leino
  *
@@ -20,6 +14,13 @@ use std::{
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  *
  */
+
+use std::{
+    fs::{read_to_string, write},
+    io,
+    path::PathBuf,
+};
+
 use serde::{Deserialize, Serialize};
 
 const CACHE_FILE: &str = "cforge.cache.toml";

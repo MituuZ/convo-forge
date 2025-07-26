@@ -1,7 +1,3 @@
-use serde::{Deserialize, Serialize};
-
-use crate::config::user_config::UserConfig;
-
 /*
  * Copyright © 2025 Mitja Leino
  *
@@ -18,6 +14,11 @@ use crate::config::user_config::UserConfig;
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  *
  */
+
+use serde::{Deserialize, Serialize};
+
+use crate::config::user_config::UserConfig;
+
 #[derive(Debug, Deserialize, Default, Serialize)]
 pub struct RustylineConfig {
     #[serde(default)]

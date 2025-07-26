@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.4.1
+
+_Separate cache configuration_
+
+### Config
+
+- Removed `cforge_dir`, just use XDG data directory instead
+
 ## 0.4.0
 
 _Add support for Anthropic API_
