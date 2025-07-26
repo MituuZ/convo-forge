@@ -8,17 +8,16 @@ A command-line interface for interacting with Ollama and Anthropic models.
 - Add context to a session with `-f/--file` flag and change the context file mid conversation
 - Use commands to modify and customize the current session
 - Prompts are built in the following way and sent using the
-  `/chat` [endpoint (without streaming)](https://github.com/ollama/ollama/blob/main/docs/api.md#chat-request-no-streaming)
 - You can add a newline using ALT + ENTER
 
 How the messages array is formed in the request JSON:
 
-| Role           | Content                 |
-|----------------|-------------------------|
-| system         | cforge system prompt    |
-| system         | context file (optional) |
-| user/assistant | conversation history    |
-| user           | current prompt          |
+| Role             | Content                 |
+|------------------|-------------------------|
+| system           | cforge system prompt    |
+| system/assistant | context file (optional) |
+| user/assistant   | conversation history    |
+| user             | current prompt          |
 
 [Wishlist at docs/todo.md](docs/todo.md)
 
