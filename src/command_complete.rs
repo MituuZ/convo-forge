@@ -12,7 +12,6 @@
  * WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS
  * OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- *
  */
 use rustyline::completion::{Completer, FilenameCompleter, Pair};
 use rustyline::highlight::Highlighter;
@@ -25,14 +24,14 @@ use std::path::PathBuf;
 use crate::commands::FileCommand;
 
 pub struct CommandHelper {
-    commands: Vec<String>,
+    commands: Vec<(String, String)>,
     file_commands: Vec<(String, FileCommand)>,
     file_completer: FileCompleter,
 }
 
 impl CommandHelper {
     pub(crate) fn new(
-        commands: Vec<String>,
+        commands: Vec<(String, String)>,
         file_commands: Vec<(String, FileCommand)>,
         cforge_dir: &str,
         knowledge_dir: &str,
@@ -75,7 +74,7 @@ impl Completer for FileCompleter {
                 let full_path = match prefix {
                     "c" => self.base_dir.join(subpath),
                     "k" => self.knowledge_dir.join(subpath),
-                    _ => return Result::Ok((0, vec![])),
+                    _ => return Ok((0, vec![])),
                 };
                 let full_path_str = full_path.to_string_lossy();
                 // The cursor is at the end of the full path string now
@@ -135,10 +134,10 @@ impl Completer for CommandHelper {
                 let matches: Vec<Pair> = self
                     .commands
                     .iter()
-                    .filter(|cmd| cmd.starts_with(word) && cmd.len() > word.len())
-                    .map(|cmd| Pair {
-                        display: cmd.clone(),
-                        replacement: cmd.clone(),
+                    .filter(|tuple| tuple.0.starts_with(word) && tuple.0.len() > word.len())
+                    .map(|(cmd, default_alias)| Pair {
+                        display: cmd.clone() + default_alias,
+                        replacement: cmd.clone() + default_alias,
                     })
                     .collect();
 
@@ -158,7 +157,7 @@ impl Hinter for CommandHelper {
         if line.starts_with(":") && !line.contains(" ") && pos == line.len() {
             let command = &line[1..];
             // Only show hints at the end of the line
-            for cmd in &self.commands {
+            for (cmd, _) in &self.commands {
                 if cmd.starts_with(command) && cmd != command && cmd.len() > command.len() {
                     return Some(cmd[command.len()..].to_string());
                 }
@@ -190,25 +189,27 @@ impl Helper for CommandHelper {}
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rustyline::Context;
     use rustyline::history::DefaultHistory;
+    use rustyline::Context;
     use std::collections::HashSet;
     use std::fs;
     use tempfile::TempDir;
 
     #[test]
     fn test_command_helper_new() {
-        let commands = vec!["help".to_string(), "quit".to_string(), "save".to_string()];
-        let helper = CommandHelper::new(commands, vec![], "", "");
+        let helper = create_command_helper();
 
-        assert_eq!(helper.commands, vec!["help", "quit", "save"]);
+        assert_eq!(helper.commands, vec![
+            ("help".to_string(), "".to_string()),
+            ("quit".to_string(), "".to_string()),
+            ("save".to_string(), "".to_string())
+        ]);
         assert!(helper.file_commands.is_empty());
     }
 
     #[test]
     fn test_command_with_arguments() {
-        let commands = vec!["help".to_string(), "quit".to_string(), "save".to_string()];
-        let helper = CommandHelper::new(commands, vec![], "", "");
+        let helper = create_command_helper();
         let history = DefaultHistory::new();
         let ctx = Context::new(&history);
 
@@ -219,8 +220,7 @@ mod tests {
 
     #[test]
     fn test_no_matches() {
-        let commands = vec!["help".to_string(), "quit".to_string(), "save".to_string()];
-        let helper = CommandHelper::new(commands, vec![], "", "");
+        let helper = create_command_helper();
         let history = DefaultHistory::new();
         let ctx = Context::new(&history);
 
@@ -231,8 +231,7 @@ mod tests {
 
     #[test]
     fn test_complete_empty_line() {
-        let commands = vec!["help".to_string(), "quit".to_string(), "save".to_string()];
-        let helper = CommandHelper::new(commands, vec![], "", "");
+        let helper = create_command_helper();
 
         let history = DefaultHistory::new();
         let ctx = Context::new(&history);
@@ -245,10 +244,10 @@ mod tests {
     #[test]
     fn test_complete_non_command_line() {
         let commands = vec![
-            "help".to_string(),
-            "quit".to_string(),
-            "save".to_string(),
-            "hey".to_string(),
+            ("help".to_string(), "".to_string()),
+            ("quit".to_string(), "".to_string()),
+            ("save".to_string(), "".to_string()),
+            ("hey".to_string(), "".to_string()),
         ];
         let helper = CommandHelper::new(commands, vec![], "", "");
         let history = DefaultHistory::new();
@@ -261,8 +260,7 @@ mod tests {
 
     #[test]
     fn test_hint_no_match() {
-        let commands = vec!["help".to_string(), "quit".to_string(), "save".to_string()];
-        let helper = CommandHelper::new(commands, vec![], "", "");
+        let helper = create_command_helper();
         let history = DefaultHistory::new();
         let ctx = Context::new(&history);
 
@@ -272,8 +270,7 @@ mod tests {
 
     #[test]
     fn test_hint_with_space() {
-        let commands = vec!["help".to_string(), "quit".to_string(), "save".to_string()];
-        let helper = CommandHelper::new(commands, vec![], "", "");
+        let helper = create_command_helper();
         let history = DefaultHistory::new();
         let ctx = Context::new(&history);
 
@@ -299,8 +296,7 @@ mod tests {
 
     #[test]
     fn test_complete_command() {
-        let commands = vec!["help".to_string(), "quit".to_string(), "save".to_string()];
-        let helper = CommandHelper::new(commands, vec![], "", "");
+        let helper = create_command_helper();
         let history = DefaultHistory::new();
         let ctx = Context::new(&history);
 
@@ -319,10 +315,10 @@ mod tests {
     #[test]
     fn multiple_matches() {
         let commands = vec![
-            "help".to_string(),
-            "quit".to_string(),
-            "switch".to_string(),
-            "sysprompt".to_string(),
+            ("help".to_string(), "".to_string()),
+            ("quit".to_string(), "".to_string()),
+            ("switch".to_string(), "".to_string()),
+            ("sysprompt".to_string(), "".to_string()),
         ];
         let helper = CommandHelper::new(commands, vec![], "", "");
         let history = DefaultHistory::new();
@@ -339,8 +335,7 @@ mod tests {
 
     #[test]
     fn test_hint() {
-        let commands = vec!["help".to_string(), "quit".to_string(), "save".to_string()];
-        let helper = CommandHelper::new(commands, vec![], "", "");
+        let helper = create_command_helper();
         let history = DefaultHistory::new();
         let ctx = Context::new(&history);
 
@@ -355,7 +350,7 @@ mod tests {
 
     #[test]
     fn test_highlighter() {
-        let helper = CommandHelper::new(vec!["help".to_string()], vec![], "", "");
+        let helper = CommandHelper::new(vec![("help".to_string(), "".to_string())], vec![], "", "");
 
         // Test line highlighting (currently returns unchanged)
         let highlighted = helper.highlight("test line", 4);
@@ -509,5 +504,34 @@ mod tests {
         );
 
         Ok(())
+    }
+
+    #[test]
+    fn test_command_prefix_handling() {
+        let commands = vec![
+            ("help".to_string(), "".to_string()),
+            ("hello".to_string(), " @c/".to_string()),
+        ];
+        let helper = CommandHelper::new(commands, vec![], "", "");
+        let history = DefaultHistory::new();
+        let ctx = Context::new(&history);
+
+        let (pos, matches) = helper.complete(":h", 2, &ctx).unwrap();
+        assert_eq!(pos, 1);
+        assert_eq!(matches.len(), 2);
+
+        let completions: Vec<String> = matches.iter().map(|m| m.display.clone()).collect();
+        assert!(completions.contains(&"help".to_string()));
+        assert!(completions.contains(&"hello @c/".to_string()));
+    }
+
+
+    fn create_command_helper() -> CommandHelper {
+        let commands = vec![
+            ("help".to_string(), "".to_string()),
+            ("quit".to_string(), "".to_string()),
+            ("save".to_string(), "".to_string()),
+        ];
+        CommandHelper::new(commands, vec![], "", "")
     }
 }

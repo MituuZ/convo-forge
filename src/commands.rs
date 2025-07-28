@@ -12,7 +12,6 @@
  * WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS
  * OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- *
  */
 
 use crate::api::ChatApi;
@@ -60,6 +59,7 @@ pub struct CommandStruct<'a> {
     command_example: Option<&'a str>,
     pub(crate) file_command: Option<FileCommand>,
     pub(crate) command_fn: CommandFn,
+    pub(crate) default_alias: &'a str,
 }
 
 #[derive(Clone, Debug)]
@@ -75,6 +75,7 @@ impl<'a> CommandStruct<'a> {
         command_example: Option<&'a str>,
         file_command: Option<FileCommand>,
         command_fn: CommandFn,
+        default_prefix: &'a str,
     ) -> Self {
         CommandStruct {
             command_string,
@@ -82,6 +83,7 @@ impl<'a> CommandStruct<'a> {
             description,
             file_command,
             command_fn,
+            default_alias: default_prefix,
         }
     }
 
@@ -107,16 +109,17 @@ fn cmd<'a>(
     command_example: Option<&'a str>,
     file_command: Option<FileCommand>,
     execute_fn: fn(CommandParams) -> io::Result<CommandResult>,
+    default_prefix: &'a str,
 ) -> (String, CommandStruct<'a>) {
     (
         name.to_string(),
-        CommandStruct::new(name, description, command_example, file_command, execute_fn),
+        CommandStruct::new(name, description, command_example, file_command, execute_fn, default_prefix),
     )
 }
 
 pub(crate) fn create_command_registry<'a>() -> HashMap<String, CommandStruct<'a>> {
     HashMap::from([
-        cmd("q", "Exit the program", None, None, quit_command),
+        cmd("q", "Exit the program", None, None, quit_command, ""),
         cmd(
             "list",
             "List files in the cforge directory. \
@@ -124,6 +127,7 @@ pub(crate) fn create_command_registry<'a>() -> HashMap<String, CommandStruct<'a>
             Some(":list <optional pattern>"),
             Some(FileCommand::CforgeDir),
             list_command,
+            " @c/",
         ),
         cmd(
             "switch",
@@ -132,14 +136,16 @@ pub(crate) fn create_command_registry<'a>() -> HashMap<String, CommandStruct<'a>
             Some(":switch <history file>"),
             Some(FileCommand::CforgeDir),
             switch_command,
+            " @c/",
         ),
-        cmd("help", "Show this help message", None, None, help_command),
+        cmd("help", "Show this help message", None, None, help_command, ""),
         cmd(
             "edit",
             "Open the history file in your editor",
             None,
             None,
             edit_command,
+            "",
         ),
         cmd(
             "sysprompt",
@@ -147,6 +153,7 @@ pub(crate) fn create_command_registry<'a>() -> HashMap<String, CommandStruct<'a>
             Some(":sysprompt <prompt>"),
             None,
             sysprompt_command,
+            "",
         ),
         cmd(
             "context",
@@ -154,6 +161,7 @@ pub(crate) fn create_command_registry<'a>() -> HashMap<String, CommandStruct<'a>
             Some(":context <optional path>"),
             Some(FileCommand::KnowledgeDir),
             context_file_command,
+            " @k/",
         ),
     ])
 }
