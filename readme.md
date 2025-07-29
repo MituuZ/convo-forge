@@ -95,10 +95,10 @@ These can be used to quickly find files from cforge and knowledge directories wi
 - `@c/` - Expands to the data directory
 - `@k/` - Expands to the knowledge directory
 
-Different commands can have different default aliases set for completion.
-These defaults can be [configured](#configuration).
+You can [configure](#configuration) each file command with a custom prefix, either a path alias or absolute path.
 
 e.g. `:swi <tab> :switch @c/`
+e.g. `:swi <tab> :switch /home/user/my_dir`
 
 #### Help
 
