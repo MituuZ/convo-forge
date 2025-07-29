@@ -12,14 +12,13 @@
  * WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS
  * OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- *
  */
 
 use serde::{Deserialize, Serialize};
 
 use crate::config::user_config::UserConfig;
 
-#[derive(Debug, Deserialize, Default, Serialize)]
+#[derive(Debug, Deserialize, Default, Serialize, PartialEq)]
 pub struct RustylineConfig {
     #[serde(default)]
     pub edit_mode: EditMode,
@@ -47,7 +46,7 @@ pub(crate) fn build(user_config: &UserConfig) -> rustyline::Config {
     config_builder.build()
 }
 
-#[derive(Debug, Clone, Copy, Deserialize, Default, Serialize)]
+#[derive(Debug, Clone, Copy, Deserialize, Default, Serialize, PartialEq)]
 #[serde(rename_all = "lowercase")]
 pub enum EditMode {
     #[default]
@@ -55,7 +54,7 @@ pub enum EditMode {
     Vi,
 }
 
-#[derive(Debug, Clone, Copy, Deserialize, Default, Serialize)]
+#[derive(Debug, Clone, Copy, Deserialize, Default, Serialize, PartialEq)]
 #[serde(rename_all = "lowercase")]
 pub enum CompletionType {
     #[default]

@@ -12,12 +12,11 @@
  * WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS
  * OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- *
  */
-use serde::{Deserialize, Serialize};
-use std::{fs, path::PathBuf};
-
 use crate::config::rustyline_config::RustylineConfig;
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+use std::{fs, path::PathBuf};
 
 const CONFIG_FILE: &str = "cforge.toml";
 
@@ -43,6 +42,9 @@ pub struct UserConfig {
 
     #[serde(default = "default_max_tokens")]
     pub max_tokens: usize,
+
+    #[serde(default = "default_command_prefixes")]
+    pub command_prefixes: HashMap<String, String>,
 }
 
 impl UserConfig {
@@ -69,8 +71,19 @@ impl Default for UserConfig {
             token_estimation: default_token_estimation(),
             provider: default_provider(),
             max_tokens: default_max_tokens(),
+            command_prefixes: default_command_prefixes(),
         }
     }
+}
+
+fn default_command_prefixes() -> HashMap<String, String> {
+    let mut path_aliases: HashMap<String, String> = HashMap::new();
+
+    path_aliases.insert("switch".into(), "@c/".into());
+    path_aliases.insert("list".into(), "@c/".into());
+    path_aliases.insert("context".into(), "@k/".into());
+
+    path_aliases
 }
 
 fn default_model() -> String {
@@ -107,9 +120,39 @@ fn default_system_prompt() -> String {
 mod tests {
     use std::{fs::write, path::PathBuf};
 
+    use crate::config::rustyline_config::RustylineConfig;
+    use crate::config::user_config::{UserConfig, CONFIG_FILE};
     use tempfile::TempDir;
 
-    use crate::config::user_config::{CONFIG_FILE, UserConfig};
+    #[test]
+    fn default_values() {
+        let config = UserConfig::default();
+        assert_eq!(true, config.token_estimation);
+        assert_eq!("ollama", config.provider);
+        assert_eq!("gemma3:12b", config.model);
+        assert_eq!(1024, config.max_tokens);
+        assert_eq!("", config.knowledge_dir);
+
+        assert_eq!(
+            r#"
+    You are an AI assistant receiving input from a command-line
+    application called convo-forge (cforge). The user may include additional context from another file,
+    this is included as a separate user prompt.
+    Your responses are displayed in the terminal and saved to the history file.
+    Keep your answers helpful, concise, and relevant to both the user's direct query and any file context provided.
+    \n\n"#,
+            config.system_prompt
+        );
+
+        assert_eq!("@c/", config.command_prefixes.get("switch").unwrap());
+        assert_eq!("@c/", config.command_prefixes.get("list").unwrap());
+        assert_eq!("@k/", config.command_prefixes.get("context").unwrap());
+
+        assert_eq!(
+            RustylineConfig::default(),
+            config.rustyline
+        );
+    }
 
     #[test]
     #[should_panic]
@@ -154,6 +197,23 @@ mod tests {
         assert_eq!("gemma3:12b", config.model);
         assert_eq!(1024, config.max_tokens);
         assert_eq!("", config.knowledge_dir);
+    }
+
+    #[test]
+    fn test_prefixes() {
+        let temp_dir = create_config(
+            r#"
+            [command_prefixes]
+            switch = "never"
+            list = "gonna"
+            context = "give"
+            "#,
+        );
+        let config = UserConfig::load(temp_dir.path().to_path_buf());
+
+        assert_eq!("never", config.command_prefixes.get("switch").unwrap());
+        assert_eq!("gonna", config.command_prefixes.get("list").unwrap());
+        assert_eq!("give", config.command_prefixes.get("context").unwrap());
     }
 
     fn create_config(content: &str) -> TempDir {

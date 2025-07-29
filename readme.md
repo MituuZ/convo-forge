@@ -34,6 +34,7 @@ cargo run -- chat.md
 ```
 
 ## Requirements
+
 - Rust (latest stable)
 - Ollama or access to Anthropic API
 
@@ -89,10 +90,15 @@ Commands can be entered during a chat by prepending the command with `:`. Comman
 
 These can be used to quickly find files from cforge and knowledge directories without having to write the full path.
 
-- **"/"** - Absolute path
-- **""** - Relative to the current dir
-- **"@c/"** - Expands to the data directory
-- **"@k/"** - `knowledge_dir`
+- `/` - Absolute path
+- ` ` - Relative to the current dir
+- `@c/` - Expands to the data directory
+- `@k/` - Expands to the knowledge directory
+
+You can [configure](#configuration) each file command with a custom prefix, either a path alias or absolute path.
+
+e.g. `:swi <tab> :switch @c/`
+e.g. `:swi <tab> :switch /home/user/my_dir`
 
 #### Help
 
@@ -180,6 +186,15 @@ provider = "ollama"
 # Control the token limit for anthropic models
 max_tokens = 1024
 
+# Modify default prefixes for command completion
+# Options support path aliases and absolute paths
+# e.g. `:swi <tab> :switch @c/`
+# e.g. `:swi <tab> :switch /home/user/my_dir`
+[command_prefixes]
+switch = "@c/"
+list = "@c/"
+context = "@k/"
+
 [rustyline]
 # Switch rustyline input mode between `emacs` and `vi`.
 mode = "emacs"
@@ -220,7 +235,6 @@ You can find the changelog [here](changelog.md "Link to changelog.md").
 - [lazy-static](https://github.com/rust-lang-nursery/lazy-static.rs) - [MIT](LICENSES/lazy_static-MIT)
 - [colored](https://github.com/colored-rs/colored) - [MPL-2.0](LICENSES/colored-MPL-2.0)
 - [dirs-next](https://github.com/xdg-rs/dirs/tree/master/dirs) - [MIT](LICENSES/dirs-next-MIT)
-
 
 ## License
 
