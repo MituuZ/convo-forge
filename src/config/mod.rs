@@ -84,7 +84,7 @@ fn get_commands(
     let mut file_commands = Vec::<(String, FileCommand)>::new();
 
     for command in command_registry {
-        all_commands.push((command.1.command_string.to_string(), command.1.default_alias.clone()));
+        all_commands.push((command.1.command_string.to_string(), command.1.default_prefix.clone()));
         if let Some(file_command) = command.1.file_command.as_ref() {
             file_commands.push((command.1.command_string.to_string(), file_command.clone()));
         }

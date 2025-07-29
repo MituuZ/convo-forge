@@ -59,7 +59,7 @@ pub struct CommandStruct<'a> {
     command_example: Option<&'a str>,
     pub(crate) file_command: Option<FileCommand>,
     pub(crate) command_fn: CommandFn,
-    pub(crate) default_alias: Option<String>,
+    pub(crate) default_prefix: Option<String>,
 }
 
 #[derive(Clone, Debug)]
@@ -83,7 +83,7 @@ impl<'a> CommandStruct<'a> {
             description,
             file_command,
             command_fn,
-            default_alias: default_prefix,
+            default_prefix: default_prefix,
         }
     }
 
