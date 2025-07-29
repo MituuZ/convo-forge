@@ -24,14 +24,14 @@ use std::path::PathBuf;
 use crate::commands::FileCommand;
 
 pub struct CommandHelper {
-    commands: Vec<(String, String)>,
+    commands: Vec<(String, Option<String>)>,
     file_commands: Vec<(String, FileCommand)>,
     file_completer: FileCompleter,
 }
 
 impl CommandHelper {
     pub(crate) fn new(
-        commands: Vec<(String, String)>,
+        commands: Vec<(String, Option<String>)>,
         file_commands: Vec<(String, FileCommand)>,
         cforge_dir: &str,
         knowledge_dir: &str,
@@ -136,8 +136,8 @@ impl Completer for CommandHelper {
                     .iter()
                     .filter(|tuple| tuple.0.starts_with(word) && tuple.0.len() > word.len())
                     .map(|(cmd, default_alias)| Pair {
-                        display: cmd.clone() + default_alias,
-                        replacement: cmd.clone() + default_alias,
+                        display: format!("{} {}", cmd, default_alias.as_deref().unwrap_or("")),
+                        replacement: format!("{} {}", cmd, default_alias.as_deref().unwrap_or("")),
                     })
                     .collect();
 
@@ -200,9 +200,9 @@ mod tests {
         let helper = create_command_helper();
 
         assert_eq!(helper.commands, vec![
-            ("help".to_string(), "".to_string()),
-            ("quit".to_string(), "".to_string()),
-            ("save".to_string(), "".to_string())
+            ("help".to_string(), None),
+            ("quit".to_string(), None),
+            ("save".to_string(), None)
         ]);
         assert!(helper.file_commands.is_empty());
     }
@@ -244,10 +244,10 @@ mod tests {
     #[test]
     fn test_complete_non_command_line() {
         let commands = vec![
-            ("help".to_string(), "".to_string()),
-            ("quit".to_string(), "".to_string()),
-            ("save".to_string(), "".to_string()),
-            ("hey".to_string(), "".to_string()),
+            ("help".to_string(), None),
+            ("quit".to_string(), None),
+            ("save".to_string(), None),
+            ("hey".to_string(), None),
         ];
         let helper = CommandHelper::new(commands, vec![], "", "");
         let history = DefaultHistory::new();
@@ -304,7 +304,7 @@ mod tests {
         let (pos, matches) = helper.complete(":h", 2, &ctx).unwrap();
         assert_eq!(pos, 1);
         assert_eq!(matches.len(), 1);
-        assert_eq!(matches[0].display, "help");
+        assert_eq!(matches[0].display, "help ");
 
         // Complete command
         let (pos, matches) = helper.complete(":help", 5, &ctx).unwrap();
@@ -315,10 +315,10 @@ mod tests {
     #[test]
     fn multiple_matches() {
         let commands = vec![
-            ("help".to_string(), "".to_string()),
-            ("quit".to_string(), "".to_string()),
-            ("switch".to_string(), "".to_string()),
-            ("sysprompt".to_string(), "".to_string()),
+            ("help".to_string(), None),
+            ("quit".to_string(), None),
+            ("switch".to_string(), None),
+            ("sysprompt".to_string(), None),
         ];
         let helper = CommandHelper::new(commands, vec![], "", "");
         let history = DefaultHistory::new();
@@ -329,8 +329,8 @@ mod tests {
         assert_eq!(matches.len(), 2);
 
         let match_strings: Vec<String> = matches.iter().map(|m| m.display.clone()).collect();
-        assert!(match_strings.contains(&"switch".to_string()));
-        assert!(match_strings.contains(&"sysprompt".to_string()));
+        assert!(match_strings.contains(&"switch ".to_string()));
+        assert!(match_strings.contains(&"sysprompt ".to_string()));
     }
 
     #[test]
@@ -350,7 +350,7 @@ mod tests {
 
     #[test]
     fn test_highlighter() {
-        let helper = CommandHelper::new(vec![("help".to_string(), "".to_string())], vec![], "", "");
+        let helper = CommandHelper::new(vec![("help".to_string(), None)], vec![], "", "");
 
         // Test line highlighting (currently returns unchanged)
         let highlighted = helper.highlight("test line", 4);
@@ -509,8 +509,8 @@ mod tests {
     #[test]
     fn test_command_prefix_handling() {
         let commands = vec![
-            ("help".to_string(), "".to_string()),
-            ("hello".to_string(), " @c/".to_string()),
+            ("help".to_string(), None),
+            ("hello".to_string(), Some("@c/".into())),
         ];
         let helper = CommandHelper::new(commands, vec![], "", "");
         let history = DefaultHistory::new();
@@ -521,16 +521,16 @@ mod tests {
         assert_eq!(matches.len(), 2);
 
         let completions: Vec<String> = matches.iter().map(|m| m.display.clone()).collect();
-        assert!(completions.contains(&"help".to_string()));
+        assert!(completions.contains(&"help ".to_string()));
         assert!(completions.contains(&"hello @c/".to_string()));
     }
 
 
     fn create_command_helper() -> CommandHelper {
         let commands = vec![
-            ("help".to_string(), "".to_string()),
-            ("quit".to_string(), "".to_string()),
-            ("save".to_string(), "".to_string()),
+            ("help".to_string(), None),
+            ("quit".to_string(), None),
+            ("save".to_string(), None),
         ];
         CommandHelper::new(commands, vec![], "", "")
     }

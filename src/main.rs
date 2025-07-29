@@ -12,7 +12,6 @@
  * WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS
  * OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- *
  */
 
 pub mod api;
@@ -24,7 +23,7 @@ mod processor;
 mod user_input;
 
 use crate::api::get_implementation;
-use crate::commands::{CommandResult, create_command_registry};
+use crate::commands::{create_command_registry, CommandResult};
 use crate::config::AppConfig;
 use crate::history_file::HistoryFile;
 use crate::processor::CommandProcessor;
@@ -49,7 +48,7 @@ struct Args {
 fn main() -> io::Result<()> {
     let mut app_config = AppConfig::load_config();
     let args = Args::parse();
-    let command_registry = create_command_registry();
+    let command_registry = create_command_registry(app_config.user_config.command_prefixes.clone());
     let mut context_file_path = args.context_file.clone();
 
     let history_path = args.history_file.unwrap_or_else(|| {

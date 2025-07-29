@@ -96,7 +96,7 @@ These can be used to quickly find files from cforge and knowledge directories wi
 - `@k/` - Expands to the knowledge directory
 
 Different commands can have different default aliases set for completion.
-These defaults can be configured.
+These defaults can be [configured](#configuration).
 
 e.g. `:swi <tab> :switch @c/`
 
@@ -187,7 +187,9 @@ provider = "ollama"
 max_tokens = 1024
 
 # Modify default prefixes for command completion
+# Options support path aliases and absolute paths
 # e.g. `:swi <tab> :switch @c/`
+# e.g. `:swi <tab> :switch /home/user/my_dir`
 [command_prefixes]
 switch = "@c/"
 list = "@c/"

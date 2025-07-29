@@ -79,12 +79,12 @@ impl AppConfig {
 
 fn get_commands(
     command_registry: &HashMap<String, CommandStruct>,
-) -> (Vec<(String, String)>, Vec<(String, FileCommand)>) {
-    let mut all_commands = Vec::<(String, String)>::new();
+) -> (Vec<(String, Option<String>)>, Vec<(String, FileCommand)>) {
+    let mut all_commands = Vec::<(String, Option<String>)>::new();
     let mut file_commands = Vec::<(String, FileCommand)>::new();
 
     for command in command_registry {
-        all_commands.push((command.1.command_string.to_string(), command.1.default_alias.to_string()));
+        all_commands.push((command.1.command_string.to_string(), command.1.default_alias.clone()));
         if let Some(file_command) = command.1.file_command.as_ref() {
             file_commands.push((command.1.command_string.to_string(), file_command.clone()));
         }
@@ -174,9 +174,9 @@ mod tests {
     fn create_registry<'a>() -> HashMap<String, CommandStruct<'a>> {
         let mut command_registry: HashMap<String, CommandStruct> = HashMap::new();
 
-        let command1 = CommandStruct::new("cmd1", "", None, None, nop, "");
-        let command2 = CommandStruct::new("cmd2", "", None, Some(FileCommand::CforgeDir), nop, "");
-        let command3 = CommandStruct::new("cmd3", "", None, Some(FileCommand::KnowledgeDir), nop, "");
+        let command1 = CommandStruct::new("cmd1", "", None, None, nop, None);
+        let command2 = CommandStruct::new("cmd2", "", None, Some(FileCommand::CforgeDir), nop, None);
+        let command3 = CommandStruct::new("cmd3", "", None, Some(FileCommand::KnowledgeDir), nop, None);
 
         command_registry.insert("cmd1".to_string(), command1);
         command_registry.insert("cmd2".to_string(), command2);
