@@ -117,7 +117,7 @@ fn cmd<'a>(
     )
 }
 
-pub(crate) fn create_command_registry(default_prefixes: HashMap<String, String>) -> HashMap<String, CommandStruct<'static>> {
+pub(crate) fn create_command_registry<'a>(default_prefixes: HashMap<String, String>) -> HashMap<String, CommandStruct<'a>> {
     HashMap::from([
         cmd("q", "Exit the program", None, None, quit_command, None),
         cmd(
