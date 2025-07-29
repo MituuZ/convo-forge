@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.4.2
+
+_Add configurable default completion prefixes_
+
+### Config
+
+Allow user to configure what (if any) path is automatically appended to a command when completion is used.
+
+```toml
+[command_prefixes]
+switch = "@c/"
+list = "@c/"
+context = "@k/"
+```
+
 ## 0.4.1
 
 _Separate cache configuration_
@@ -22,6 +37,7 @@ _Add support for Anthropic API_
 _Switch to XDG-compliant directory structure_
 
 ### Dirs
+
 - **Chat**: `~/.local/share/cforge`
 - **Config**: `~/.config/cforge/`
 
@@ -34,6 +50,7 @@ _Enable switching context file with a command and add support for a separate kno
 `knowledge_dir` - Add a path alias, which can be expanded using command completion
 
 ### Path aliases
+
 Support path aliases instead of defaulting to cforge_dir.
 
 * "/" - Absolute path

@@ -12,7 +12,6 @@
  * WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS
  * OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- *
  */
 
 use crate::api::ChatApi;
@@ -60,6 +59,7 @@ pub struct CommandStruct<'a> {
     command_example: Option<&'a str>,
     pub(crate) file_command: Option<FileCommand>,
     pub(crate) command_fn: CommandFn,
+    pub(crate) default_prefix: Option<String>,
 }
 
 #[derive(Clone, Debug)]
@@ -75,6 +75,7 @@ impl<'a> CommandStruct<'a> {
         command_example: Option<&'a str>,
         file_command: Option<FileCommand>,
         command_fn: CommandFn,
+        default_prefix: Option<String>,
     ) -> Self {
         CommandStruct {
             command_string,
@@ -82,6 +83,7 @@ impl<'a> CommandStruct<'a> {
             description,
             file_command,
             command_fn,
+            default_prefix: default_prefix,
         }
     }
 
@@ -107,16 +109,17 @@ fn cmd<'a>(
     command_example: Option<&'a str>,
     file_command: Option<FileCommand>,
     execute_fn: fn(CommandParams) -> io::Result<CommandResult>,
+    default_prefix: Option<String>,
 ) -> (String, CommandStruct<'a>) {
     (
         name.to_string(),
-        CommandStruct::new(name, description, command_example, file_command, execute_fn),
+        CommandStruct::new(name, description, command_example, file_command, execute_fn, default_prefix),
     )
 }
 
-pub(crate) fn create_command_registry<'a>() -> HashMap<String, CommandStruct<'a>> {
+pub(crate) fn create_command_registry<'a>(default_prefixes: HashMap<String, String>) -> HashMap<String, CommandStruct<'a>> {
     HashMap::from([
-        cmd("q", "Exit the program", None, None, quit_command),
+        cmd("q", "Exit the program", None, None, quit_command, None),
         cmd(
             "list",
             "List files in the cforge directory. \
@@ -124,6 +127,7 @@ pub(crate) fn create_command_registry<'a>() -> HashMap<String, CommandStruct<'a>
             Some(":list <optional pattern>"),
             Some(FileCommand::CforgeDir),
             list_command,
+            default_prefixes.get("list").cloned(),
         ),
         cmd(
             "switch",
@@ -132,14 +136,16 @@ pub(crate) fn create_command_registry<'a>() -> HashMap<String, CommandStruct<'a>
             Some(":switch <history file>"),
             Some(FileCommand::CforgeDir),
             switch_command,
+            default_prefixes.get("switch").cloned(),
         ),
-        cmd("help", "Show this help message", None, None, help_command),
+        cmd("help", "Show this help message", None, None, help_command, None),
         cmd(
             "edit",
             "Open the history file in your editor",
             None,
             None,
             edit_command,
+            None,
         ),
         cmd(
             "sysprompt",
@@ -147,6 +153,7 @@ pub(crate) fn create_command_registry<'a>() -> HashMap<String, CommandStruct<'a>
             Some(":sysprompt <prompt>"),
             None,
             sysprompt_command,
+            None,
         ),
         cmd(
             "context",
@@ -154,6 +161,7 @@ pub(crate) fn create_command_registry<'a>() -> HashMap<String, CommandStruct<'a>
             Some(":context <optional path>"),
             Some(FileCommand::KnowledgeDir),
             context_file_command,
+            default_prefixes.get("context").cloned(),
         ),
     ])
 }
@@ -205,7 +213,8 @@ fn list_command(command_params: CommandParams) -> io::Result<CommandResult> {
 }
 
 fn help_command(_command_params: CommandParams) -> io::Result<CommandResult> {
-    let registry = create_command_registry();
+    let temp_map = HashMap::new();
+    let registry = create_command_registry(temp_map);
     let mut commands: Vec<&CommandStruct> = registry.values().collect();
 
     commands.sort_by(|a, b| {
@@ -442,7 +451,8 @@ mod tests {
 
     #[test]
     fn test_create_command_registry() {
-        let registry = create_command_registry();
+        let temp_map = HashMap::new();
+        let registry = create_command_registry(temp_map);
 
         // Check that all expected commands are registered
         assert!(registry.contains_key("q"));
