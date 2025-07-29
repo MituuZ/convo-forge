@@ -34,6 +34,7 @@ cargo run -- chat.md
 ```
 
 ## Requirements
+
 - Rust (latest stable)
 - Ollama or access to Anthropic API
 
@@ -89,10 +90,15 @@ Commands can be entered during a chat by prepending the command with `:`. Comman
 
 These can be used to quickly find files from cforge and knowledge directories without having to write the full path.
 
-- **"/"** - Absolute path
-- **""** - Relative to the current dir
-- **"@c/"** - Expands to the data directory
-- **"@k/"** - `knowledge_dir`
+- `/` - Absolute path
+- ` ` - Relative to the current dir
+- `@c/` - Expands to the data directory
+- `@k/` - Expands to the knowledge directory
+
+Different commands can have different default aliases set for completion.
+These defaults can be configured.
+
+e.g. `:swi <tab> :switch @c/`
 
 #### Help
 
@@ -180,6 +186,13 @@ provider = "ollama"
 # Control the token limit for anthropic models
 max_tokens = 1024
 
+# Modify default prefixes for command completion
+# e.g. `:swi <tab> :switch @c/`
+[command_prefixes]
+switch = "@c/"
+list = "@c/"
+context = "@k/"
+
 [rustyline]
 # Switch rustyline input mode between `emacs` and `vi`.
 mode = "emacs"
@@ -220,7 +233,6 @@ You can find the changelog [here](changelog.md "Link to changelog.md").
 - [lazy-static](https://github.com/rust-lang-nursery/lazy-static.rs) - [MIT](LICENSES/lazy_static-MIT)
 - [colored](https://github.com/colored-rs/colored) - [MPL-2.0](LICENSES/colored-MPL-2.0)
 - [dirs-next](https://github.com/xdg-rs/dirs/tree/master/dirs) - [MIT](LICENSES/dirs-next-MIT)
-
 
 ## License
 
