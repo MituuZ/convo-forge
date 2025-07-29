@@ -86,6 +86,14 @@ cforge chat.txt -f code.rs
 
 Commands can be entered during a chat by prepending the command with `:`. Commands are case-insensitive.
 
+- [Help](#help)
+- [List](#list)
+- [Switch](#switch)
+- [Edit](#edit)
+- [Exit](#exit)
+- [Sysprompt](#sysprompt)
+- [Context](#context)
+
 #### Path aliases
 
 These can be used to quickly find files from cforge and knowledge directories without having to write the full path.
