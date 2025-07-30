@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.4.3
+
+_Append additional content to the current user prompt instead of giving it separately_
+
 ## 0.4.2
 
 _Add configurable default completion prefixes_
