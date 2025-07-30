@@ -1,3 +1,19 @@
+/*
+ * Copyright © 2025 Mitja Leino
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+ * documentation files (the “Software”), to deal in the Software without restriction, including without limitation
+ * the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
+ * and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE
+ * WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS
+ * OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+ * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ */
+
 use serde_json::Value;
 
 pub(crate) fn create_messages(
@@ -17,11 +33,12 @@ pub(crate) fn create_messages(
         }
     }
 
-    if !context_content.is_empty() {
-        messages.push(serde_json::json!({ "role": "user", "content": format!("Additional context that should be considered: {}", context_content) }));
-    }
-
-    messages.push(serde_json::json!({ "role": "user", "content": user_prompt }));
+    let user_message = if context_content.is_empty() {
+        user_prompt.to_string()
+    } else {
+        format!("{user_prompt}\n\nAdditional context: {context_content}")
+    };
+    messages.push(serde_json::json!({ "role": "user", "content": user_message }));
 
     messages
 }
@@ -93,16 +110,12 @@ mod tests {
             "system",
         );
 
-        assert_eq!(messages.len(), 3);
+        assert_eq!(messages.len(), 2);
         assert_eq!(
             messages[0],
             json!({"role": "system", "content": "You are a helpful assistant."})
         );
-        assert_eq!(
-            messages[1],
-            json!({"role": "user", "content": "Additional context that should be considered: This is some context."})
-        );
-        assert_eq!(messages[2], json!({"role": "user", "content": "Hello!"}));
+        assert_eq!(messages[1], json!({"role": "user", "content": "Hello!\n\nAdditional context: This is some context."}));
     }
 
     #[test]
@@ -157,7 +170,7 @@ mod tests {
             "system",
         );
 
-        assert_eq!(messages.len(), 5);
+        assert_eq!(messages.len(), 4);
         assert_eq!(
             messages[0],
             json!({"role": "system", "content": "You are a helpful assistant."})
@@ -169,11 +182,7 @@ mod tests {
         );
         assert_eq!(
             messages[3],
-            json!({"role": "user", "content": "Additional context that should be considered: User is a developer."})
-        );
-        assert_eq!(
-            messages[4],
-            json!({"role": "user", "content": "Can you explain async/await?"})
+            json!({"role": "user", "content": "Can you explain async/await?\n\nAdditional context: User is a developer."})
         );
     }
 

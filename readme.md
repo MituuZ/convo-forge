@@ -11,12 +11,11 @@ A command-line interface for interacting with Ollama and Anthropic models.
 
 How the messages array is formed in the request JSON:
 
-| Role             | Content                 |
-|------------------|-------------------------|
-| system/assistant | cforge system prompt    |
-| user/assistant   | conversation history    |
-| user             | context file (optional) |
-| user             | current prompt          |
+| Role             | Content                                  |
+|------------------|------------------------------------------|
+| system/assistant | cforge system prompt                     |
+| user/assistant   | conversation history                     |
+| user             | current prompt (+ optional context file) |
 
 [Wishlist at docs/todo.md](docs/todo.md)
 
