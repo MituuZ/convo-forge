@@ -23,6 +23,7 @@
     - [x] `config.create_editor` - Handle command/file command logic using the registry
 - [ ] `copy` - Copy the history file to another location. Edit the copy of the file?
 - [ ] `prompt`- Enable creating, editing and using prompt files
+    - The user should be able to define where their actual prompt is injected
 - [ ] Truncate chat (line count, estimated tokens, or LLM assisted)
 
 ## Completion overhaul
