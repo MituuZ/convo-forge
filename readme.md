@@ -165,7 +165,8 @@ Supports [path aliases](#path-aliases)
 #### Prompt
 
 Use or edit a prompt file. You can use `${{user_prompt}}` in a prompt file to control where
-the user prompt is inserted when the messages is sent.
+the user prompt is inserted when the message is sent, if not included,
+the user prompt is appended after the prompt file.
 
 To use a prompt file, write your actual prompt after the command and file.
 (e.g., using ALT + ENTER to move to the next line)

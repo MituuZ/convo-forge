@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.5.0
+
+_Add prompt command!_
+
+### `:prompt`
+
+Reuse or edit prompts using a command. Use `${{user_prompt}}` to control the actual prompt placement.
+
+```
+# use an existing prompt. Prompt file can contain ${{user_prompt}} to position the prompt, 
+otherwise it is appended after the prompt file
+:prompt /path/to/file
+User prompt to send along the selected prompt
+
+# edit/create a prompt
+:prompt relative/path
+:prompt /absolute/path
+```
+
 ## 0.4.3
 
 _Append additional content to the current user prompt instead of giving it separately_
