@@ -122,7 +122,7 @@ impl<'a> CommandProcessor<'a> {
         if prompt_content.contains("${{user_prompt}}") {
             prompt_content.replace("${{user_prompt}}", user_prompt)
         } else {
-            format!("{}{}", prompt_content, user_prompt)
+            format!("{prompt_content}{user_prompt}")
         }
     }
 
