@@ -66,6 +66,7 @@ pub struct CommandStruct<'a> {
 pub enum FileCommand {
     KnowledgeDir,
     CforgeDir,
+    PromptDir,
 }
 
 impl<'a> CommandStruct<'a> {
@@ -113,11 +114,20 @@ fn cmd<'a>(
 ) -> (String, CommandStruct<'a>) {
     (
         name.to_string(),
-        CommandStruct::new(name, description, command_example, file_command, execute_fn, default_prefix),
+        CommandStruct::new(
+            name,
+            description,
+            command_example,
+            file_command,
+            execute_fn,
+            default_prefix,
+        ),
     )
 }
 
-pub(crate) fn create_command_registry<'a>(default_prefixes: HashMap<String, String>) -> HashMap<String, CommandStruct<'a>> {
+pub(crate) fn create_command_registry<'a>(
+    default_prefixes: HashMap<String, String>,
+) -> HashMap<String, CommandStruct<'a>> {
     HashMap::from([
         cmd("q", "Exit the program", None, None, quit_command, None),
         cmd(
@@ -138,7 +148,14 @@ pub(crate) fn create_command_registry<'a>(default_prefixes: HashMap<String, Stri
             switch_command,
             default_prefixes.get("switch").cloned(),
         ),
-        cmd("help", "Show this help message", None, None, help_command, None),
+        cmd(
+            "help",
+            "Show this help message",
+            None,
+            None,
+            help_command,
+            None,
+        ),
         cmd(
             "edit",
             "Open the history file in your editor",
@@ -164,15 +181,21 @@ pub(crate) fn create_command_registry<'a>(default_prefixes: HashMap<String, Stri
             default_prefixes.get("context").cloned(),
         ),
         cmd(
-            "switch",
-            "Switch to a different history file. \
-                    Either relative to cforge_dir or absolute path. Creates the file if it doesn't exist.",
-            Some(":switch <history file>"),
-            Some(FileCommand::CforgeDir),
-            switch_command,
-            default_prefixes.get("switch").cloned(),
+            "prompt",
+            r"Select or edit a prompt file. Either relative to cforge_dir or absolute path. Creates the file if it doesn't exist.",
+            Some(
+                r":prompt <prompt file>
+            <actual prompt to use with the file>",
+            ),
+            Some(FileCommand::PromptDir),
+            prompt_command,
+            default_prefixes.get("prompt").cloned(),
         ),
     ])
+}
+
+fn prompt_command(command_params: CommandParams) -> io::Result<CommandResult> {
+    Ok(CommandResult::Continue)
 }
 
 fn quit_command(command_params: CommandParams) -> io::Result<CommandResult> {
