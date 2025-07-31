@@ -154,12 +154,28 @@ Update the system prompt for this session. Does not modify any configurations.
 
 #### Context
 
-Change context file for this session.
+Change the context file for this session.
 
 `:context relative/path`
 `:context /absolute/path`
 
 Supports [path aliases](#path-aliases)
+
+#### Prompt
+
+Use or edit a prompt file.
+
+Use
+
+```
+:prompt /path/to/file
+User prompt to send along the selected prompt
+```
+
+Edit
+
+`:prompt relative/path`
+`:prompt /absolute/path`
 
 ## Configuration
 
