@@ -163,6 +163,15 @@ pub(crate) fn create_command_registry<'a>(default_prefixes: HashMap<String, Stri
             context_file_command,
             default_prefixes.get("context").cloned(),
         ),
+        cmd(
+            "switch",
+            "Switch to a different history file. \
+                    Either relative to cforge_dir or absolute path. Creates the file if it doesn't exist.",
+            Some(":switch <history file>"),
+            Some(FileCommand::CforgeDir),
+            switch_command,
+            default_prefixes.get("switch").cloned(),
+        ),
     ])
 }
 
@@ -224,16 +233,16 @@ fn help_command(_command_params: CommandParams) -> io::Result<CommandResult> {
             .then(a.command_string.cmp(b.command_string))
     });
 
-    // Print regular commands first
-    println!("General commands:");
+    // Print regular command first
+    println!("General command:");
     for cmd in &commands {
         if cmd.file_command.is_none() {
             println!("{}", cmd.display());
         }
     }
 
-    // Then print file commands
-    println!("\nFile commands (supports file completion):");
+    // Then print file command
+    println!("\nFile command (supports file completion):");
     for cmd in &commands {
         if cmd.file_command.is_some() {
             println!("{}", cmd.display());
@@ -454,7 +463,7 @@ mod tests {
         let temp_map = HashMap::new();
         let registry = create_command_registry(temp_map);
 
-        // Check that all expected commands are registered
+        // Check that all expected command are registered
         assert!(registry.contains_key("q"));
         assert!(registry.contains_key("list"));
         assert!(registry.contains_key("switch"));
@@ -463,7 +472,7 @@ mod tests {
         assert!(registry.contains_key("edit"));
         assert!(registry.contains_key("context"));
 
-        // Check the total number of commands
+        // Check the total number of command
         assert_eq!(registry.len(), 7);
     }
 

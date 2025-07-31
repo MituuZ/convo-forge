@@ -17,11 +17,9 @@ use std::{collections::HashMap, fs::create_dir_all, path::PathBuf};
 
 use rustyline::{history::DefaultHistory, Cmd, Config, Editor, EventHandler, KeyEvent, Modifiers};
 
-use crate::{
-    command_complete::CommandHelper,
-    commands::{CommandStruct, FileCommand},
-    config::{cache_config::CacheConfig, rustyline_config::build, user_config::UserConfig},
-};
+use crate::command::command_complete::CommandHelper;
+use crate::command::commands::{CommandStruct, FileCommand};
+use crate::config::{cache_config::CacheConfig, rustyline_config::build, user_config::UserConfig};
 
 pub mod cache_config;
 pub mod rustyline_config;
@@ -148,10 +146,8 @@ fn get_cache_path() -> Option<PathBuf> {
 mod tests {
     use std::{collections::HashMap, io::Result};
 
-    use crate::{
-        commands::{CommandParams, CommandResult, CommandStruct, FileCommand},
-        config::get_commands,
-    };
+    use crate::command::commands::{CommandParams, CommandResult, CommandStruct, FileCommand};
+    use crate::config::get_commands;
 
     #[test]
     fn get_commands_base() {

@@ -15,20 +15,18 @@
  */
 
 pub mod api;
-mod command_complete;
-mod commands;
+mod command;
 pub mod config;
 mod history_file;
-mod processor;
 mod user_input;
 
 use crate::api::get_implementation;
-use crate::commands::{create_command_registry, CommandResult};
+use crate::command::commands::{create_command_registry, CommandResult};
 use crate::config::AppConfig;
 use crate::history_file::HistoryFile;
-use crate::processor::CommandProcessor;
 use clap::Parser;
 use colored::Colorize;
+use command::processor::CommandProcessor;
 use std::fs::{self};
 use std::io::{self};
 use std::path::PathBuf;
@@ -108,7 +106,7 @@ fn main() -> io::Result<()> {
         }
 
         println!(
-            "\nEnter your prompt or a command (type ':q' to end or ':help' for other commands)"
+            "\nEnter your prompt or a command (type ':q' to end or ':help' for other command)"
         );
 
         let mut rl = match app_config.create_rustyline_editor(&command_registry) {

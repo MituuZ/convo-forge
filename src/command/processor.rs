@@ -12,14 +12,13 @@
  * WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS
  * OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- *
  */
 use std::collections::HashMap;
 use std::io;
 use std::path::PathBuf;
 
 use crate::api::ChatApi;
-use crate::commands::{CommandParams, CommandResult, CommandStruct};
+use crate::command::commands::{CommandParams, CommandResult, CommandStruct};
 use crate::config::AppConfig;
 use crate::history_file::HistoryFile;
 use crate::user_input::{Command, UserInput};
