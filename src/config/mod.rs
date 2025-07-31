@@ -43,7 +43,7 @@ impl AppConfig {
             cache_config,
             user_config,
             rustyline_config,
-            data_dir: get_data_path(None),
+            data_dir: get_data_path(Some("chats")),
             prompt_dir: get_data_path(Some("prompts")),
         }
     }

@@ -206,8 +206,6 @@ impl Helper for CommandHelper {}
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rustyline::completion::Candidate;
-    use rustyline::hint::Hint;
     use rustyline::history::DefaultHistory;
     use rustyline::Context;
     use std::collections::HashSet;

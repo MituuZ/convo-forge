@@ -4,6 +4,10 @@
 
 _Add prompt command!_
 
+### Breaking changes
+
+- Move default chat data folder from `xdg/cforge` to `xdg/cforge/chats` to clearly separate `xdg/cforge/prompts`.
+
 ### `:prompt`
 
 Reuse or edit prompts using a command. Use `${{user_prompt}}` to control the actual prompt placement.
