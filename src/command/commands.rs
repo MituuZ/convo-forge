@@ -84,7 +84,7 @@ impl<'a> CommandStruct<'a> {
             description,
             file_command,
             command_fn,
-            default_prefix: default_prefix,
+            default_prefix,
         }
     }
 
@@ -494,9 +494,10 @@ mod tests {
         assert!(registry.contains_key("help"));
         assert!(registry.contains_key("edit"));
         assert!(registry.contains_key("context"));
+        assert!(registry.contains_key("prompt"));
 
         // Check the total number of command
-        assert_eq!(registry.len(), 7);
+        assert_eq!(registry.len(), 8);
     }
 
     #[test]

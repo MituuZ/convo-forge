@@ -101,6 +101,7 @@ These can be used to quickly find files from cforge and knowledge directories wi
 - ` ` - Relative to the current dir
 - `@c/` - Expands to the data directory
 - `@k/` - Expands to the knowledge directory
+- `@p/` - Expands to the prompt directory
 
 You can [configure](#configuration) each file command with a custom prefix, either a path alias or absolute path.
 
@@ -201,6 +202,7 @@ max_tokens = 1024
 switch = "@c/"
 list = "@c/"
 context = "@k/"
+prompt = "@p/"
 
 [rustyline]
 # Switch rustyline input mode between `emacs` and `vi`.
