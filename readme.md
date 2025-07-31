@@ -93,6 +93,7 @@ Commands can be entered during a chat by prepending the command with `:`. Comman
 - [Exit](#exit)
 - [Sysprompt](#sysprompt)
 - [Context](#context)
+- [Prompt](#prompt)
 
 #### Path aliases
 
