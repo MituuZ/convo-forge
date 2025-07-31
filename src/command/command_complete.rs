@@ -78,25 +78,17 @@ impl Completer for FileCompleter {
         if let Some(actual_query) = line.strip_prefix("@") {
             if let Some((prefix, subpath)) = actual_query.split_once("/") {
                 let full_path = match prefix {
-                    "c" => {
+                    "c" | "k" | "p" => {
+                        let base_dir = match prefix {
+                            "c" => &self.base_dir,
+                            "k" => &self.knowledge_dir,
+                            "p" => &self.prompt_dir,
+                            _ => unreachable!()
+                        };
                         if subpath.is_empty() {
-                            self.base_dir.clone()
+                            base_dir.clone()
                         } else {
-                            self.base_dir.join(subpath)
-                        }
-                    }
-                    "k" => {
-                        if subpath.is_empty() {
-                            self.knowledge_dir.clone()
-                        } else {
-                            self.knowledge_dir.join(subpath)
-                        }
-                    }
-                    "p" => {
-                        if subpath.is_empty() {
-                            self.prompt_dir.clone()
-                        } else {
-                            self.prompt_dir.join(subpath)
+                            base_dir.join(subpath)
                         }
                     }
                     _ => return Ok((0, vec![])),
