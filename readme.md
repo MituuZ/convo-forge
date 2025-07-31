@@ -8,6 +8,7 @@ A command-line interface for interacting with Ollama and Anthropic models.
 - Add context to a session with `-f/--file` flag and change the context file mid conversation
 - Use commands to modify and customize the current session
 - Newlines are supported with ALT + ENTER
+- Reuse and modify prompts
 
 How the messages array is formed in the request JSON:
 
@@ -101,6 +102,7 @@ These can be used to quickly find files from cforge and knowledge directories wi
 - ` ` - Relative to the current dir
 - `@c/` - Expands to the data directory
 - `@k/` - Expands to the knowledge directory
+- `@p/` - Expands to the prompt directory
 
 You can [configure](#configuration) each file command with a custom prefix, either a path alias or absolute path.
 
@@ -153,12 +155,31 @@ Update the system prompt for this session. Does not modify any configurations.
 
 #### Context
 
-Change context file for this session.
+Change the context file for this session.
 
 `:context relative/path`
 `:context /absolute/path`
 
 Supports [path aliases](#path-aliases)
+
+#### Prompt
+
+Use or edit a prompt file. You can use `${{user_prompt}}` in a prompt file to control where
+the user prompt is inserted when the message is sent. If it is not included,
+the user prompt is appended after the prompt file content.
+
+To use a prompt file, write your actual prompt after the command and file.
+(e.g., using ALT + ENTER to move to the next line)
+
+```
+:prompt /path/to/file
+User prompt to send along the selected prompt
+```
+
+Edit a prompt by just calling
+
+`:prompt relative/path`
+`:prompt /absolute/path`
 
 ## Configuration
 
@@ -201,6 +222,7 @@ max_tokens = 1024
 switch = "@c/"
 list = "@c/"
 context = "@k/"
+prompt = "@p/"
 
 [rustyline]
 # Switch rustyline input mode between `emacs` and `vi`.

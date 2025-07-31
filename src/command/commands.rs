@@ -15,17 +15,20 @@
  */
 
 use crate::api::ChatApi;
+use crate::command::command_util::get_editor;
+use crate::command::commands::CommandResult::HandlePrompt;
 use crate::history_file::HistoryFile;
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::process::Command;
-use std::{env, fs, io};
+use std::{fs, io};
 
 pub enum CommandResult {
     Continue,
     Quit,
     SwitchHistory(String),
     SwitchContext(Option<PathBuf>),
+    HandlePrompt(PathBuf, Option<String>),
 }
 
 pub struct CommandParams<'a> {
@@ -57,15 +60,16 @@ pub struct CommandStruct<'a> {
     pub(crate) command_string: &'a str,
     description: &'a str,
     command_example: Option<&'a str>,
-    pub(crate) file_command: Option<FileCommand>,
+    pub(crate) file_command: Option<FileCommandDirectory>,
     pub(crate) command_fn: CommandFn,
     pub(crate) default_prefix: Option<String>,
 }
 
 #[derive(Clone, Debug)]
-pub enum FileCommand {
-    KnowledgeDir,
-    CforgeDir,
+pub enum FileCommandDirectory {
+    Knowledge,
+    Cforge,
+    Prompt,
 }
 
 impl<'a> CommandStruct<'a> {
@@ -73,7 +77,7 @@ impl<'a> CommandStruct<'a> {
         command_string: &'a str,
         description: &'a str,
         command_example: Option<&'a str>,
-        file_command: Option<FileCommand>,
+        file_command: Option<FileCommandDirectory>,
         command_fn: CommandFn,
         default_prefix: Option<String>,
     ) -> Self {
@@ -83,7 +87,7 @@ impl<'a> CommandStruct<'a> {
             description,
             file_command,
             command_fn,
-            default_prefix: default_prefix,
+            default_prefix,
         }
     }
 
@@ -107,17 +111,26 @@ fn cmd<'a>(
     name: &'a str,
     description: &'a str,
     command_example: Option<&'a str>,
-    file_command: Option<FileCommand>,
+    file_command: Option<FileCommandDirectory>,
     execute_fn: fn(CommandParams) -> io::Result<CommandResult>,
     default_prefix: Option<String>,
 ) -> (String, CommandStruct<'a>) {
     (
         name.to_string(),
-        CommandStruct::new(name, description, command_example, file_command, execute_fn, default_prefix),
+        CommandStruct::new(
+            name,
+            description,
+            command_example,
+            file_command,
+            execute_fn,
+            default_prefix,
+        ),
     )
 }
 
-pub(crate) fn create_command_registry<'a>(default_prefixes: HashMap<String, String>) -> HashMap<String, CommandStruct<'a>> {
+pub(crate) fn create_command_registry<'a>(
+    default_prefixes: HashMap<String, String>,
+) -> HashMap<String, CommandStruct<'a>> {
     HashMap::from([
         cmd("q", "Exit the program", None, None, quit_command, None),
         cmd(
@@ -125,7 +138,7 @@ pub(crate) fn create_command_registry<'a>(default_prefixes: HashMap<String, Stri
             "List files in the cforge directory. \
                     Optionally, you can provide a pattern to filter the results.",
             Some(":list <optional pattern>"),
-            Some(FileCommand::CforgeDir),
+            Some(FileCommandDirectory::Cforge),
             list_command,
             default_prefixes.get("list").cloned(),
         ),
@@ -134,11 +147,18 @@ pub(crate) fn create_command_registry<'a>(default_prefixes: HashMap<String, Stri
             "Switch to a different history file. \
                     Either relative to cforge_dir or absolute path. Creates the file if it doesn't exist.",
             Some(":switch <history file>"),
-            Some(FileCommand::CforgeDir),
+            Some(FileCommandDirectory::Cforge),
             switch_command,
             default_prefixes.get("switch").cloned(),
         ),
-        cmd("help", "Show this help message", None, None, help_command, None),
+        cmd(
+            "help",
+            "Show this help message",
+            None,
+            None,
+            help_command,
+            None,
+        ),
         cmd(
             "edit",
             "Open the history file in your editor",
@@ -159,11 +179,40 @@ pub(crate) fn create_command_registry<'a>(default_prefixes: HashMap<String, Stri
             "context",
             "Set or unset current context file",
             Some(":context <optional path>"),
-            Some(FileCommand::KnowledgeDir),
+            Some(FileCommandDirectory::Knowledge),
             context_file_command,
             default_prefixes.get("context").cloned(),
         ),
+        cmd(
+            "prompt",
+            r"Select or edit a prompt file. Either relative to cforge_dir or absolute path. Creates the file if it doesn't exist.",
+            Some(
+                r":prompt <prompt file>
+            <actual prompt to use with the file>",
+            ),
+            Some(FileCommandDirectory::Prompt),
+            prompt_command,
+            default_prefixes.get("prompt").cloned(),
+        ),
     ])
+}
+
+fn prompt_command(command_params: CommandParams) -> io::Result<CommandResult> {
+    match command_params.args.first() {
+        None => {
+            eprintln!("Error: No prompt file specified. Usage: :prompt <prompt_file>");
+            Ok(CommandResult::Continue)
+        }
+        Some(prompt_file) => {
+            let user_prompt = if command_params.args.len() > 1 {
+                Some(command_params.args[1..].join(" "))
+            } else {
+                None
+            };
+
+            Ok(HandlePrompt(PathBuf::from(prompt_file), user_prompt))
+        }
+    }
 }
 
 fn quit_command(command_params: CommandParams) -> io::Result<CommandResult> {
@@ -224,16 +273,16 @@ fn help_command(_command_params: CommandParams) -> io::Result<CommandResult> {
             .then(a.command_string.cmp(b.command_string))
     });
 
-    // Print regular commands first
-    println!("General commands:");
+    // Print regular command first
+    println!("General command:");
     for cmd in &commands {
         if cmd.file_command.is_none() {
             println!("{}", cmd.display());
         }
     }
 
-    // Then print file commands
-    println!("\nFile commands (supports file completion):");
+    // Then print file command
+    println!("\nFile command (supports file completion):");
     for cmd in &commands {
         if cmd.file_command.is_some() {
             println!("{}", cmd.display());
@@ -255,15 +304,7 @@ fn switch_command(command_params: CommandParams) -> io::Result<CommandResult> {
 
 fn edit_command(command_params: CommandParams) -> io::Result<CommandResult> {
     let history = command_params.history;
-    let editor = env::var("EDITOR")
-        .or_else(|_| env::var("VISUAL"))
-        .unwrap_or_else(|_| {
-            if cfg!(target_os = "windows") {
-                "notepad".to_string()
-            } else {
-                "vi".to_string()
-            }
-        });
+    let editor = get_editor();
 
     let status = Command::new(editor).arg(history.path.clone()).status();
     if !status.is_ok_and(|s| s.success()) {
@@ -294,6 +335,7 @@ fn context_file_command(command_params: CommandParams) -> io::Result<CommandResu
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::env;
     use tempfile::TempDir;
 
     struct MockApi {
@@ -454,7 +496,7 @@ mod tests {
         let temp_map = HashMap::new();
         let registry = create_command_registry(temp_map);
 
-        // Check that all expected commands are registered
+        // Check that all expected command are registered
         assert!(registry.contains_key("q"));
         assert!(registry.contains_key("list"));
         assert!(registry.contains_key("switch"));
@@ -462,9 +504,10 @@ mod tests {
         assert!(registry.contains_key("help"));
         assert!(registry.contains_key("edit"));
         assert!(registry.contains_key("context"));
+        assert!(registry.contains_key("prompt"));
 
-        // Check the total number of commands
-        assert_eq!(registry.len(), 7);
+        // Check the total number of command
+        assert_eq!(registry.len(), 8);
     }
 
     #[test]

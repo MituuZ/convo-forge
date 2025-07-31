@@ -17,11 +17,9 @@ use std::{collections::HashMap, fs::create_dir_all, path::PathBuf};
 
 use rustyline::{history::DefaultHistory, Cmd, Config, Editor, EventHandler, KeyEvent, Modifiers};
 
-use crate::{
-    command_complete::CommandHelper,
-    commands::{CommandStruct, FileCommand},
-    config::{cache_config::CacheConfig, rustyline_config::build, user_config::UserConfig},
-};
+use crate::command::command_complete::CommandHelper;
+use crate::command::commands::{CommandStruct, FileCommandDirectory};
+use crate::config::{cache_config::CacheConfig, rustyline_config::build, user_config::UserConfig};
 
 pub mod cache_config;
 pub mod rustyline_config;
@@ -32,6 +30,7 @@ pub struct AppConfig {
     pub user_config: UserConfig,
     rustyline_config: Config,
     pub data_dir: PathBuf,
+    pub prompt_dir: PathBuf,
 }
 
 impl AppConfig {
@@ -44,7 +43,8 @@ impl AppConfig {
             cache_config,
             user_config,
             rustyline_config,
-            data_dir: get_data_path(),
+            data_dir: get_data_path(Some("chats")),
+            prompt_dir: get_data_path(Some("prompts")),
         }
     }
 
@@ -59,6 +59,7 @@ impl AppConfig {
             file_commands,
             &self.data_dir.display().to_string(),
             &self.user_config.knowledge_dir,
+            &self.prompt_dir.display().to_string(),
         );
         let mut editor = Editor::with_config(self.rustyline_config)?;
         editor.set_helper(Some(helper));
@@ -79,9 +80,9 @@ impl AppConfig {
 
 fn get_commands(
     command_registry: &HashMap<String, CommandStruct>,
-) -> (Vec<(String, Option<String>)>, Vec<(String, FileCommand)>) {
+) -> (Vec<(String, Option<String>)>, Vec<(String, FileCommandDirectory)>) {
     let mut all_commands = Vec::<(String, Option<String>)>::new();
-    let mut file_commands = Vec::<(String, FileCommand)>::new();
+    let mut file_commands = Vec::<(String, FileCommandDirectory)>::new();
 
     for command in command_registry {
         all_commands.push((command.1.command_string.to_string(), command.1.default_prefix.clone()));
@@ -109,10 +110,20 @@ fn get_config_path() -> PathBuf {
 /// e.g. `~/.local/share/cforge`
 ///
 /// Returns a `PathBuf` or panics if data path cannot determined
-fn get_data_path() -> PathBuf {
-    let data_path = dirs_next::data_dir()
-        .expect("Could not determine data directory location")
-        .join("cforge");
+fn get_data_path(additional_path: Option<&str>) -> PathBuf {
+    let data_path = match additional_path {
+        None => {
+            dirs_next::data_dir()
+                .expect("Could not determine data directory location")
+                .join("cforge")
+        }
+        Some(additional_path) => {
+            dirs_next::data_dir()
+                .expect("Could not determine data directory location")
+                .join("cforge")
+                .join(additional_path)
+        }
+    };
 
     init_dir(data_path)
 }
@@ -148,10 +159,8 @@ fn get_cache_path() -> Option<PathBuf> {
 mod tests {
     use std::{collections::HashMap, io::Result};
 
-    use crate::{
-        commands::{CommandParams, CommandResult, CommandStruct, FileCommand},
-        config::get_commands,
-    };
+    use crate::command::commands::{CommandParams, CommandResult, CommandStruct, FileCommandDirectory};
+    use crate::config::get_commands;
 
     #[test]
     fn get_commands_base() {
@@ -175,8 +184,8 @@ mod tests {
         let mut command_registry: HashMap<String, CommandStruct> = HashMap::new();
 
         let command1 = CommandStruct::new("cmd1", "", None, None, nop, None);
-        let command2 = CommandStruct::new("cmd2", "", None, Some(FileCommand::CforgeDir), nop, None);
-        let command3 = CommandStruct::new("cmd3", "", None, Some(FileCommand::KnowledgeDir), nop, None);
+        let command2 = CommandStruct::new("cmd2", "", None, Some(FileCommandDirectory::Cforge), nop, None);
+        let command3 = CommandStruct::new("cmd3", "", None, Some(FileCommandDirectory::Knowledge), nop, None);
 
         command_registry.insert("cmd1".to_string(), command1);
         command_registry.insert("cmd2".to_string(), command2);

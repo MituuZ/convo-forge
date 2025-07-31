@@ -82,6 +82,7 @@ fn default_command_prefixes() -> HashMap<String, String> {
     path_aliases.insert("switch".into(), "@c/".into());
     path_aliases.insert("list".into(), "@c/".into());
     path_aliases.insert("context".into(), "@k/".into());
+    path_aliases.insert("prompt".into(), "@p/".into());
 
     path_aliases
 }
@@ -147,6 +148,8 @@ mod tests {
         assert_eq!("@c/", config.command_prefixes.get("switch").unwrap());
         assert_eq!("@c/", config.command_prefixes.get("list").unwrap());
         assert_eq!("@k/", config.command_prefixes.get("context").unwrap());
+        assert_eq!("@p/", config.command_prefixes.get("prompt").unwrap());
+        assert_eq!(4, config.command_prefixes.len());
 
         assert_eq!(
             RustylineConfig::default(),
