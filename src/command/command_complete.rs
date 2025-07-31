@@ -13,7 +13,7 @@
  * OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-use crate::command::commands::FileCommand;
+use crate::command::commands::FileCommandDirectory;
 use rustyline::completion::{Completer, FilenameCompleter, Pair};
 use rustyline::highlight::Highlighter;
 use rustyline::hint::Hinter;
@@ -24,14 +24,14 @@ use std::path::PathBuf;
 
 pub struct CommandHelper {
     commands: Vec<(String, Option<String>)>,
-    file_commands: Vec<(String, FileCommand)>,
+    file_commands: Vec<(String, FileCommandDirectory)>,
     file_completer: FileCompleter,
 }
 
 impl CommandHelper {
     pub(crate) fn new(
         commands: Vec<(String, Option<String>)>,
-        file_commands: Vec<(String, FileCommand)>,
+        file_commands: Vec<(String, FileCommandDirectory)>,
         cforge_dir: &str,
         knowledge_dir: &str,
         prompt_dir: &str,

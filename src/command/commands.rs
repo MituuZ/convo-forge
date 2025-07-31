@@ -60,16 +60,16 @@ pub struct CommandStruct<'a> {
     pub(crate) command_string: &'a str,
     description: &'a str,
     command_example: Option<&'a str>,
-    pub(crate) file_command: Option<FileCommand>,
+    pub(crate) file_command: Option<FileCommandDirectory>,
     pub(crate) command_fn: CommandFn,
     pub(crate) default_prefix: Option<String>,
 }
 
 #[derive(Clone, Debug)]
-pub enum FileCommand {
-    KnowledgeDir,
-    CforgeDir,
-    PromptDir,
+pub enum FileCommandDirectory {
+    Knowledge,
+    Cforge,
+    Prompt,
 }
 
 impl<'a> CommandStruct<'a> {
@@ -77,7 +77,7 @@ impl<'a> CommandStruct<'a> {
         command_string: &'a str,
         description: &'a str,
         command_example: Option<&'a str>,
-        file_command: Option<FileCommand>,
+        file_command: Option<FileCommandDirectory>,
         command_fn: CommandFn,
         default_prefix: Option<String>,
     ) -> Self {
@@ -111,7 +111,7 @@ fn cmd<'a>(
     name: &'a str,
     description: &'a str,
     command_example: Option<&'a str>,
-    file_command: Option<FileCommand>,
+    file_command: Option<FileCommandDirectory>,
     execute_fn: fn(CommandParams) -> io::Result<CommandResult>,
     default_prefix: Option<String>,
 ) -> (String, CommandStruct<'a>) {
@@ -138,7 +138,7 @@ pub(crate) fn create_command_registry<'a>(
             "List files in the cforge directory. \
                     Optionally, you can provide a pattern to filter the results.",
             Some(":list <optional pattern>"),
-            Some(FileCommand::CforgeDir),
+            Some(FileCommandDirectory::Cforge),
             list_command,
             default_prefixes.get("list").cloned(),
         ),
@@ -147,7 +147,7 @@ pub(crate) fn create_command_registry<'a>(
             "Switch to a different history file. \
                     Either relative to cforge_dir or absolute path. Creates the file if it doesn't exist.",
             Some(":switch <history file>"),
-            Some(FileCommand::CforgeDir),
+            Some(FileCommandDirectory::Cforge),
             switch_command,
             default_prefixes.get("switch").cloned(),
         ),
@@ -179,7 +179,7 @@ pub(crate) fn create_command_registry<'a>(
             "context",
             "Set or unset current context file",
             Some(":context <optional path>"),
-            Some(FileCommand::KnowledgeDir),
+            Some(FileCommandDirectory::Knowledge),
             context_file_command,
             default_prefixes.get("context").cloned(),
         ),
@@ -190,7 +190,7 @@ pub(crate) fn create_command_registry<'a>(
                 r":prompt <prompt file>
             <actual prompt to use with the file>",
             ),
-            Some(FileCommand::PromptDir),
+            Some(FileCommandDirectory::Prompt),
             prompt_command,
             default_prefixes.get("prompt").cloned(),
         ),
