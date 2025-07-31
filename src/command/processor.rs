@@ -14,10 +14,11 @@
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 use std::collections::HashMap;
-use std::io;
 use std::path::PathBuf;
+use std::{fs, io};
 
 use crate::api::ChatApi;
+use crate::command::command_util::get_editor;
 use crate::command::commands::{CommandParams, CommandResult, CommandStruct};
 use crate::config::AppConfig;
 use crate::history_file::HistoryFile;
@@ -69,18 +70,17 @@ impl<'a> CommandProcessor<'a> {
         if let Some(cmd) = self.command_registry.get(&command.name) {
             let result = cmd.execute(command_params)?;
 
-            if let CommandResult::SwitchHistory(new_file) = &result {
-                *self.history = HistoryFile::new(
-                    new_file.clone(),
-                    self.app_config.data_dir.display().to_string(),
-                )?;
-                self.app_config.update_last_history_file(new_file.clone());
-                println!("{}", self.history.get_content());
-                println!("Switched to history file: {}", self.history.filename);
-            }
-
-            if let CommandResult::SwitchContext(new_context) = &result {
-                match new_context {
+            match &result {
+                CommandResult::SwitchHistory(new_file) => {
+                    *self.history = HistoryFile::new(
+                        new_file.clone(),
+                        self.app_config.data_dir.display().to_string(),
+                    )?;
+                    self.app_config.update_last_history_file(new_file.clone());
+                    println!("{}", self.history.get_content());
+                    println!("Switched to history file: {}", self.history.filename);
+                }
+                CommandResult::SwitchContext(new_context) => match new_context {
                     Some(new_path) => {
                         *self.context_file_path = Some(new_path.clone());
                         println!("Updated context file");
@@ -89,13 +89,40 @@ impl<'a> CommandProcessor<'a> {
                         *self.context_file_path = None;
                         println!("Removed context file");
                     }
+                },
+                CommandResult::HandlePrompt(prompt_file, user_prompt) => {
+                    match user_prompt {
+                        None => {
+                            let editor = get_editor();
+
+                            let status = std::process::Command::new(editor).arg(prompt_file).status();
+                            if !status.is_ok_and(|s| s.success()) {
+                                eprintln!("Error opening file in editor");
+                            }
+                        }
+                        Some(user_prompt) => {
+                            let combined_prompt = Self::combine(prompt_file, user_prompt);
+                            self.handle_prompt(combined_prompt)?;
+                        }
+                    }
                 }
+                _ => {}
             }
 
             Ok(result)
         } else {
             println!("Unknown command: {}", command.name);
             Ok(CommandResult::Continue)
+        }
+    }
+
+    fn combine(prompt_file: &PathBuf, user_prompt: &str) -> String {
+        let prompt_content = fs::read_to_string(prompt_file).unwrap_or_else(|_| String::new());
+
+        if prompt_content.contains("${{user_prompt}}") {
+            prompt_content.replace("${{user_prompt}}", user_prompt)
+        } else {
+            format!("{}{}", prompt_content, user_prompt)
         }
     }
 

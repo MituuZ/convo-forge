@@ -15,6 +15,7 @@
  */
 
 use crate::api::ChatApi;
+use crate::command::command_util::get_editor;
 use crate::history_file::HistoryFile;
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -26,6 +27,7 @@ pub enum CommandResult {
     Quit,
     SwitchHistory(String),
     SwitchContext(Option<PathBuf>),
+    HandlePrompt(PathBuf, Option<String>),
 }
 
 pub struct CommandParams<'a> {
@@ -287,15 +289,7 @@ fn switch_command(command_params: CommandParams) -> io::Result<CommandResult> {
 
 fn edit_command(command_params: CommandParams) -> io::Result<CommandResult> {
     let history = command_params.history;
-    let editor = env::var("EDITOR")
-        .or_else(|_| env::var("VISUAL"))
-        .unwrap_or_else(|_| {
-            if cfg!(target_os = "windows") {
-                "notepad".to_string()
-            } else {
-                "vi".to_string()
-            }
-        });
+    let editor = get_editor();
 
     let status = Command::new(editor).arg(history.path.clone()).status();
     if !status.is_ok_and(|s| s.success()) {

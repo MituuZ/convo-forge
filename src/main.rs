@@ -135,14 +135,12 @@ fn main() -> io::Result<()> {
         );
 
         match processor.process(&user_prompt) {
-            Ok(CommandResult::Continue) => continue,
-            Ok(CommandResult::SwitchHistory(_)) => continue,
-            Ok(CommandResult::SwitchContext(_)) => continue,
             Ok(CommandResult::Quit) => break,
             Err(e) => {
                 eprintln!("Error processing input: {e}");
                 break;
             }
+            _ => continue,
         }
     }
 
