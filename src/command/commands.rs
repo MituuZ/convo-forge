@@ -16,11 +16,12 @@
 
 use crate::api::ChatApi;
 use crate::command::command_util::get_editor;
+use crate::command::commands::CommandResult::HandlePrompt;
 use crate::history_file::HistoryFile;
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::process::Command;
-use std::{env, fs, io};
+use std::{fs, io};
 
 pub enum CommandResult {
     Continue,
@@ -197,7 +198,21 @@ pub(crate) fn create_command_registry<'a>(
 }
 
 fn prompt_command(command_params: CommandParams) -> io::Result<CommandResult> {
-    Ok(CommandResult::Continue)
+    match command_params.args.first() {
+        None => {
+            eprintln!("Error: No prompt file specified. Usage: :prompt <prompt_file>");
+            Ok(CommandResult::Continue)
+        }
+        Some(prompt_file) => {
+            let user_prompt = if command_params.args.len() > 1 {
+                Some(command_params.args[1..].join(" "))
+            } else {
+                None
+            };
+
+            Ok(HandlePrompt(PathBuf::from(prompt_file), user_prompt))
+        }
+    }
 }
 
 fn quit_command(command_params: CommandParams) -> io::Result<CommandResult> {

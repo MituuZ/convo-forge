@@ -8,6 +8,7 @@ A command-line interface for interacting with Ollama and Anthropic models.
 - Add context to a session with `-f/--file` flag and change the context file mid conversation
 - Use commands to modify and customize the current session
 - Newlines are supported with ALT + ENTER
+- Reuse and modify prompts
 
 How the messages array is formed in the request JSON:
 
@@ -163,16 +164,18 @@ Supports [path aliases](#path-aliases)
 
 #### Prompt
 
-Use or edit a prompt file.
+Use or edit a prompt file. You can use `${{user_prompt}}` in a prompt file to control where
+the user prompt is inserted when the messages is sent.
 
-Use
+To use a prompt file, write your actual prompt after the command and file.
+(e.g., using ALT + ENTER to move to the next line)
 
 ```
 :prompt /path/to/file
 User prompt to send along the selected prompt
 ```
 
-Edit
+Edit a prompt by just calling
 
 `:prompt relative/path`
 `:prompt /absolute/path`
