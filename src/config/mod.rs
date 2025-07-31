@@ -30,6 +30,7 @@ pub struct AppConfig {
     pub user_config: UserConfig,
     rustyline_config: Config,
     pub data_dir: PathBuf,
+    pub prompt_dir: PathBuf,
 }
 
 impl AppConfig {
@@ -42,7 +43,8 @@ impl AppConfig {
             cache_config,
             user_config,
             rustyline_config,
-            data_dir: get_data_path(),
+            data_dir: get_data_path(None),
+            prompt_dir: get_data_path(Some("prompts")),
         }
     }
 
@@ -57,6 +59,7 @@ impl AppConfig {
             file_commands,
             &self.data_dir.display().to_string(),
             &self.user_config.knowledge_dir,
+            &self.prompt_dir.display().to_string(),
         );
         let mut editor = Editor::with_config(self.rustyline_config)?;
         editor.set_helper(Some(helper));
@@ -107,10 +110,20 @@ fn get_config_path() -> PathBuf {
 /// e.g. `~/.local/share/cforge`
 ///
 /// Returns a `PathBuf` or panics if data path cannot determined
-fn get_data_path() -> PathBuf {
-    let data_path = dirs_next::data_dir()
-        .expect("Could not determine data directory location")
-        .join("cforge");
+fn get_data_path(additional_path: Option<&str>) -> PathBuf {
+    let data_path = match additional_path {
+        None => {
+            dirs_next::data_dir()
+                .expect("Could not determine data directory location")
+                .join("cforge")
+        }
+        Some(additional_path) => {
+            dirs_next::data_dir()
+                .expect("Could not determine data directory location")
+                .join("cforge")
+                .join(additional_path)
+        }
+    };
 
     init_dir(data_path)
 }
