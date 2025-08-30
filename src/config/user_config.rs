@@ -13,6 +13,7 @@
  * OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
+use crate::config::profiles_config::ProfilesConfig;
 use crate::config::rustyline_config::RustylineConfig;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -31,9 +32,6 @@ pub struct UserConfig {
     #[serde(default = "default_system_prompt")]
     pub system_prompt: String,
 
-    #[serde(default)]
-    pub rustyline: RustylineConfig,
-
     #[serde(default = "default_token_estimation")]
     pub token_estimation: bool,
 
@@ -45,6 +43,12 @@ pub struct UserConfig {
 
     #[serde(default = "default_command_prefixes")]
     pub command_prefixes: HashMap<String, String>,
+
+    #[serde(default)]
+    pub rustyline: RustylineConfig,
+
+    #[serde(default)]
+    pub profiles_config: ProfilesConfig,
 }
 
 impl UserConfig {
@@ -72,6 +76,7 @@ impl Default for UserConfig {
             provider: default_provider(),
             max_tokens: default_max_tokens(),
             command_prefixes: default_command_prefixes(),
+            profiles_config: ProfilesConfig::default(),
         }
     }
 }

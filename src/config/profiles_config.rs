@@ -22,6 +22,14 @@ pub struct ProfilesConfig {
     pub profiles: Vec<Profile>,
 }
 
+impl Default for ProfilesConfig {
+    fn default() -> Self {
+        Self {
+            profiles: default_profiles(),
+        }
+    }
+}
+
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Profile {
     pub name: String,
