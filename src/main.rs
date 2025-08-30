@@ -73,7 +73,8 @@ fn main() -> io::Result<()> {
     println!("{}", history.get_content());
     println!(
         "\n\nYou're conversing with {} model from {}",
-        &app_config.user_config.model, &app_config.user_config.provider
+        &current_profile.get_model(&current_model_type).model,
+        &current_profile.provider
     );
 
     let mut chat_api = get_implementation(
@@ -82,11 +83,17 @@ fn main() -> io::Result<()> {
         app_config.user_config.system_prompt.clone(),
         app_config.user_config.max_tokens,
     );
+    let mut update_chat_api = false;
 
     loop {
-        // if app_config.user_config.current_profile.name != current_profile_name {
-        //     reload chat_api
-        // }
+        if update_chat_api {
+            chat_api = get_implementation(
+                &current_profile.provider,
+                current_profile.get_model(&current_model_type).model.clone(),
+                app_config.user_config.system_prompt.clone(),
+                app_config.user_config.max_tokens,
+            );
+        }
 
         // Read the context file if provided
         let context_file_content = if let Some(file_path) = &context_file_path {

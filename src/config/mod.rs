@@ -81,7 +81,7 @@ impl AppConfig {
         self.cache_config.save(get_cache_path());
     }
 
-    pub fn get_profile(&self) -> Profile {
+    pub fn get_profile(&mut self) -> Profile {
         if let Some(last_profile) = self.cache_config.last_profile_name.clone() {
             match self.user_config.maybe_profile(&last_profile) {
                 Some(profile) => return profile.clone(),
@@ -91,14 +91,20 @@ impl AppConfig {
             }
         }
 
-        self.user_config.profiles_config.profiles[0].clone()
+        let profile = self.user_config.profiles_config.profiles[0].clone();
+        self.cache_config.last_profile_name = Some(profile.name.clone());
+        self.cache_config.save(get_cache_path());
+        profile
     }
 
-    pub fn get_model_type(&self) -> ModelType {
+    pub fn get_model_type(&mut self) -> ModelType {
         if let Some(last_model_type) = self.cache_config.last_model_type.clone() {
             last_model_type
         } else {
-            ModelType::Balanced
+            let model_type = ModelType::Balanced;
+            self.cache_config.last_model_type = Some(model_type.clone());
+            self.cache_config.save(get_cache_path());
+            model_type
         }
     }
 }
