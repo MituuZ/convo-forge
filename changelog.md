@@ -1,5 +1,43 @@
 # Changelog
 
+## 0.6.0
+
+_Add profiles_
+
+### Profiles
+
+- Add a profile system to allow storing multiple different configurations
+- Profiles can define multiple models up to three different types
+    - Fast
+    - Balanced
+    - Deep
+
+### Config
+
+Example of two profiles with one and two models:
+
+```toml
+[[profiles]]
+name = "local"
+provider = "ollama"
+
+[[profiles.models]]
+model = "model1"
+model_type = "fast"
+
+[[profiles.models]]
+model = "model2"
+model_type = "deep"
+
+[[profiles]]
+name = "remote"
+provider = "anthropic"
+
+[[profiles.models]]
+model = "model1"
+model_type = "fast"
+```
+
 ## 0.5.0
 
 _Add prompt command!_

@@ -24,6 +24,7 @@ use crate::config::{cache_config::CacheConfig, rustyline_config::build, user_con
 pub mod cache_config;
 pub mod rustyline_config;
 pub mod user_config;
+mod profiles_config;
 
 pub struct AppConfig {
     pub cache_config: CacheConfig,
