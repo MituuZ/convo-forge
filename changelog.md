@@ -22,23 +22,25 @@ _Add profiles_
 Example of two profiles with one and two models:
 
 ```toml
-[[profiles]]
+[profiles_config]
+
+[[profiles_config.profiles]]
 name = "local"
 provider = "ollama"
 
-[[profiles.models]]
+[[profiles_config.profiles.models]]
 model = "model1"
 model_type = "fast"
 
-[[profiles.models]]
+[[profiles_config.profiles.models]]
 model = "model2"
 # model_type is optional, defaults to balanced
 
-[[profiles]]
+[[profiles_config.profiles]]
 name = "remote"
 provider = "anthropic"
 
-[[profiles.models]]
+[[profiles_config.profiles.models]]
 model = "model1"
 model_type = "fast"
 ```

@@ -19,6 +19,7 @@ use rustyline::{history::DefaultHistory, Cmd, Config, Editor, EventHandler, KeyE
 
 use crate::command::command_complete::CommandHelper;
 use crate::command::commands::{CommandStruct, FileCommandDirectory};
+use crate::config::profiles_config::{ModelType, Profile};
 use crate::config::{cache_config::CacheConfig, rustyline_config::build, user_config::UserConfig};
 
 pub mod cache_config;
@@ -39,6 +40,8 @@ impl AppConfig {
         let cache_config: CacheConfig = CacheConfig::load(get_cache_path());
         let user_config: UserConfig = UserConfig::load(get_config_path());
         let rustyline_config = build(&user_config);
+
+        user_config.profiles_config.validate().expect("Invalid profiles config, see error message above");
 
         AppConfig {
             cache_config,
@@ -76,6 +79,27 @@ impl AppConfig {
     pub fn update_last_history_file(&mut self, history_file: String) {
         self.cache_config.last_history_file = Some(history_file);
         self.cache_config.save(get_cache_path());
+    }
+
+    pub fn get_profile(&self) -> Profile {
+        if let Some(last_profile) = self.cache_config.last_profile_name.clone() {
+            match self.user_config.maybe_profile(&last_profile) {
+                Some(profile) => return profile.clone(),
+                None => {
+                    eprintln!("Profile {} not found, using default profile", last_profile);
+                }
+            }
+        }
+
+        self.user_config.profiles_config.profiles[0].clone()
+    }
+
+    pub fn get_model_type(&self) -> ModelType {
+        if let Some(last_model_type) = self.cache_config.last_model_type.clone() {
+            last_model_type
+        } else {
+            ModelType::Balanced
+        }
     }
 }
 

@@ -37,6 +37,20 @@ pub struct Profile {
     pub models: Vec<Model>,
 }
 
+impl Profile {
+    pub fn get_model(&self, model_type: &ModelType) -> &Model {
+        for model in &self.models {
+            if model.model_type == *model_type {
+                return model;
+            }
+        }
+
+        let model = &self.models[0];
+        println!("Model type {} not found, using {} model", model_type, model.model_type);
+        model
+    }
+}
+
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Model {
     pub model: String,

@@ -61,6 +61,8 @@ fn main() -> io::Result<()> {
             }
         }
     });
+    let mut current_profile = app_config.get_profile();
+    let mut current_model_type = app_config.get_model_type();
 
     app_config.update_last_history_file(history_path.clone());
 
@@ -75,13 +77,17 @@ fn main() -> io::Result<()> {
     );
 
     let mut chat_api = get_implementation(
-        &app_config.user_config.provider,
-        app_config.user_config.model.clone(),
+        &current_profile.provider,
+        current_profile.get_model(&current_model_type).model.clone(),
         app_config.user_config.system_prompt.clone(),
         app_config.user_config.max_tokens,
     );
 
     loop {
+        // if app_config.user_config.current_profile.name != current_profile_name {
+        //     reload chat_api
+        // }
+
         // Read the context file if provided
         let context_file_content = if let Some(file_path) = &context_file_path {
             match fs::read_to_string(file_path.clone()) {

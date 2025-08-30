@@ -13,7 +13,7 @@
  * OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-use crate::config::profiles_config::ProfilesConfig;
+use crate::config::profiles_config::{Profile, ProfilesConfig};
 use crate::config::rustyline_config::RustylineConfig;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -62,6 +62,10 @@ impl UserConfig {
         });
 
         config
+    }
+
+    pub fn maybe_profile(&self, profile_name: &str) -> Option<&Profile> {
+        self.profiles_config.profiles.iter().find(|profile| profile.name == profile_name)
     }
 }
 
