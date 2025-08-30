@@ -109,9 +109,9 @@ fn default_model_type() -> ModelType {
 fn default_profiles() -> Vec<Profile> {
     let models: Vec<Model> = vec![
         Model {
-            model: "qwen3:4b".to_string(),
+            model: "gemma3:12b".to_string(),
             description: None,
-            model_type: ModelType::Fast,
+            model_type: ModelType::Balanced,
         }
     ];
 
@@ -141,8 +141,8 @@ mod tests {
         assert_eq!(config.profiles[0].name, "local");
         assert_eq!(config.profiles[0].provider, "ollama");
         assert_eq!(config.profiles[0].models.len(), 1);
-        assert_eq!(config.profiles[0].models[0].model, "qwen3:4b");
-        assert_eq!(config.profiles[0].models[0].model_type, ModelType::Fast);
+        assert_eq!(config.profiles[0].models[0].model, "gemma3:12b");
+        assert_eq!(config.profiles[0].models[0].model_type, ModelType::Balanced);
         assert!(config.profiles[0].models[0].description.is_none());
     }
 
@@ -228,6 +228,19 @@ mod tests {
         let config: ProfilesConfig = toml::from_str(config_str).unwrap();
         assert_eq!(config.validate().unwrap_err(), "Profile test has no models");
     }
+
+    #[test]
+    fn test_validate_default_no_provider() {
+        let config_str = r#"
+            [[profiles]]
+            name = "test"
+            [[profiles.models]]
+            model = "model1"
+        "#;
+
+        assert!(toml::from_str::<ProfilesConfig>(config_str).is_err());
+    }
+
 
     #[test]
     fn test_validate_default_model_type() {

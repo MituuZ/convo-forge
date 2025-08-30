@@ -7,10 +7,15 @@ _Add profiles_
 ### Profiles
 
 - Add a profile system to allow storing multiple different configurations
-- Profiles can define multiple models up to three different types
+- Profiles can define multiple models with up to three types
     - Fast
     - Balanced
     - Deep
+    - Types must be distinct for each profile
+    - Defaults to `balanced` if not specified
+- Defaults to `local` profile if no profile is specified
+    - model: `gemma3:12b`
+    - model_type: `balanced`
 
 ### Config
 
@@ -27,7 +32,7 @@ model_type = "fast"
 
 [[profiles.models]]
 model = "model2"
-model_type = "deep"
+# model_type is optional, defaults to balanced
 
 [[profiles]]
 name = "remote"
