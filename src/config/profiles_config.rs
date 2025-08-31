@@ -108,7 +108,7 @@ pub enum ModelType {
 }
 
 impl ModelType {
-    pub fn from_str(model_type: &str) -> Result<ModelType, String> {
+    pub fn parse_model_type(model_type: &str) -> Result<ModelType, String> {
         match model_type.to_lowercase().as_str() {
             "fast" => Ok(ModelType::Fast),
             "balanced" => Ok(ModelType::Balanced),
@@ -168,7 +168,7 @@ impl Profile {
                 return Err(format!("Profile {} has a duplicate model type: {}", profile_name, &model.model_type));
             }
 
-            model_types.push(model.model_type.clone());
+            model_types.push(model.model_type);
         }
 
         Ok(())

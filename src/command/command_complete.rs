@@ -75,30 +75,30 @@ impl Completer for FileCompleter {
         _: usize,
         ctx: &Context<'_>,
     ) -> rustyline::Result<(usize, Vec<Pair>)> {
-        if let Some(actual_query) = line.strip_prefix("@") {
-            if let Some((prefix, subpath)) = actual_query.split_once("/") {
-                let full_path = match prefix {
-                    "c" | "k" | "p" => {
-                        let base_dir = match prefix {
-                            "c" => &self.base_dir,
-                            "k" => &self.knowledge_dir,
-                            "p" => &self.prompt_dir,
-                            _ => unreachable!()
-                        };
-                        if subpath.is_empty() {
-                            base_dir.clone()
-                        } else {
-                            base_dir.join(subpath)
-                        }
+        if let Some(actual_query) = line.strip_prefix("@")
+            && let Some((prefix, subpath)) = actual_query.split_once("/")
+        {
+            let full_path = match prefix {
+                "c" | "k" | "p" => {
+                    let base_dir = match prefix {
+                        "c" => &self.base_dir,
+                        "k" => &self.knowledge_dir,
+                        "p" => &self.prompt_dir,
+                        _ => unreachable!(),
+                    };
+                    if subpath.is_empty() {
+                        base_dir.clone()
+                    } else {
+                        base_dir.join(subpath)
                     }
-                    _ => return Ok((0, vec![])),
-                };
-                let full_path_str = full_path.to_string_lossy();
-                // The cursor is at the end of the full path string now
-                let pos = full_path_str.len();
+                }
+                _ => return Ok((0, vec![])),
+            };
+            let full_path_str = full_path.to_string_lossy();
+            // The cursor is at the end of the full path string now
+            let pos = full_path_str.len();
 
-                return self.filename_completer.complete(&full_path_str, pos, ctx);
-            }
+            return self.filename_completer.complete(&full_path_str, pos, ctx);
         }
 
         self.filename_completer.complete(line, line.len(), ctx)
@@ -407,7 +407,11 @@ mod tests {
 
         assert_eq!(pos, 0, "Position should be 0 for empty string");
 
-        assert_eq!(first_replacement, format!("{}{}", base_path.display(), std::path::MAIN_SEPARATOR), "Replacement should be base path");
+        assert_eq!(
+            first_replacement,
+            format!("{}{}", base_path.display(), std::path::MAIN_SEPARATOR),
+            "Replacement should be base path"
+        );
 
         // Next completion should return the actual contents
         let (_pos, completions) = completer.complete(&first_replacement, 0, &ctx)?;

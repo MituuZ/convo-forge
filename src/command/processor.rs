@@ -34,13 +34,6 @@ pub(crate) struct CommandProcessor<'a> {
     context_file_content: Option<String>,
 }
 
-// TODO: Use this
-pub struct ApiConfig<'a> {
-    update_chat_api: &'a mut bool,
-    model_type: &'a mut String,
-    profile: &'a mut String,
-}
-
 impl<'a> CommandProcessor<'a> {
     pub fn new(
         chat_api: &'a mut Box<dyn ChatApi>,
@@ -115,7 +108,7 @@ impl<'a> CommandProcessor<'a> {
                     }
                 },
                 CommandResult::SwitchModel(new_model) => {
-                    let maybe_model = self.app_config.current_profile.maybe_model(&new_model);
+                    let maybe_model = self.app_config.current_profile.maybe_model(new_model);
 
                     if let Some(model) = maybe_model {
                         self.app_config.switch_model(&model);
@@ -132,7 +125,7 @@ impl<'a> CommandProcessor<'a> {
                     }
                 }
                 CommandResult::SwitchProfile(new_profile) => {
-                    let maybe_profile = self.app_config.maybe_profile(&new_profile);
+                    let maybe_profile = self.app_config.maybe_profile(new_profile);
 
                     if let Some(profile) = maybe_profile {
                         self.app_config.switch_profile(&profile);

@@ -239,7 +239,7 @@ fn prompt_command(command_params: CommandParams) -> io::Result<CommandResult> {
 fn model_command(command_params: CommandParams) -> io::Result<CommandResult> {
     match command_params.args.first() {
         Some(new_model) => {
-            if let Ok(new_model) = ModelType::from_str(new_model) {
+            if let Ok(new_model) = ModelType::parse_model_type(new_model) {
                 Ok(CommandResult::SwitchModel(new_model))
             } else {
                 eprintln!("Error: Invalid model type specified: {}. Usage: :model <model>", new_model);

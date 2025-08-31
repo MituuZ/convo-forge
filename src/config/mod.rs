@@ -59,7 +59,7 @@ impl AppConfig {
         let mut profile_models = cache_config
             .profile_models
             .take()
-            .unwrap_or_else(HashMap::new)
+            .unwrap_or_default()
             .clone();
         let initial_model_type = profile_models.get(&initial_profile.name).cloned();
 
@@ -67,18 +67,14 @@ impl AppConfig {
             initial_profile
                 .models
                 .first()
-                .expect(&format!(
-                    "Could not find a valid model for {} profile",
-                    &initial_profile.name
-                ))
+                .unwrap_or_else(|| panic!("No models found for profile '{}'", &initial_profile.name))
                 .model_type
-                .clone(),
         );
 
         let initial_model = initial_profile.get_model(&actual_model_type).clone();
 
         cache_config.last_profile_name = Some(initial_profile.name.clone());
-        profile_models.insert(initial_profile.name.clone(), actual_model_type.clone());
+        profile_models.insert(initial_profile.name.clone(), actual_model_type);
         cache_config.profile_models = Some(profile_models);
 
         AppConfig {
@@ -152,11 +148,11 @@ impl AppConfig {
             .cache_config
             .profile_models
             .take()
-            .unwrap_or(HashMap::new());
+            .unwrap_or_default();
 
         if let Some(last_used_model_type) = profile_models.get(&profile.name) {
             self.current_model = profile.get_model(last_used_model_type).clone();
-            profile_models.insert(profile.name.clone(), last_used_model_type.clone());
+            profile_models.insert(profile.name.clone(), *last_used_model_type);
         }
 
         self.cache_config.profile_models = Some(profile_models);
@@ -174,9 +170,9 @@ impl AppConfig {
             .cache_config
             .profile_models
             .take()
-            .unwrap_or(HashMap::new());
+            .unwrap_or_default();
 
-        profile_models.insert(self.current_profile.name.clone(), model.model_type.clone());
+        profile_models.insert(self.current_profile.name.clone(), model.model_type);
         self.cache_config.profile_models = Some(profile_models);
         self.cache_config.save(get_cache_path());
 

@@ -71,8 +71,7 @@ fn main() -> io::Result<()> {
     println!("{}", history.get_content());
     println!(
         "\n\nYou're conversing with model '{}'  from profile '{}'",
-        &app_config.current_model,
-        &app_config.current_profile.name
+        &app_config.current_model, &app_config.current_profile.name
     );
 
     let mut chat_api = get_implementation(
@@ -106,14 +105,14 @@ fn main() -> io::Result<()> {
             None
         };
 
-        if let Some(model_context_size) = chat_api.model_context_size() {
-            if app_config.user_config.token_estimation {
-                print_token_usage(
-                    estimate_token_count(history.get_content())
-                        + estimate_token_count(context_file_content.as_deref().unwrap_or("")),
-                    model_context_size,
-                );
-            }
+        if let Some(model_context_size) = chat_api.model_context_size()
+            && app_config.user_config.token_estimation
+        {
+            print_token_usage(
+                estimate_token_count(history.get_content())
+                    + estimate_token_count(context_file_content.as_deref().unwrap_or("")),
+                model_context_size,
+            );
         }
 
         println!(
