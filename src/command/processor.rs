@@ -20,6 +20,7 @@ use std::{fs, io};
 use crate::api::ChatApi;
 use crate::command::command_util::get_editor;
 use crate::command::commands::{CommandParams, CommandResult, CommandStruct};
+use crate::config::profiles_config::{ModelType, Profile};
 use crate::config::AppConfig;
 use crate::history_file::HistoryFile;
 use crate::user_input::{Command, UserInput};
@@ -30,7 +31,17 @@ pub(crate) struct CommandProcessor<'a> {
     app_config: &'a mut AppConfig,
     command_registry: &'a HashMap<String, CommandStruct<'a>>,
     context_file_path: &'a mut Option<PathBuf>,
+    update_chat_api: &'a mut bool,
+    current_profile: &'a mut Profile,
+    current_model_type: &'a mut ModelType,
     context_file_content: Option<String>,
+}
+
+// TODO: Use this
+pub struct ApiConfig<'a> {
+    update_chat_api: &'a mut bool,
+    model_type: &'a mut String,
+    profile: &'a mut String,
 }
 
 impl<'a> CommandProcessor<'a> {
@@ -40,6 +51,9 @@ impl<'a> CommandProcessor<'a> {
         app_config: &'a mut AppConfig,
         command_registry: &'a HashMap<String, CommandStruct<'a>>,
         context_file_path: &'a mut Option<PathBuf>,
+        update_chat_api: &'a mut bool,
+        current_profile: &'a mut Profile,
+        current_model_type: &'a mut ModelType,
         context_file_content: Option<String>,
     ) -> Self {
         Self {
@@ -48,6 +62,9 @@ impl<'a> CommandProcessor<'a> {
             app_config,
             command_registry,
             context_file_path,
+            update_chat_api,
+            current_profile,
+            current_model_type,
             context_file_content,
         }
     }
@@ -103,6 +120,52 @@ impl<'a> CommandProcessor<'a> {
                         Some(user_prompt) => {
                             let combined_prompt = Self::combine(prompt_file, user_prompt);
                             self.handle_prompt(combined_prompt)?;
+                        }
+                    }
+                }
+                CommandResult::SwitchModel(new_model) => {
+                    self.app_config.switch_model_type(new_model);
+                    // self.app_config.switch_model_type(&new_model);
+                    *self.update_chat_api = true;
+                    // *self.current_model_type = new_model.clone();
+                    println!("Switched to model: {}", self.current_profile.get_model(new_model).model);
+                }
+                CommandResult::SwitchProfile(new_profile) => {
+                    self.app_config.switch_profile(&new_profile);
+                    *self.update_chat_api = true;
+                    // self.app_config.cache_config.last_profile_name = Some(new_profile.clone());
+                    // *self.current_profile = self.app_config.get_profile();
+                    println!("Switched to profile: {}", new_profile);
+                }
+                CommandResult::PrintModels => {
+                    let current_profile = self.app_config.get_profile();
+                    println!("Available models for profile {}:", current_profile.name);
+                    for model in current_profile.models {
+                        if model == self.app_config.current_model {
+                            println!("* Model: {}, type: {}", model.model, model.model_type);
+                        } else {
+                            println!("Model: {}, type: {}", model.model, model.model_type);
+                        }
+                    }
+                }
+                CommandResult::PrintProfiles => {
+                    for profile in &self.app_config.user_config.profiles_config.profiles {
+                        if *profile == self.app_config.current_profile {
+                            println!("\n* Profile: {}", profile.name);
+                        } else {
+                            println!("\nProfile: {}", profile.name);
+                        }
+                        println!("Provider: {}", profile.provider);
+                        println!("Models:");
+                        println!("-------");
+                        for model in &profile.models {
+                            if let Some(desc) = &model.description {
+                                println!("  - {}\n    Type: {}\n    Description: {}",
+                                         model.model, model.model_type, desc);
+                            } else {
+                                println!("  - {}\n    Type: {}",
+                                         model.model, model.model_type);
+                            }
                         }
                     }
                 }

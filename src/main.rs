@@ -144,6 +144,9 @@ fn main() -> io::Result<()> {
             &mut app_config,
             &command_registry,
             &mut context_file_path,
+            &mut update_chat_api,
+            &mut current_profile,
+            &mut current_model_type,
             context_file_content.clone(),
         );
 

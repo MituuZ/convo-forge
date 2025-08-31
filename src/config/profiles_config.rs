@@ -30,7 +30,7 @@ impl Default for ProfilesConfig {
     }
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize, Eq, PartialEq)]
 pub struct Profile {
     pub name: String,
     pub provider: String,
@@ -51,7 +51,7 @@ impl Profile {
     }
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize, Eq, PartialEq)]
 pub struct Model {
     pub model: String,
     pub description: Option<String>,
@@ -59,12 +59,23 @@ pub struct Model {
     pub model_type: ModelType,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq, Copy)]
 #[serde(rename_all = "lowercase")]
 pub enum ModelType {
     Fast,
     Balanced,
     Deep,
+}
+
+impl ModelType {
+    pub fn from_str(model_type: &str) -> Result<ModelType, String> {
+        match model_type.to_lowercase().as_str() {
+            "fast" => Ok(ModelType::Fast),
+            "balanced" => Ok(ModelType::Balanced),
+            "deep" => Ok(ModelType::Deep),
+            _ => Err(format!("Invalid model type: {}", model_type)),
+        }
+    }
 }
 
 impl Display for ModelType {

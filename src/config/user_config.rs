@@ -23,9 +23,6 @@ const CONFIG_FILE: &str = "cforge.toml";
 
 #[derive(Deserialize, Serialize)]
 pub struct UserConfig {
-    #[serde(default = "default_model")]
-    pub model: String,
-
     #[serde(default = "default_knowledge_dir")]
     pub knowledge_dir: String,
 
@@ -34,9 +31,6 @@ pub struct UserConfig {
 
     #[serde(default = "default_token_estimation")]
     pub token_estimation: bool,
-
-    #[serde(default = "default_provider")]
-    pub provider: String,
 
     #[serde(default = "default_max_tokens")]
     pub max_tokens: usize,
@@ -72,12 +66,10 @@ impl UserConfig {
 impl Default for UserConfig {
     fn default() -> Self {
         Self {
-            model: default_model(),
             knowledge_dir: default_knowledge_dir(),
             system_prompt: default_system_prompt(),
             rustyline: RustylineConfig::default(),
             token_estimation: default_token_estimation(),
-            provider: default_provider(),
             max_tokens: default_max_tokens(),
             command_prefixes: default_command_prefixes(),
             profiles_config: ProfilesConfig::default(),
@@ -96,16 +88,8 @@ fn default_command_prefixes() -> HashMap<String, String> {
     path_aliases
 }
 
-fn default_model() -> String {
-    "gemma3:12b".to_string()
-}
-
 fn default_token_estimation() -> bool {
     true
-}
-
-fn default_provider() -> String {
-    "ollama".to_string()
 }
 
 fn default_max_tokens() -> usize {
@@ -138,8 +122,6 @@ mod tests {
     fn default_values() {
         let config = UserConfig::default();
         assert_eq!(true, config.token_estimation);
-        assert_eq!("ollama", config.provider);
-        assert_eq!("gemma3:12b", config.model);
         assert_eq!(1024, config.max_tokens);
         assert_eq!("", config.knowledge_dir);
 
@@ -195,7 +177,6 @@ mod tests {
         let config = UserConfig::load(temp_dir.path().to_path_buf());
 
         assert_eq!(false, config.token_estimation);
-        assert_eq!("anthropic", config.provider);
     }
 
     #[test]
@@ -205,8 +186,6 @@ mod tests {
 
         // Should use defaults
         assert_eq!(true, config.token_estimation);
-        assert_eq!("ollama", config.provider);
-        assert_eq!("gemma3:12b", config.model);
         assert_eq!(1024, config.max_tokens);
         assert_eq!("", config.knowledge_dir);
     }

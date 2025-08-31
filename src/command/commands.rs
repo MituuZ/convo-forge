@@ -17,6 +17,7 @@
 use crate::api::ChatApi;
 use crate::command::command_util::get_editor;
 use crate::command::commands::CommandResult::HandlePrompt;
+use crate::config::profiles_config::ModelType;
 use crate::history_file::HistoryFile;
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -29,6 +30,10 @@ pub enum CommandResult {
     SwitchHistory(String),
     SwitchContext(Option<PathBuf>),
     HandlePrompt(PathBuf, Option<String>),
+    SwitchModel(ModelType),
+    PrintModels,
+    SwitchProfile(String),
+    PrintProfiles,
 }
 
 pub struct CommandParams<'a> {
@@ -194,6 +199,22 @@ pub(crate) fn create_command_registry<'a>(
             prompt_command,
             default_prefixes.get("prompt").cloned(),
         ),
+        cmd(
+            "model",
+            "Change current model",
+            Some(":model <model>"),
+            None,
+            model_command,
+            None,
+        ),
+        cmd(
+            "profile",
+            "Change current profile",
+            Some(":profile <profile>"),
+            None,
+            profile_command,
+            None,
+        )
     ])
 }
 
@@ -211,6 +232,32 @@ fn prompt_command(command_params: CommandParams) -> io::Result<CommandResult> {
             };
 
             Ok(HandlePrompt(PathBuf::from(prompt_file), user_prompt))
+        }
+    }
+}
+
+fn model_command(command_params: CommandParams) -> io::Result<CommandResult> {
+    match command_params.args.first() {
+        Some(new_model) => {
+            if let Ok(new_model) = ModelType::from_str(new_model) {
+                Ok(CommandResult::SwitchModel(new_model))
+            } else {
+                eprintln!("Error: Invalid model type specified: {}. Usage: :model <model>", new_model);
+                eprintln!("Valid models types are fast, balanced, or deep");
+                Ok(CommandResult::PrintModels)
+            }
+        }
+        _ => {
+            Ok(CommandResult::PrintModels)
+        }
+    }
+}
+
+fn profile_command(command_params: CommandParams) -> io::Result<CommandResult> {
+    match command_params.args.first() {
+        Some(new_profile) => Ok(CommandResult::SwitchProfile(new_profile.to_string())),
+        _ => {
+            Ok(CommandResult::PrintProfiles)
         }
     }
 }
@@ -273,16 +320,14 @@ fn help_command(_command_params: CommandParams) -> io::Result<CommandResult> {
             .then(a.command_string.cmp(b.command_string))
     });
 
-    // Print regular command first
-    println!("General command:");
+    println!("General commands:");
     for cmd in &commands {
         if cmd.file_command.is_none() {
             println!("{}", cmd.display());
         }
     }
 
-    // Then print file command
-    println!("\nFile command (supports file completion):");
+    println!("\nFile commands (supports file completion):");
     for cmd in &commands {
         if cmd.file_command.is_some() {
             println!("{}", cmd.display());

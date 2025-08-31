@@ -19,13 +19,13 @@ use rustyline::{history::DefaultHistory, Cmd, Config, Editor, EventHandler, KeyE
 
 use crate::command::command_complete::CommandHelper;
 use crate::command::commands::{CommandStruct, FileCommandDirectory};
-use crate::config::profiles_config::{ModelType, Profile};
+use crate::config::profiles_config::{Model, ModelType, Profile};
 use crate::config::{cache_config::CacheConfig, rustyline_config::build, user_config::UserConfig};
 
 pub mod cache_config;
 pub mod rustyline_config;
 pub mod user_config;
-mod profiles_config;
+pub mod profiles_config;
 
 pub struct AppConfig {
     pub cache_config: CacheConfig,
@@ -33,6 +33,8 @@ pub struct AppConfig {
     rustyline_config: Config,
     pub data_dir: PathBuf,
     pub prompt_dir: PathBuf,
+    pub current_model: Model,
+    pub current_profile: Profile,
 }
 
 impl AppConfig {
@@ -43,12 +45,28 @@ impl AppConfig {
 
         user_config.profiles_config.validate().expect("Invalid profiles config, see error message above");
 
+        let current_model_type = cache_config
+            .last_model_type
+            .as_ref()
+            .copied()
+            .unwrap_or(ModelType::Balanced);
+
+        let current_profile_name = cache_config
+            .last_profile_name
+            .clone()
+            .unwrap_or(user_config.profiles_config.profiles[0].name.clone());
+
+        let current_profile = user_config.maybe_profile(&current_profile_name).unwrap().clone();
+        let current_model = current_profile.get_model(&current_model_type).clone();
+
         AppConfig {
             cache_config,
             user_config,
             rustyline_config,
             data_dir: get_data_path(Some("chats")),
             prompt_dir: get_data_path(Some("prompts")),
+            current_model,
+            current_profile,
         }
     }
 
@@ -106,6 +124,22 @@ impl AppConfig {
             self.cache_config.save(get_cache_path());
             model_type
         }
+    }
+
+    pub fn switch_profile(&mut self, profile_name: &str) {
+        self.cache_config.last_profile_name = Some(profile_name.to_string());
+        let new_profile = self.get_profile();
+
+        self.cache_config.last_profile_name = Some(new_profile.name.clone());
+        self.cache_config.save(get_cache_path());
+    }
+
+    pub fn switch_model_type(&mut self, model_type: &ModelType) {
+        self.cache_config.last_model_type = Some(model_type.clone());
+        let new_model = self.get_model_type();
+
+        self.cache_config.last_model_type = Some(new_model);
+        self.cache_config.save(get_cache_path());
     }
 }
 
