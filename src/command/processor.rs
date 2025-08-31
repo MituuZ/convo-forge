@@ -100,22 +100,20 @@ impl<'a> CommandProcessor<'a> {
                         println!("Removed context file");
                     }
                 },
-                CommandResult::HandlePrompt(prompt_file, user_prompt) => {
-                    match user_prompt {
-                        None => {
-                            let editor = get_editor();
+                CommandResult::HandlePrompt(prompt_file, user_prompt) => match user_prompt {
+                    None => {
+                        let editor = get_editor();
 
-                            let status = std::process::Command::new(editor).arg(prompt_file).status();
-                            if !status.is_ok_and(|s| s.success()) {
-                                eprintln!("Error opening file in editor");
-                            }
-                        }
-                        Some(user_prompt) => {
-                            let combined_prompt = Self::combine(prompt_file, user_prompt);
-                            self.handle_prompt(combined_prompt)?;
+                        let status = std::process::Command::new(editor).arg(prompt_file).status();
+                        if !status.is_ok_and(|s| s.success()) {
+                            eprintln!("Error opening file in editor");
                         }
                     }
-                }
+                    Some(user_prompt) => {
+                        let combined_prompt = Self::combine(prompt_file, user_prompt);
+                        self.handle_prompt(combined_prompt)?;
+                    }
+                },
                 CommandResult::SwitchModel(new_model) => {
                     let maybe_model = self.app_config.current_profile.maybe_model(&new_model);
 
@@ -123,8 +121,13 @@ impl<'a> CommandProcessor<'a> {
                         self.app_config.switch_model(&model);
                         *self.update_chat_api = true;
                     } else {
-                        println!("Model of type {} not found in profile {}", new_model, self.app_config.current_profile.name);
-                        self.app_config.current_profile.print_models(&self.app_config.current_model.model_type);
+                        println!(
+                            "Model of type {} not found in profile {}",
+                            new_model, self.app_config.current_profile.name
+                        );
+                        self.app_config
+                            .current_profile
+                            .print_models(&self.app_config.current_model.model_type);
                         return Ok(CommandResult::Continue);
                     }
                 }
@@ -162,11 +165,12 @@ impl<'a> CommandProcessor<'a> {
                         println!("-------");
                         for model in &profile.models {
                             if let Some(desc) = &model.description {
-                                println!("  - {}\n    Type: {}\n    Description: {}",
-                                         model.model, model.model_type, desc);
+                                println!(
+                                    "  - {}\n    Type: {}\n    Description: {}",
+                                    model.model, model.model_type, desc
+                                );
                             } else {
-                                println!("  - {}\n    Type: {}",
-                                         model.model, model.model_type);
+                                println!("  - {}\n    Type: {}", model.model, model.model_type);
                             }
                         }
                     }
