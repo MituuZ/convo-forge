@@ -58,8 +58,35 @@ impl UserConfig {
         config
     }
 
-    pub fn maybe_profile(&self, profile_name: &str) -> Option<&Profile> {
-        self.profiles_config.profiles.iter().find(|profile| profile.name == profile_name)
+    /// This method searches for a profile with the given `profile_name`
+    /// in the list of profiles. If a profile with the specified name is
+    /// found, it is returned. Otherwise, the first profile in the list is
+    /// returned as a fallback. The fallback behavior assumes that the
+    /// `profiles_config` is never empty because it has been validated
+    /// during the `load()` process.
+    ///
+    /// # Returns
+    ///
+    /// * A reference to the `Profile` that matches the given name, or the
+    ///   first profile in the list if no match is found.
+    ///
+    /// # Panics
+    ///
+    /// This function will panic if it attempts to unwrap the first profile
+    /// and `profiles_config.profiles` is empty. However, this situation
+    /// should not occur because `profiles_config` is assumed to be validated
+    /// during the `load()` process to ensure that it always contains at least
+    /// one profile.
+    pub fn find_profile(&self, profile_name: &str) -> Profile {
+        match self.profiles_config.profiles.iter().find(|profile| profile.name == profile_name) {
+            Some(profile) => profile.clone(),
+            // This can never be empty, because profiles_config is validated in load()
+            None => {
+                let profile = self.profiles_config.profiles.first().unwrap();
+                eprintln!("Profile {} not found, using {} profile instead", profile_name, profile.name);
+                profile.clone()
+            }
+        }
     }
 }
 

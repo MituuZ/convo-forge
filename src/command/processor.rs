@@ -135,7 +135,7 @@ impl<'a> CommandProcessor<'a> {
                     *self.update_chat_api = true;
                     // self.app_config.cache_config.last_profile_name = Some(new_profile.clone());
                     // *self.current_profile = self.app_config.get_profile();
-                    println!("Switched to profile: {}", new_profile);
+                    // println!("Switched to profile: {}", new_profile);
                 }
                 CommandResult::PrintModels => {
                     let current_profile = self.app_config.get_profile();

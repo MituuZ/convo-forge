@@ -14,14 +14,14 @@
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+use crate::config::profiles_config::ModelType;
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::{
     fs::{read_to_string, write},
     io,
     path::PathBuf,
 };
-
-use crate::config::profiles_config::ModelType;
-use serde::{Deserialize, Serialize};
 
 const CACHE_FILE: &str = "cforge.cache.toml";
 
@@ -30,19 +30,26 @@ pub struct CacheConfig {
     pub last_history_file: Option<String>,
     pub last_profile_name: Option<String>,
     pub last_model_type: Option<ModelType>,
+    pub profile_models: Option<HashMap<String, ModelType>>,
 }
 
 impl CacheConfig {
-    fn new(last_history_file: Option<String>, last_profile_name: Option<String>, last_model_type: Option<ModelType>) -> Self {
+    fn new(
+        last_history_file: Option<String>,
+        last_profile_name: Option<String>,
+        last_model_type: Option<ModelType>,
+        profile_models: Option<HashMap<String, ModelType>>,
+    ) -> Self {
         Self {
             last_history_file,
             last_profile_name,
             last_model_type,
+            profile_models,
         }
     }
 
     fn empty() -> Self {
-        Self::new(None, None, None)
+        Self::new(None, None, None, None)
     }
 
     pub(crate) fn load(cache_path: Option<PathBuf>) -> Self {

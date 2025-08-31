@@ -202,7 +202,7 @@ pub(crate) fn create_command_registry<'a>(
         cmd(
             "model",
             "Change current model",
-            Some(":model <model>"),
+            Some(":model <model_type>"),
             None,
             model_command,
             None,
@@ -243,7 +243,7 @@ fn model_command(command_params: CommandParams) -> io::Result<CommandResult> {
                 Ok(CommandResult::SwitchModel(new_model))
             } else {
                 eprintln!("Error: Invalid model type specified: {}. Usage: :model <model>", new_model);
-                eprintln!("Valid models types are fast, balanced, or deep");
+                eprintln!("Valid models types are fast, balanced, or deep\n");
                 Ok(CommandResult::PrintModels)
             }
         }
