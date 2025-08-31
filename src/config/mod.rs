@@ -67,8 +67,10 @@ impl AppConfig {
             initial_profile
                 .models
                 .first()
-                .unwrap_or_else(|| panic!("No models found for profile '{}'", &initial_profile.name))
-                .model_type
+                .unwrap_or_else(|| {
+                    panic!("No models found for profile '{}'", &initial_profile.name)
+                })
+                .model_type,
         );
 
         let initial_model = initial_profile.get_model(&actual_model_type).clone();
@@ -92,11 +94,11 @@ impl AppConfig {
         &self,
         command_registry: &HashMap<String, CommandStruct>,
     ) -> rustyline::Result<Editor<CommandHelper, DefaultHistory>> {
-        let (commands, file_commands) = get_commands(command_registry);
+        let command_vecs = get_commands(command_registry);
 
         let helper = CommandHelper::new(
-            commands,
-            file_commands,
+            command_vecs.all_commands,
+            command_vecs.file_commands,
             &self.data_dir.display().to_string(),
             &self.user_config.knowledge_dir,
             &self.prompt_dir.display().to_string(),
@@ -144,11 +146,7 @@ impl AppConfig {
         self.cache_config.last_profile_name = Some(profile.name.clone());
         self.cache_config.save(get_cache_path());
 
-        let mut profile_models = self
-            .cache_config
-            .profile_models
-            .take()
-            .unwrap_or_default();
+        let mut profile_models = self.cache_config.profile_models.take().unwrap_or_default();
 
         if let Some(last_used_model_type) = profile_models.get(&profile.name) {
             self.current_model = profile.get_model(last_used_model_type).clone();
@@ -166,11 +164,7 @@ impl AppConfig {
     pub fn switch_model(&mut self, model: &Model) {
         self.current_model = model.clone();
 
-        let mut profile_models = self
-            .cache_config
-            .profile_models
-            .take()
-            .unwrap_or_default();
+        let mut profile_models = self.cache_config.profile_models.take().unwrap_or_default();
 
         profile_models.insert(self.current_profile.name.clone(), model.model_type);
         self.cache_config.profile_models = Some(profile_models);
@@ -180,12 +174,12 @@ impl AppConfig {
     }
 }
 
-fn get_commands(
-    command_registry: &HashMap<String, CommandStruct>,
-) -> (
-    Vec<(String, Option<String>)>,
-    Vec<(String, FileCommandDirectory)>,
-) {
+struct CommandVecs {
+    all_commands: Vec<(String, Option<String>)>,
+    file_commands: Vec<(String, FileCommandDirectory)>,
+}
+
+fn get_commands(command_registry: &HashMap<String, CommandStruct>) -> CommandVecs {
     let mut all_commands = Vec::<(String, Option<String>)>::new();
     let mut file_commands = Vec::<(String, FileCommandDirectory)>::new();
 
@@ -199,7 +193,7 @@ fn get_commands(
         }
     }
 
-    (all_commands, file_commands)
+    CommandVecs { all_commands, file_commands }
 }
 
 /// Return XDG compliant config path
@@ -272,18 +266,18 @@ mod tests {
     fn get_commands_base() {
         let command_registry = create_registry();
 
-        let (commands, file_commands) = get_commands(&command_registry);
-        assert_eq!(3, commands.len());
-        assert_eq!(2, file_commands.len());
+        let command_vecs = get_commands(&command_registry);
+        assert_eq!(3, command_vecs.all_commands.len());
+        assert_eq!(2, command_vecs.file_commands.len());
     }
 
     #[test]
     fn get_commands_empty_registry() {
         let command_registry: HashMap<String, CommandStruct> = HashMap::new();
 
-        let (commands, file_commands) = get_commands(&command_registry);
-        assert_eq!(0, commands.len());
-        assert_eq!(0, file_commands.len());
+        let command_vecs = get_commands(&command_registry);
+        assert_eq!(0, command_vecs.all_commands.len());
+        assert_eq!(0, command_vecs.file_commands.len());
     }
 
     fn create_registry<'a>() -> HashMap<String, CommandStruct<'a>> {
