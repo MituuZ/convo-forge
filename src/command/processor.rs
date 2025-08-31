@@ -17,7 +17,7 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 use std::{fs, io};
 
-use crate::api::ChatApi;
+use crate::api::ChatClient;
 use crate::command::command_util::get_editor;
 use crate::command::commands::{CommandParams, CommandResult, CommandStruct};
 use crate::config::AppConfig;
@@ -25,18 +25,18 @@ use crate::history_file::HistoryFile;
 use crate::user_input::{Command, UserInput};
 
 pub(crate) struct CommandProcessor<'a> {
-    chat_api: &'a mut Box<dyn ChatApi>,
+    chat_api: &'a mut Box<dyn ChatClient>,
     history: &'a mut HistoryFile,
     app_config: &'a mut AppConfig,
     command_registry: &'a HashMap<String, CommandStruct<'a>>,
     context_file_path: &'a mut Option<PathBuf>,
-    update_chat_api: &'a mut bool,
+    rebuild_chat_client: &'a mut bool,
     context_file_content: Option<String>,
 }
 
 impl<'a> CommandProcessor<'a> {
     pub fn new(
-        chat_api: &'a mut Box<dyn ChatApi>,
+        chat_api: &'a mut Box<dyn ChatClient>,
         history: &'a mut HistoryFile,
         app_config: &'a mut AppConfig,
         command_registry: &'a HashMap<String, CommandStruct<'a>>,
@@ -50,7 +50,7 @@ impl<'a> CommandProcessor<'a> {
             app_config,
             command_registry,
             context_file_path,
-            update_chat_api,
+            rebuild_chat_client: update_chat_api,
             context_file_content,
         }
     }
@@ -112,7 +112,7 @@ impl<'a> CommandProcessor<'a> {
 
                     if let Some(model) = maybe_model {
                         self.app_config.switch_model(&model);
-                        *self.update_chat_api = true;
+                        *self.rebuild_chat_client = true;
                     } else {
                         println!(
                             "Model of type {} not found in profile {}",
@@ -129,7 +129,7 @@ impl<'a> CommandProcessor<'a> {
 
                     if let Some(profile) = maybe_profile {
                         self.app_config.switch_profile(&profile);
-                        *self.update_chat_api = true;
+                        *self.rebuild_chat_client = true;
                     } else {
                         println!("No profile found with name: {}", new_profile);
                         return Ok(CommandResult::Continue);

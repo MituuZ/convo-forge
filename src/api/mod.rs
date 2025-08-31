@@ -20,7 +20,7 @@ pub mod anthropic_client;
 mod client_util;
 pub mod ollama_client;
 
-pub trait ChatApi {
+pub trait ChatClient {
     fn generate_response(
         &self,
         history_messages_json: serde_json::Value,
@@ -33,12 +33,12 @@ pub trait ChatApi {
     fn update_system_prompt(&mut self, system_prompt: String);
 }
 
-pub fn get_implementation(
+pub fn get_chat_client_implementation(
     provider: &str,
     model: &str,
     system_prompt: String,
     max_tokens: usize,
-) -> Box<dyn ChatApi> {
+) -> Box<dyn ChatClient> {
     match provider.to_lowercase().as_str() {
         "anthropic" => Box::new(AnthropicClient::new(model.to_string(), system_prompt, max_tokens)),
         "ollama" => {

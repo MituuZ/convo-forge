@@ -20,7 +20,7 @@ pub mod config;
 mod history_file;
 mod user_input;
 
-use crate::api::get_implementation;
+use crate::api::{get_chat_client_implementation, ChatClient};
 use crate::command::commands::{create_command_registry, CommandResult};
 use crate::config::AppConfig;
 use crate::history_file::HistoryFile;
@@ -74,22 +74,23 @@ fn main() -> io::Result<()> {
         &app_config.current_model, &app_config.current_model.model_type, &app_config.current_profile.name
     );
 
-    let mut chat_api = get_implementation(
+    let mut chat_client: Box<dyn ChatClient> = get_chat_client_implementation(
         &app_config.current_profile.provider,
         &app_config.current_model.model,
         app_config.user_config.system_prompt.clone(),
         app_config.user_config.max_tokens,
     );
-    let mut update_chat_api = false;
+    let mut rebuild_chat_client = false;
 
     loop {
-        if update_chat_api {
-            chat_api = get_implementation(
+        if rebuild_chat_client {
+            chat_client = get_chat_client_implementation(
                 &app_config.current_profile.provider,
                 &app_config.current_model.model,
                 app_config.user_config.system_prompt.clone(),
                 app_config.user_config.max_tokens,
             );
+            rebuild_chat_client = false;
         }
 
         // Read the context file if provided
@@ -105,7 +106,7 @@ fn main() -> io::Result<()> {
             None
         };
 
-        if let Some(model_context_size) = chat_api.model_context_size()
+        if let Some(model_context_size) = chat_client.model_context_size()
             && app_config.user_config.token_estimation
         {
             print_token_usage(
@@ -136,12 +137,12 @@ fn main() -> io::Result<()> {
         };
 
         let mut processor = CommandProcessor::new(
-            &mut chat_api,
+            &mut chat_client,
             &mut history,
             &mut app_config,
             &command_registry,
             &mut context_file_path,
-            &mut update_chat_api,
+            &mut rebuild_chat_client,
             context_file_content.clone(),
         );
 

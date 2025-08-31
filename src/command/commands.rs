@@ -14,7 +14,7 @@
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-use crate::api::ChatApi;
+use crate::api::ChatClient;
 use crate::command::command_util::get_editor;
 use crate::command::commands::CommandResult::HandlePrompt;
 use crate::config::profiles_config::ModelType;
@@ -38,7 +38,7 @@ pub enum CommandResult {
 
 pub struct CommandParams<'a> {
     pub(crate) args: Vec<String>,
-    chat_api: &'a mut Box<dyn ChatApi>,
+    chat_api: &'a mut Box<dyn ChatClient>,
     history: &'a mut HistoryFile,
     cforge_dir: String,
 }
@@ -46,7 +46,7 @@ pub struct CommandParams<'a> {
 impl<'a> CommandParams<'a> {
     pub fn new(
         args: Vec<String>,
-        chat_api: &'a mut Box<dyn ChatApi>,
+        chat_api: &'a mut Box<dyn ChatClient>,
         history: &'a mut HistoryFile,
         cforge_dir: String,
     ) -> Self {
@@ -383,11 +383,11 @@ mod tests {
     use std::env;
     use tempfile::TempDir;
 
-    struct MockApi {
+    struct MockClient {
         system_prompt: String,
     }
 
-    impl MockApi {
+    impl MockClient {
         fn new() -> Self {
             Self {
                 system_prompt: "".to_string(),
@@ -395,7 +395,7 @@ mod tests {
         }
     }
 
-    impl ChatApi for MockApi {
+    impl ChatClient for MockClient {
         fn generate_response(
             &self,
             _: serde_json::Value,
@@ -415,11 +415,11 @@ mod tests {
     }
 
     /// Helper function to create the test environment
-    fn setup_test_environment() -> (Box<dyn ChatApi>, HistoryFile, TempDir, String) {
+    fn setup_test_environment() -> (Box<dyn ChatClient>, HistoryFile, TempDir, String) {
         let temp_dir = TempDir::new().unwrap();
         let dir_path = temp_dir.path().to_str().unwrap().to_string();
 
-        let chat_api = Box::new(MockApi::new());
+        let chat_client = Box::new(MockClient::new());
 
         // Create a temporary history file with some content
         let history_path = format!("{}/test-history.txt", dir_path);
@@ -427,7 +427,7 @@ mod tests {
 
         let history = HistoryFile::new("test-history.txt".to_string(), dir_path.clone()).unwrap();
 
-        (chat_api, history, temp_dir, dir_path)
+        (chat_client, history, temp_dir, dir_path)
     }
 
     #[test]
