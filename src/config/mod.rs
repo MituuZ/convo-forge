@@ -19,7 +19,7 @@ use rustyline::{history::DefaultHistory, Cmd, Config, Editor, EventHandler, KeyE
 
 use crate::command::command_complete::CommandHelper;
 use crate::command::commands::{CommandStruct, FileCommandDirectory};
-use crate::config::profiles_config::{Model, ModelType, Profile};
+use crate::config::profiles_config::{Model, Profile};
 use crate::config::{cache_config::CacheConfig, rustyline_config::build, user_config::UserConfig};
 
 pub mod cache_config;
@@ -56,10 +56,12 @@ impl AppConfig {
         let initial_profile = user_config.find_profile(&previous_profile_name).clone();
 
         // Take profile_models out of cache_config and replace it with None to avoid the move issue
-        let mut profile_models = cache_config.profile_models.take().unwrap_or_else(HashMap::new).clone();
-        let initial_model_type = profile_models
-            .get(&initial_profile.name)
-            .cloned();
+        let mut profile_models = cache_config
+            .profile_models
+            .take()
+            .unwrap_or_else(HashMap::new)
+            .clone();
+        let initial_model_type = profile_models.get(&initial_profile.name).cloned();
 
         let actual_model_type = initial_model_type.unwrap_or(
             initial_profile
@@ -130,34 +132,55 @@ impl AppConfig {
         profile
     }
 
-    pub fn get_model_type(&mut self) -> ModelType {
-        if let Some(last_model_type) = self.cache_config.last_model_type.clone() {
-            last_model_type
-        } else {
-            let model_type = ModelType::Balanced;
-            self.cache_config.last_model_type = Some(model_type.clone());
-            self.cache_config.save(get_cache_path());
-            model_type
+    pub fn maybe_profile(&mut self, profile_name: &str) -> Option<Profile> {
+        for profile in self.user_config.profiles_config.profiles.iter() {
+            if profile.name == profile_name {
+                return Some(profile.clone());
+            }
         }
+
+        None
     }
 
-    pub fn switch_profile(&mut self, profile_name: &str) {
-        self.cache_config.last_profile_name = Some(profile_name.to_string());
-        let new_profile = self.get_profile();
+    pub fn switch_profile(&mut self, profile: &Profile) {
+        self.current_profile = profile.clone();
 
-        self.cache_config.last_profile_name = Some(new_profile.name.clone());
+        self.cache_config.last_profile_name = Some(profile.name.clone());
         self.cache_config.save(get_cache_path());
-        self.current_profile = new_profile.clone();
 
-        println!("Switched to profile: {}", new_profile.name);
+        let mut profile_models = self
+            .cache_config
+            .profile_models
+            .take()
+            .unwrap_or(HashMap::new());
+
+        if let Some(last_used_model_type) = profile_models.get(&profile.name) {
+            self.current_model = profile.get_model(last_used_model_type).clone();
+            profile_models.insert(profile.name.clone(), last_used_model_type.clone());
+        }
+
+        self.cache_config.profile_models = Some(profile_models);
+        println!(
+            "Switched to profile '{}' and model '{}' ({})",
+            profile.name, self.current_model.model, self.current_model.model_type
+        );
+        self.cache_config.save(get_cache_path());
     }
 
-    pub fn switch_model_type(&mut self, model_type: &ModelType) {
-        self.cache_config.last_model_type = Some(model_type.clone());
-        let new_model = self.get_model_type();
+    pub fn switch_model(&mut self, model: &Model) {
+        self.current_model = model.clone();
 
-        self.cache_config.last_model_type = Some(new_model);
+        let mut profile_models = self
+            .cache_config
+            .profile_models
+            .take()
+            .unwrap_or(HashMap::new());
+
+        profile_models.insert(self.current_profile.name.clone(), model.model_type.clone());
+        self.cache_config.profile_models = Some(profile_models);
         self.cache_config.save(get_cache_path());
+
+        println!("Switched to model: {}", model.model);
     }
 }
 

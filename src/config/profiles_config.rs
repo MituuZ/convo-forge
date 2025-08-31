@@ -55,6 +55,34 @@ impl Profile {
         println!("Model type {} not found, using {} model", model_type, model.model_type);
         model
     }
+
+    pub fn maybe_model(&self, model_type: &ModelType) -> Option<Model> {
+        for model in &self.models {
+            if model.model_type == *model_type {
+                return Some(model.clone());
+            }
+        }
+
+        None
+    }
+
+    pub fn print_models(&self, current_model_type: &ModelType) {
+        println!("Available models for profile {}:", self.name);
+        for model in &self.models {
+            if model.model_type == *current_model_type {
+                print!("* ");
+            }
+            println!("{}: {}", model.model_type, model.model);
+        }
+    }
+
+    pub fn print(&self, current_profile_name: &str, current_model_type: &ModelType) {
+        if self.name == current_profile_name {
+            print!("* ");
+        }
+        println!("{}: {}", self.name, self.provider);
+        self.print_models(current_model_type);
+    }
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize, Eq, PartialEq)]

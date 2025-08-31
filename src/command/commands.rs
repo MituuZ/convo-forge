@@ -243,7 +243,7 @@ fn model_command(command_params: CommandParams) -> io::Result<CommandResult> {
                 Ok(CommandResult::SwitchModel(new_model))
             } else {
                 eprintln!("Error: Invalid model type specified: {}. Usage: :model <model>", new_model);
-                eprintln!("Valid models types are fast, balanced, or deep\n");
+                eprintln!("Valid models types are 'fast', 'balanced', or 'deep'\n");
                 Ok(CommandResult::PrintModels)
             }
         }

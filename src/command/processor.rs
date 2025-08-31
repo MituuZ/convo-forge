@@ -117,18 +117,27 @@ impl<'a> CommandProcessor<'a> {
                     }
                 }
                 CommandResult::SwitchModel(new_model) => {
-                    self.app_config.switch_model_type(new_model);
-                    // self.app_config.switch_model_type(&new_model);
-                    *self.update_chat_api = true;
-                    // *self.current_model_type = new_model.clone();
-                    // println!("Switched to model: {}", self.current_profile.get_model(new_model).model);
+                    let maybe_model = self.app_config.current_profile.maybe_model(&new_model);
+
+                    if let Some(model) = maybe_model {
+                        self.app_config.switch_model(&model);
+                        *self.update_chat_api = true;
+                    } else {
+                        println!("Model of type {} not found in profile {}", new_model, self.app_config.current_profile.name);
+                        self.app_config.current_profile.print_models(&self.app_config.current_model.model_type);
+                        return Ok(CommandResult::Continue);
+                    }
                 }
                 CommandResult::SwitchProfile(new_profile) => {
-                    self.app_config.switch_profile(&new_profile);
-                    *self.update_chat_api = true;
-                    // self.app_config.cache_config.last_profile_name = Some(new_profile.clone());
-                    // *self.current_profile = self.app_config.get_profile();
-                    // println!("Switched to profile: {}", new_profile);
+                    let maybe_profile = self.app_config.maybe_profile(&new_profile);
+
+                    if let Some(profile) = maybe_profile {
+                        self.app_config.switch_profile(&profile);
+                        *self.update_chat_api = true;
+                    } else {
+                        println!("No profile found with name: {}", new_profile);
+                        return Ok(CommandResult::Continue);
+                    }
                 }
                 CommandResult::PrintModels => {
                     let current_profile = self.app_config.get_profile();
