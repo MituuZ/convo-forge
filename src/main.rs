@@ -70,8 +70,8 @@ fn main() -> io::Result<()> {
     )?;
     println!("{}", history.get_content());
     println!(
-        "\n\nYou're conversing with model '{}'  from profile '{}'",
-        &app_config.current_model, &app_config.current_profile.name
+        "\n\nYou're conversing with model '{}' ({}) from profile '{}'",
+        &app_config.current_model, &app_config.current_model.model_type, &app_config.current_profile.name
     );
 
     let mut chat_api = get_implementation(
