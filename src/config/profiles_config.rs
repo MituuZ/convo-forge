@@ -37,6 +37,12 @@ pub struct Profile {
     pub models: Vec<Model>,
 }
 
+impl Display for Profile {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.name)
+    }
+}
+
 impl Profile {
     pub fn get_model(&self, model_type: &ModelType) -> &Model {
         for model in &self.models {
@@ -57,6 +63,12 @@ pub struct Model {
     pub description: Option<String>,
     #[serde(default = "default_model_type")]
     pub model_type: ModelType,
+}
+
+impl Display for Model {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.model)
+    }
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq, Copy)]

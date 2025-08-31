@@ -12,7 +12,6 @@
  * WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS
  * OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- *
  */
 
 use crate::api::{anthropic_client::AnthropicClient, ollama_client::OllamaClient};
@@ -36,14 +35,14 @@ pub trait ChatApi {
 
 pub fn get_implementation(
     provider: &str,
-    model: String,
+    model: &str,
     system_prompt: String,
     max_tokens: usize,
 ) -> Box<dyn ChatApi> {
     match provider.to_lowercase().as_str() {
-        "anthropic" => Box::new(AnthropicClient::new(model, system_prompt, max_tokens)),
+        "anthropic" => Box::new(AnthropicClient::new(model.to_string(), system_prompt, max_tokens)),
         "ollama" => {
-            let mut client = OllamaClient::new(model, system_prompt);
+            let mut client = OllamaClient::new(model.to_string(), system_prompt);
             client.verify();
             Box::new(client)
         }

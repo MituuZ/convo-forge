@@ -20,7 +20,6 @@ use std::{fs, io};
 use crate::api::ChatApi;
 use crate::command::command_util::get_editor;
 use crate::command::commands::{CommandParams, CommandResult, CommandStruct};
-use crate::config::profiles_config::{ModelType, Profile};
 use crate::config::AppConfig;
 use crate::history_file::HistoryFile;
 use crate::user_input::{Command, UserInput};
@@ -32,8 +31,6 @@ pub(crate) struct CommandProcessor<'a> {
     command_registry: &'a HashMap<String, CommandStruct<'a>>,
     context_file_path: &'a mut Option<PathBuf>,
     update_chat_api: &'a mut bool,
-    current_profile: &'a mut Profile,
-    current_model_type: &'a mut ModelType,
     context_file_content: Option<String>,
 }
 
@@ -52,8 +49,6 @@ impl<'a> CommandProcessor<'a> {
         command_registry: &'a HashMap<String, CommandStruct<'a>>,
         context_file_path: &'a mut Option<PathBuf>,
         update_chat_api: &'a mut bool,
-        current_profile: &'a mut Profile,
-        current_model_type: &'a mut ModelType,
         context_file_content: Option<String>,
     ) -> Self {
         Self {
@@ -63,8 +58,6 @@ impl<'a> CommandProcessor<'a> {
             command_registry,
             context_file_path,
             update_chat_api,
-            current_profile,
-            current_model_type,
             context_file_content,
         }
     }
@@ -128,7 +121,7 @@ impl<'a> CommandProcessor<'a> {
                     // self.app_config.switch_model_type(&new_model);
                     *self.update_chat_api = true;
                     // *self.current_model_type = new_model.clone();
-                    println!("Switched to model: {}", self.current_profile.get_model(new_model).model);
+                    // println!("Switched to model: {}", self.current_profile.get_model(new_model).model);
                 }
                 CommandResult::SwitchProfile(new_profile) => {
                     self.app_config.switch_profile(&new_profile);

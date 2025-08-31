@@ -61,8 +61,6 @@ fn main() -> io::Result<()> {
             }
         }
     });
-    let mut current_profile = app_config.get_profile();
-    let mut current_model_type = app_config.get_model_type();
 
     app_config.update_last_history_file(history_path.clone());
 
@@ -72,14 +70,14 @@ fn main() -> io::Result<()> {
     )?;
     println!("{}", history.get_content());
     println!(
-        "\n\nYou're conversing with {} model from {}",
-        &current_profile.get_model(&current_model_type).model,
-        &current_profile.provider
+        "\n\nYou're conversing with model '{}'  from profile '{}'",
+        &app_config.current_model,
+        &app_config.current_profile.name
     );
 
     let mut chat_api = get_implementation(
-        &current_profile.provider,
-        current_profile.get_model(&current_model_type).model.clone(),
+        &app_config.current_profile.provider,
+        &app_config.current_model.model,
         app_config.user_config.system_prompt.clone(),
         app_config.user_config.max_tokens,
     );
@@ -88,8 +86,8 @@ fn main() -> io::Result<()> {
     loop {
         if update_chat_api {
             chat_api = get_implementation(
-                &current_profile.provider,
-                current_profile.get_model(&current_model_type).model.clone(),
+                &app_config.current_profile.provider,
+                &app_config.current_model.model,
                 app_config.user_config.system_prompt.clone(),
                 app_config.user_config.max_tokens,
             );
@@ -145,8 +143,6 @@ fn main() -> io::Result<()> {
             &command_registry,
             &mut context_file_path,
             &mut update_chat_api,
-            &mut current_profile,
-            &mut current_model_type,
             context_file_content.clone(),
         );
 
