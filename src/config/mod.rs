@@ -132,7 +132,7 @@ impl AppConfig {
 
     pub fn maybe_profile(&mut self, profile_name: &str) -> Option<Profile> {
         for profile in self.user_config.profiles_config.profiles.iter() {
-            if profile.name == profile_name {
+            if profile.name.to_lowercase() == profile_name.to_lowercase() {
                 return Some(profile.clone());
             }
         }

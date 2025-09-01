@@ -564,16 +564,21 @@ mod tests {
     fn test_prompt_command() -> io::Result<()> {
         let (mut chat_client, mut history, _temp_dir, dir_path) = setup_test_environment();
 
-        let test_prompt = "This is a test prompt";
+        let test_prompt = "prompt_file This is a test prompt";
         let args: Vec<String> = test_prompt
             .split_whitespace()
             .map(|s| s.to_string())
             .collect();
+        let expected_prompt = Some(args[1..].join(" "));
         let params = CommandParams::new(args, &mut chat_client, &mut history, dir_path);
 
         let result = prompt_command(params)?;
 
-        assert!(matches!(result, HandlePrompt(_path, _user_prompt)));
+        if let HandlePrompt(_, user_prompt) = result {
+            assert_eq!(Some(user_prompt), Some(expected_prompt));
+        } else {
+            panic!("Expected HandlePrompt result but got something else");
+        }
 
         Ok(())
     }
@@ -663,7 +668,11 @@ mod tests {
 
         let result = profile_command(params)?;
 
-        assert!(matches!(result, CommandResult::SwitchProfile(_)));
+        if let CommandResult::SwitchProfile(profile) = result {
+            assert_eq!(profile, "no_profile");
+        } else {
+            panic!("Expected SwitchProfile result but got something else");
+        }
 
         Ok(())
     }
