@@ -570,12 +570,14 @@ mod tests {
             .map(|s| s.to_string())
             .collect();
         let expected_prompt = Some(args[1..].join(" "));
+        let expected_file = PathBuf::from("prompt_file");
         let params = CommandParams::new(args, &mut chat_client, &mut history, dir_path);
 
         let result = prompt_command(params)?;
 
-        if let HandlePrompt(_, user_prompt) = result {
+        if let HandlePrompt(file, user_prompt) = result {
             assert_eq!(Some(user_prompt), Some(expected_prompt));
+            assert_eq!(file, expected_file);
         } else {
             panic!("Expected HandlePrompt result but got something else");
         }
