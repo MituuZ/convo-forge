@@ -13,6 +13,7 @@
 - [x] Keep track of the model's context window and file size
 - [x] Add support for knowledge directory
 - [x] The model might not realize that it has the context file available
+- [ ] Custom completions for `model` and `profile` commands
 - [ ] Keybinds for commands?
 - [ ] Support memories, which are included in the prompt by default (session/global)
 - [ ] Add Anthropic context sizes manually? There doesn't seem to be an API
