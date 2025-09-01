@@ -561,6 +561,29 @@ mod tests {
     }
 
     #[test]
+    fn test_prompt_command_edit_prompt_file() -> io::Result<()> {
+        let (mut chat_client, mut history, _temp_dir, dir_path) = setup_test_environment();
+
+        let input = "prompt_file";
+        let args: Vec<String> = input
+            .split_whitespace()
+            .map(|s| s.to_string())
+            .collect();
+        let params = CommandParams::new(args, &mut chat_client, &mut history, dir_path);
+
+        let result = prompt_command(params)?;
+
+        if let HandlePrompt(file, user_prompt) = result {
+            assert_eq!(Some(user_prompt), Some(None));
+            assert_eq!(file, PathBuf::from(input));
+        } else {
+            panic!("Expected HandlePrompt result but got something else");
+        }
+
+        Ok(())
+    }
+
+    #[test]
     fn test_prompt_command() -> io::Result<()> {
         let (mut chat_client, mut history, _temp_dir, dir_path) = setup_test_environment();
 
