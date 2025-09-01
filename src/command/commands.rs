@@ -632,6 +632,41 @@ mod tests {
         Ok(())
     }
 
+    #[test]
+    fn test_profile_command_no_input() -> io::Result<()> {
+        let (mut chat_client, mut history, _temp_dir, dir_path) = setup_test_environment();
+
+        let input = "";
+        let args: Vec<String> = input
+            .split_whitespace()
+            .map(|s| s.to_string())
+            .collect();
+        let params = CommandParams::new(args, &mut chat_client, &mut history, dir_path);
+
+        let result = profile_command(params)?;
+
+        assert!(matches!(result, CommandResult::PrintProfiles));
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_profile_command() -> io::Result<()> {
+        let (mut chat_client, mut history, _temp_dir, dir_path) = setup_test_environment();
+
+        let input = "no_profile";
+        let args: Vec<String> = input
+            .split_whitespace()
+            .map(|s| s.to_string())
+            .collect();
+        let params = CommandParams::new(args, &mut chat_client, &mut history, dir_path);
+
+        let result = profile_command(params)?;
+
+        assert!(matches!(result, CommandResult::SwitchProfile(_)));
+
+        Ok(())
+    }
 
     #[test]
     fn test_create_command_registry() {
