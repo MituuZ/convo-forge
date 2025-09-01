@@ -4,6 +4,14 @@
 
 _Add profiles_
 
+### Breaking changes
+
+The previous model configuration system has been replaced with profiles.
+
+### Fixed
+
+Running `cforge` without a config file creates a new one with the default values.
+
 ### Profiles
 
 - Add a profile system to allow storing multiple different configurations
@@ -16,6 +24,23 @@ _Add profiles_
 - Defaults to `local` profile if no profile is specified
     - model: `gemma3:12b`
     - model_type: `balanced`
+
+### Commands
+
+#### `:model <optional model_type>`
+
+Switch the model type used by the current profile, if no model type is specified, print the profile's models.
+
+Model types are:
+
+- `fast`
+- `balanced`
+- `deep`
+
+#### `:profile <optional profile_name>`
+
+Switch the profile used by the current session, if no profile is specified, print the available profiles and their
+models.
 
 ### Config
 

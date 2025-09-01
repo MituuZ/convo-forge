@@ -47,7 +47,18 @@ pub struct UserConfig {
 
 impl UserConfig {
     pub fn load(config_path: PathBuf) -> Self {
-        let config_str = fs::read_to_string(config_path.join(CONFIG_FILE)).unwrap_or_else(|e| {
+        let path = config_path.join(CONFIG_FILE);
+
+        if !path.exists() {
+            let default = UserConfig::default();
+            let toml_str =
+                toml::to_string_pretty(&default).expect("Could not serialize default config");
+            fs::write(&path, toml_str).expect("Could not write default config file");
+            println!("Created default config at {:?}", path);
+            return default;
+        }
+
+        let config_str = fs::read_to_string(&path).unwrap_or_else(|e| {
             panic!("Could not read config file: {e}");
         });
 
@@ -78,12 +89,20 @@ impl UserConfig {
     /// during the `load()` process to ensure that it always contains at least
     /// one profile.
     pub fn find_profile(&self, profile_name: &str) -> Profile {
-        match self.profiles_config.profiles.iter().find(|profile| profile.name == profile_name) {
+        match self
+            .profiles_config
+            .profiles
+            .iter()
+            .find(|profile| profile.name == profile_name)
+        {
             Some(profile) => profile.clone(),
             // This can never be empty, because profiles_config is validated in load()
             None => {
                 let profile = self.profiles_config.profiles.first().unwrap();
-                eprintln!("Profile {} not found, using {} profile instead", profile_name, profile.name);
+                eprintln!(
+                    "Profile {} not found, using {} profile instead",
+                    profile_name, profile.name
+                );
                 profile.clone()
             }
         }
@@ -169,10 +188,7 @@ mod tests {
         assert_eq!("@p/", config.command_prefixes.get("prompt").unwrap());
         assert_eq!(4, config.command_prefixes.len());
 
-        assert_eq!(
-            RustylineConfig::default(),
-            config.rustyline
-        );
+        assert_eq!(RustylineConfig::default(), config.rustyline);
     }
 
     #[test]

@@ -23,6 +23,7 @@ How the messages array is formed in the request JSON:
 ## Quick start
 
 ```bash
+# Note, requires the default model to be installed (gemma3:12b)
 git clone https://github.com/mituuz/convo-forge.git
 cd convo-forge
 cargo run -- chat.md
