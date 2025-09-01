@@ -9,6 +9,8 @@ A command-line interface for interacting with Ollama and Anthropic models.
 - Use commands to modify and customize the current session
 - Newlines are supported with ALT + ENTER
 - Reuse and modify prompts
+- Define multiple profiles with up to three models per profile (fast, balanced, deep)
+- Switch between profiles and models on the fly
 
 How the messages array is formed in the request JSON:
 
