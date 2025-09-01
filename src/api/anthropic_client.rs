@@ -56,6 +56,10 @@ impl ChatClient for AnthropicClient {
     fn update_system_prompt(&mut self, system_prompt: String) {
         self.system_prompt = system_prompt;
     }
+
+    fn system_prompt(&self) -> String {
+        self.system_prompt.to_string()
+    }
 }
 
 impl AnthropicClient {

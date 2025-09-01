@@ -73,6 +73,10 @@ impl ChatClient for OllamaClient {
     fn update_system_prompt(&mut self, new_system_prompt: String) {
         self.system_prompt = new_system_prompt;
     }
+
+    fn system_prompt(&self) -> String {
+        self.system_prompt.to_string()
+    }
 }
 
 impl OllamaClient {

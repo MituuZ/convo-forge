@@ -401,7 +401,7 @@ mod tests {
             _: serde_json::Value,
             _: &str,
             _: Option<&str>,
-        ) -> std::io::Result<String> {
+        ) -> io::Result<String> {
             Ok("Hello".to_string())
         }
 
@@ -411,6 +411,10 @@ mod tests {
 
         fn update_system_prompt(&mut self, system_prompt: String) {
             self.system_prompt = system_prompt;
+        }
+
+        fn system_prompt(&self) -> String {
+            self.system_prompt.to_string()
         }
     }
 
@@ -518,23 +522,116 @@ mod tests {
 
     #[test]
     fn test_sysprompt_command() -> io::Result<()> {
-        let (mut ollama_client, mut history, _temp_dir, dir_path) = setup_test_environment();
+        let (mut chat_client, mut history, _temp_dir, dir_path) = setup_test_environment();
+        let new_system_prompt = "This is a test system prompt";
+        let initial_system_prompt = chat_client.system_prompt().clone();
 
-        let test_prompt = "This is a test system prompt";
-        let args: Vec<String> = test_prompt
+        let args: Vec<String> = new_system_prompt
             .split_whitespace()
             .map(|s| s.to_string())
             .collect();
-        let params = CommandParams::new(args, &mut ollama_client, &mut history, dir_path);
+        let params = CommandParams::new(args, &mut chat_client, &mut history, dir_path);
 
+        assert_ne!(initial_system_prompt, new_system_prompt);
         let result = sysprompt_command(params)?;
         assert!(matches!(result, CommandResult::Continue));
 
         // Verify the prompt was updated
-        // assert_eq!(ollama_client.system_prompt, test_prompt);
+        assert_eq!(chat_client.system_prompt(), new_system_prompt);
 
         Ok(())
     }
+
+    #[test]
+    fn test_prompt_command_no_input() -> io::Result<()> {
+        let (mut chat_client, mut history, _temp_dir, dir_path) = setup_test_environment();
+
+        let empty_prompt = "";
+        let args: Vec<String> = empty_prompt
+            .split_whitespace()
+            .map(|s| s.to_string())
+            .collect();
+        let params = CommandParams::new(args, &mut chat_client, &mut history, dir_path);
+
+        let result = prompt_command(params)?;
+
+        assert!(matches!(result, CommandResult::Continue));
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_prompt_command() -> io::Result<()> {
+        let (mut chat_client, mut history, _temp_dir, dir_path) = setup_test_environment();
+
+        let test_prompt = "This is a test prompt";
+        let args: Vec<String> = test_prompt
+            .split_whitespace()
+            .map(|s| s.to_string())
+            .collect();
+        let params = CommandParams::new(args, &mut chat_client, &mut history, dir_path);
+
+        let result = prompt_command(params)?;
+
+        assert!(matches!(result, HandlePrompt(_path, _user_prompt)));
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_model_command_no_input() -> io::Result<()> {
+        let (mut chat_client, mut history, _temp_dir, dir_path) = setup_test_environment();
+
+        let input = "";
+        let args: Vec<String> = input
+            .split_whitespace()
+            .map(|s| s.to_string())
+            .collect();
+        let params = CommandParams::new(args, &mut chat_client, &mut history, dir_path);
+
+        let result = model_command(params)?;
+
+        assert!(matches!(result, CommandResult::PrintModels));
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_model_command_invalid_input() -> io::Result<()> {
+        let (mut chat_client, mut history, _temp_dir, dir_path) = setup_test_environment();
+
+        let input = "not a valid model type";
+        let args: Vec<String> = input
+            .split_whitespace()
+            .map(|s| s.to_string())
+            .collect();
+        let params = CommandParams::new(args, &mut chat_client, &mut history, dir_path);
+
+        let result = model_command(params)?;
+
+        assert!(matches!(result, CommandResult::PrintModels));
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_model_command() -> io::Result<()> {
+        let (mut chat_client, mut history, _temp_dir, dir_path) = setup_test_environment();
+
+        let input = "fast";
+        let args: Vec<String> = input
+            .split_whitespace()
+            .map(|s| s.to_string())
+            .collect();
+        let params = CommandParams::new(args, &mut chat_client, &mut history, dir_path);
+
+        let result = model_command(params)?;
+
+        assert!(matches!(result, CommandResult::SwitchModel(ModelType::Fast)));
+
+        Ok(())
+    }
+
 
     #[test]
     fn test_create_command_registry() {

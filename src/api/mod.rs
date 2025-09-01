@@ -31,6 +31,8 @@ pub trait ChatClient {
     fn model_context_size(&self) -> Option<usize>;
 
     fn update_system_prompt(&mut self, system_prompt: String);
+
+    fn system_prompt(&self) -> String;
 }
 
 pub fn get_chat_client_implementation(
