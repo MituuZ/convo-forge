@@ -23,9 +23,10 @@ How the messages array is formed in the request JSON:
 ## Quick start
 
 ```bash
-# Note, requires the default model to be installed (gemma3:12b)
+# Note, requires the default model to be present for ollama (gemma3:12b)
 git clone https://github.com/mituuz/convo-forge.git
 cd convo-forge
+# When running the command for the first time, it generates a config file with the default values
 cargo run -- chat.md
 
 # Basic commands
