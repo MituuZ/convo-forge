@@ -13,16 +13,15 @@
  * OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-use std::collections::HashMap;
-use std::path::PathBuf;
-use std::{fs, io};
-
 use crate::api::ChatClient;
 use crate::command::command_util::get_editor;
 use crate::command::commands::{CommandParams, CommandResult, CommandStruct};
 use crate::config::AppConfig;
 use crate::history_file::HistoryFile;
 use crate::user_input::{Command, UserInput};
+use std::collections::HashMap;
+use std::path::PathBuf;
+use std::{fs, io};
 
 pub(crate) struct CommandProcessor<'a> {
     chat_api: &'a mut Box<dyn ChatClient>,
@@ -120,7 +119,7 @@ impl<'a> CommandProcessor<'a> {
                         );
                         self.app_config
                             .current_profile
-                            .print_models(&self.app_config.current_model.model_type);
+                            .print_models(&self.app_config.current_model.model_type, "  ");
                         return Ok(CommandResult::Continue);
                     }
                 }
@@ -137,35 +136,18 @@ impl<'a> CommandProcessor<'a> {
                 }
                 CommandResult::PrintModels => {
                     let current_profile = self.app_config.get_profile();
-                    println!("Available models for profile {}:", current_profile.name);
-                    for model in current_profile.models {
-                        if model == self.app_config.current_model {
-                            println!("* Model: {}, type: {}", model.model, model.model_type);
-                        } else {
-                            println!("Model: {}, type: {}", model.model, model.model_type);
-                        }
-                    }
+                    current_profile.print_models(
+                        &self.app_config.current_model.model_type,
+                        "  ",
+                    );
                 }
                 CommandResult::PrintProfiles => {
                     for profile in &self.app_config.user_config.profiles_config.profiles {
-                        if *profile == self.app_config.current_profile {
-                            println!("\n* Profile: {}", profile.name);
-                        } else {
-                            println!("\nProfile: {}", profile.name);
-                        }
-                        println!("Provider: {}", profile.provider);
-                        println!("Models:");
-                        println!("-------");
-                        for model in &profile.models {
-                            if let Some(desc) = &model.description {
-                                println!(
-                                    "  - {}\n    Type: {}\n    Description: {}",
-                                    model.model, model.model_type, desc
-                                );
-                            } else {
-                                println!("  - {}\n    Type: {}", model.model, model.model_type);
-                            }
-                        }
+                        profile.print(
+                            &self.app_config.current_profile.name,
+                            &self.app_config.current_model.model_type,
+                        );
+                        println!();
                     }
                 }
                 _ => {}

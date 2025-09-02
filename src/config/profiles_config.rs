@@ -13,6 +13,7 @@
  * OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
+use colored::Colorize;
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 
@@ -66,22 +67,25 @@ impl Profile {
         None
     }
 
-    pub fn print_models(&self, current_model_type: &ModelType) {
+    pub fn print_models(&self, current_model_type: &ModelType, prefix: &str) {
         println!("Available models for profile {}:", self.name);
         for model in &self.models {
             if model.model_type == *current_model_type {
-                print!("* ");
+                println!("{}{}{}: {}", prefix, "* ".green(), model.model_type, model.model);
+            } else {
+                println!("{}{}: {}", prefix, model.model_type, model.model);
             }
-            println!("{}: {}", model.model_type, model.model);
         }
     }
 
     pub fn print(&self, current_profile_name: &str, current_model_type: &ModelType) {
         if self.name == current_profile_name {
-            print!("* ");
+            println!("{}Name: {}", "* ".green(), self.name);
+        } else {
+            println!("Name: {}", self.name);
         }
-        println!("{}: {}", self.name, self.provider);
-        self.print_models(current_model_type);
+        println!("Provider: {}", self.provider);
+        self.print_models(current_model_type, "  ");
     }
 }
 

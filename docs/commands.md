@@ -1,6 +1,7 @@
 # Commands
 
-Commands can be entered during a chat by prepending the command with `:`. Commands are sensitive and support completion.
+Commands can be entered during a chat by prepending the command with `:`.
+Commands are case-insensitive and support completion.
 
 - help
 - list
@@ -108,6 +109,8 @@ Edit a prompt by just calling
 
 Switch or inspect the model type for the current profile. If no model type is specified, prints the profile's models.
 
+Active model is indicated by a `*` at the beginning of the line.
+
 Usage:
 
 `:model <model_type>`
@@ -121,11 +124,20 @@ Model types are:
 Examples:
 
 - `:model fast` — switch to the fast model configured for the active profile
-- `:model` — print the models configured for the active profile
+- `:model` — list models configured for the active profile
+
+```
+>> :model
+Available models for profile local:
+  * balanced: gemma3n:e4b
+  fast: qwen3:1.7b
+```
 
 ## Profile
 
 Switch or inspect the active profile. If no profile is specified, prints the available profiles and their models.
+
+Active profile is indicated by a `*` at the beginning of the line.
 
 Usage:
 
@@ -135,3 +147,17 @@ Examples:
 
 - `:profile local`
 - `:profile` — list profiles and their models
+
+```
+>> :profile
+* Name: local
+Provider: ollama
+Available models for profile local:
+  * balanced: gemma3n:e4b
+  fast: qwen3:1.7b
+
+Name: remote
+Provider: anthropic
+Available models for profile remote:
+  * balanced: claude-3-haiku-20240307
+```
