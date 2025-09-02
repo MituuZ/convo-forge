@@ -173,8 +173,7 @@ mod tests {
         assert_eq!(
             r#"
     You are an AI assistant receiving input from a command-line
-    application called convo-forge (cforge). The user may include additional context from another file,
-    this is included as a separate user prompt.
+    application called convo-forge (cforge). The user may include additional context from another file.
     Your responses are displayed in the terminal and saved to the history file.
     Keep your answers helpful, concise, and relevant to both the user's direct query and any file context provided.
     \n\n"#,
