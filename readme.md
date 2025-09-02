@@ -97,9 +97,6 @@ You can configure your cforge by creating and modifying TOML configuration locat
 An example toml populated with the default values.
 
 ```toml
-# AI model used.
-model = "gemma3:12b"
-
 # Path to the knowledge directory.
 # Aliased to `@k/`
 knowledge_dir = ""
@@ -116,10 +113,6 @@ Keep your answers helpful, concise, and relevant to both the user's direct query
 # Show estimated token count compared to the model's on each prompt if the provider supports it (ollama yes, anthropic no)
 token_estimation = true
 
-# ollama/anthropic
-# To use anthropic, use must have an environment variable `ANTHROPIC_API_KEY` set with a valid API key
-provider = "ollama"
-
 # Control the token limit for anthropic models
 max_tokens = 1024
 
@@ -132,6 +125,16 @@ switch = "@c/"
 list = "@c/"
 context = "@k/"
 prompt = "@p/"
+
+# You can define multiple profiles with up to three model types per profile (fast, balanced, deep)
+[profiles_config]
+[[profiles_config.profiles]]
+name = "local"
+provider = "ollama"
+
+[[profiles_config.profiles.models]]
+model = "gemma3:12b"
+model_type = "balanced"
 
 [rustyline]
 # Switch rustyline input mode between `emacs` and `vi`.
