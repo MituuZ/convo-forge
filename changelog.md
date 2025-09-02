@@ -1,5 +1,75 @@
 # Changelog
 
+## 0.6.0
+
+_Add profiles_
+
+### Breaking changes
+
+The previous model configuration system has been replaced with profiles.
+
+### Fixed
+
+Running `cforge` without a config file creates a new one with the default values.
+
+### Profiles
+
+- Add a profile system to allow storing multiple different configurations
+- Profiles can define multiple models with up to three types
+    - Fast
+    - Balanced
+    - Deep
+    - Types must be distinct for each profile
+    - Defaults to `balanced` if not specified
+- Defaults to `local` profile if no profile is specified
+    - model: `gemma3:12b`
+    - model_type: `balanced`
+
+### Commands
+
+#### `:model <optional model_type>`
+
+Switch the model type used by the current profile, if no model type is specified, print the profile's models.
+
+Model types are:
+
+- `fast`
+- `balanced`
+- `deep`
+
+#### `:profile <optional profile_name>`
+
+Switch the profile used by the current session, if no profile is specified, print the available profiles and their
+models.
+
+### Config
+
+Example of two profiles with one and two models:
+
+```toml
+[profiles_config]
+
+[[profiles_config.profiles]]
+name = "local"
+provider = "ollama"
+
+[[profiles_config.profiles.models]]
+model = "model1"
+model_type = "fast"
+
+[[profiles_config.profiles.models]]
+model = "model2"
+# model_type is optional, defaults to balanced
+
+[[profiles_config.profiles]]
+name = "remote"
+provider = "anthropic"
+
+[[profiles_config.profiles.models]]
+model = "model1"
+model_type = "fast"
+```
+
 ## 0.5.0
 
 _Add prompt command!_

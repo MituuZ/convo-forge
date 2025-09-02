@@ -14,9 +14,10 @@
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-use crate::api::ChatApi;
+use crate::api::ChatClient;
 use crate::command::command_util::get_editor;
 use crate::command::commands::CommandResult::HandlePrompt;
+use crate::config::profiles_config::ModelType;
 use crate::history_file::HistoryFile;
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -29,11 +30,15 @@ pub enum CommandResult {
     SwitchHistory(String),
     SwitchContext(Option<PathBuf>),
     HandlePrompt(PathBuf, Option<String>),
+    SwitchModel(ModelType),
+    PrintModels,
+    SwitchProfile(String),
+    PrintProfiles,
 }
 
 pub struct CommandParams<'a> {
     pub(crate) args: Vec<String>,
-    chat_api: &'a mut Box<dyn ChatApi>,
+    chat_api: &'a mut Box<dyn ChatClient>,
     history: &'a mut HistoryFile,
     cforge_dir: String,
 }
@@ -41,7 +46,7 @@ pub struct CommandParams<'a> {
 impl<'a> CommandParams<'a> {
     pub fn new(
         args: Vec<String>,
-        chat_api: &'a mut Box<dyn ChatApi>,
+        chat_api: &'a mut Box<dyn ChatClient>,
         history: &'a mut HistoryFile,
         cforge_dir: String,
     ) -> Self {
@@ -194,6 +199,22 @@ pub(crate) fn create_command_registry<'a>(
             prompt_command,
             default_prefixes.get("prompt").cloned(),
         ),
+        cmd(
+            "model",
+            "Change current model",
+            Some(":model <model_type>"),
+            None,
+            model_command,
+            None,
+        ),
+        cmd(
+            "profile",
+            "Change current profile",
+            Some(":profile <profile>"),
+            None,
+            profile_command,
+            None,
+        )
     ])
 }
 
@@ -211,6 +232,32 @@ fn prompt_command(command_params: CommandParams) -> io::Result<CommandResult> {
             };
 
             Ok(HandlePrompt(PathBuf::from(prompt_file), user_prompt))
+        }
+    }
+}
+
+fn model_command(command_params: CommandParams) -> io::Result<CommandResult> {
+    match command_params.args.first() {
+        Some(new_model) => {
+            if let Ok(new_model) = ModelType::parse_model_type(new_model) {
+                Ok(CommandResult::SwitchModel(new_model))
+            } else {
+                eprintln!("Error: Invalid model type specified: {}. Usage: :model <model>", new_model);
+                eprintln!("Valid models types are 'fast', 'balanced', or 'deep'\n");
+                Ok(CommandResult::PrintModels)
+            }
+        }
+        _ => {
+            Ok(CommandResult::PrintModels)
+        }
+    }
+}
+
+fn profile_command(command_params: CommandParams) -> io::Result<CommandResult> {
+    match command_params.args.first() {
+        Some(new_profile) => Ok(CommandResult::SwitchProfile(new_profile.to_string())),
+        _ => {
+            Ok(CommandResult::PrintProfiles)
         }
     }
 }
@@ -273,16 +320,14 @@ fn help_command(_command_params: CommandParams) -> io::Result<CommandResult> {
             .then(a.command_string.cmp(b.command_string))
     });
 
-    // Print regular command first
-    println!("General command:");
+    println!("General commands:");
     for cmd in &commands {
         if cmd.file_command.is_none() {
             println!("{}", cmd.display());
         }
     }
 
-    // Then print file command
-    println!("\nFile command (supports file completion):");
+    println!("\nFile commands (supports file completion):");
     for cmd in &commands {
         if cmd.file_command.is_some() {
             println!("{}", cmd.display());
@@ -338,11 +383,11 @@ mod tests {
     use std::env;
     use tempfile::TempDir;
 
-    struct MockApi {
+    struct MockClient {
         system_prompt: String,
     }
 
-    impl MockApi {
+    impl MockClient {
         fn new() -> Self {
             Self {
                 system_prompt: "".to_string(),
@@ -350,13 +395,13 @@ mod tests {
         }
     }
 
-    impl ChatApi for MockApi {
+    impl ChatClient for MockClient {
         fn generate_response(
             &self,
             _: serde_json::Value,
             _: &str,
             _: Option<&str>,
-        ) -> std::io::Result<String> {
+        ) -> io::Result<String> {
             Ok("Hello".to_string())
         }
 
@@ -367,14 +412,18 @@ mod tests {
         fn update_system_prompt(&mut self, system_prompt: String) {
             self.system_prompt = system_prompt;
         }
+
+        fn system_prompt(&self) -> String {
+            self.system_prompt.to_string()
+        }
     }
 
     /// Helper function to create the test environment
-    fn setup_test_environment() -> (Box<dyn ChatApi>, HistoryFile, TempDir, String) {
+    fn setup_test_environment() -> (Box<dyn ChatClient>, HistoryFile, TempDir, String) {
         let temp_dir = TempDir::new().unwrap();
         let dir_path = temp_dir.path().to_str().unwrap().to_string();
 
-        let chat_api = Box::new(MockApi::new());
+        let chat_client = Box::new(MockClient::new());
 
         // Create a temporary history file with some content
         let history_path = format!("{}/test-history.txt", dir_path);
@@ -382,7 +431,7 @@ mod tests {
 
         let history = HistoryFile::new("test-history.txt".to_string(), dir_path.clone()).unwrap();
 
-        (chat_api, history, temp_dir, dir_path)
+        (chat_client, history, temp_dir, dir_path)
     }
 
     #[test]
@@ -473,20 +522,182 @@ mod tests {
 
     #[test]
     fn test_sysprompt_command() -> io::Result<()> {
-        let (mut ollama_client, mut history, _temp_dir, dir_path) = setup_test_environment();
+        let (mut chat_client, mut history, _temp_dir, dir_path) = setup_test_environment();
+        let new_system_prompt = "This is a test system prompt";
+        let initial_system_prompt = chat_client.system_prompt().clone();
 
-        let test_prompt = "This is a test system prompt";
-        let args: Vec<String> = test_prompt
+        let args: Vec<String> = new_system_prompt
             .split_whitespace()
             .map(|s| s.to_string())
             .collect();
-        let params = CommandParams::new(args, &mut ollama_client, &mut history, dir_path);
+        let params = CommandParams::new(args, &mut chat_client, &mut history, dir_path);
 
+        assert_ne!(initial_system_prompt, new_system_prompt);
         let result = sysprompt_command(params)?;
         assert!(matches!(result, CommandResult::Continue));
 
         // Verify the prompt was updated
-        // assert_eq!(ollama_client.system_prompt, test_prompt);
+        assert_eq!(chat_client.system_prompt(), new_system_prompt);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_prompt_command_no_input() -> io::Result<()> {
+        let (mut chat_client, mut history, _temp_dir, dir_path) = setup_test_environment();
+
+        let empty_prompt = "";
+        let args: Vec<String> = empty_prompt
+            .split_whitespace()
+            .map(|s| s.to_string())
+            .collect();
+        let params = CommandParams::new(args, &mut chat_client, &mut history, dir_path);
+
+        let result = prompt_command(params)?;
+
+        assert!(matches!(result, CommandResult::Continue));
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_prompt_command_edit_prompt_file() -> io::Result<()> {
+        let (mut chat_client, mut history, _temp_dir, dir_path) = setup_test_environment();
+
+        let input = "prompt_file";
+        let args: Vec<String> = input
+            .split_whitespace()
+            .map(|s| s.to_string())
+            .collect();
+        let params = CommandParams::new(args, &mut chat_client, &mut history, dir_path);
+
+        let result = prompt_command(params)?;
+
+        if let HandlePrompt(file, user_prompt) = result {
+            assert_eq!(Some(user_prompt), Some(None));
+            assert_eq!(file, PathBuf::from(input));
+        } else {
+            panic!("Expected HandlePrompt result but got something else");
+        }
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_prompt_command() -> io::Result<()> {
+        let (mut chat_client, mut history, _temp_dir, dir_path) = setup_test_environment();
+
+        let test_prompt = "prompt_file This is a test prompt";
+        let args: Vec<String> = test_prompt
+            .split_whitespace()
+            .map(|s| s.to_string())
+            .collect();
+        let expected_prompt = Some(args[1..].join(" "));
+        let expected_file = PathBuf::from("prompt_file");
+        let params = CommandParams::new(args, &mut chat_client, &mut history, dir_path);
+
+        let result = prompt_command(params)?;
+
+        if let HandlePrompt(file, user_prompt) = result {
+            assert_eq!(Some(user_prompt), Some(expected_prompt));
+            assert_eq!(file, expected_file);
+        } else {
+            panic!("Expected HandlePrompt result but got something else");
+        }
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_model_command_no_input() -> io::Result<()> {
+        let (mut chat_client, mut history, _temp_dir, dir_path) = setup_test_environment();
+
+        let input = "";
+        let args: Vec<String> = input
+            .split_whitespace()
+            .map(|s| s.to_string())
+            .collect();
+        let params = CommandParams::new(args, &mut chat_client, &mut history, dir_path);
+
+        let result = model_command(params)?;
+
+        assert!(matches!(result, CommandResult::PrintModels));
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_model_command_invalid_input() -> io::Result<()> {
+        let (mut chat_client, mut history, _temp_dir, dir_path) = setup_test_environment();
+
+        let input = "not a valid model type";
+        let args: Vec<String> = input
+            .split_whitespace()
+            .map(|s| s.to_string())
+            .collect();
+        let params = CommandParams::new(args, &mut chat_client, &mut history, dir_path);
+
+        let result = model_command(params)?;
+
+        assert!(matches!(result, CommandResult::PrintModels));
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_model_command() -> io::Result<()> {
+        let (mut chat_client, mut history, _temp_dir, dir_path) = setup_test_environment();
+
+        let input = "fast";
+        let args: Vec<String> = input
+            .split_whitespace()
+            .map(|s| s.to_string())
+            .collect();
+        let params = CommandParams::new(args, &mut chat_client, &mut history, dir_path);
+
+        let result = model_command(params)?;
+
+        assert!(matches!(result, CommandResult::SwitchModel(ModelType::Fast)));
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_profile_command_no_input() -> io::Result<()> {
+        let (mut chat_client, mut history, _temp_dir, dir_path) = setup_test_environment();
+
+        let input = "";
+        let args: Vec<String> = input
+            .split_whitespace()
+            .map(|s| s.to_string())
+            .collect();
+        let params = CommandParams::new(args, &mut chat_client, &mut history, dir_path);
+
+        let result = profile_command(params)?;
+
+        assert!(matches!(result, CommandResult::PrintProfiles));
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_profile_command() -> io::Result<()> {
+        let (mut chat_client, mut history, _temp_dir, dir_path) = setup_test_environment();
+
+        let input = "no_profile";
+        let args: Vec<String> = input
+            .split_whitespace()
+            .map(|s| s.to_string())
+            .collect();
+        let params = CommandParams::new(args, &mut chat_client, &mut history, dir_path);
+
+        let result = profile_command(params)?;
+
+        if let CommandResult::SwitchProfile(profile) = result {
+            assert_eq!(profile, "no_profile");
+        } else {
+            panic!("Expected SwitchProfile result but got something else");
+        }
 
         Ok(())
     }
@@ -505,9 +716,11 @@ mod tests {
         assert!(registry.contains_key("edit"));
         assert!(registry.contains_key("context"));
         assert!(registry.contains_key("prompt"));
+        assert!(registry.contains_key("model"));
+        assert!(registry.contains_key("profile"));
 
         // Check the total number of command
-        assert_eq!(registry.len(), 8);
+        assert_eq!(registry.len(), 10);
     }
 
     #[test]

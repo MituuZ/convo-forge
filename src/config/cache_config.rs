@@ -12,31 +12,41 @@
  * WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS
  * OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- *
  */
 
+use crate::config::profiles_config::ModelType;
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::{
     fs::{read_to_string, write},
     io,
     path::PathBuf,
 };
 
-use serde::{Deserialize, Serialize};
-
 const CACHE_FILE: &str = "cforge.cache.toml";
 
 #[derive(Deserialize, Serialize)]
 pub struct CacheConfig {
     pub last_history_file: Option<String>,
+    pub last_profile_name: Option<String>,
+    pub profile_models: Option<HashMap<String, ModelType>>,
 }
 
 impl CacheConfig {
-    fn new(last_history_file: Option<String>) -> Self {
-        Self { last_history_file }
+    fn new(
+        last_history_file: Option<String>,
+        last_profile_name: Option<String>,
+        profile_models: Option<HashMap<String, ModelType>>,
+    ) -> Self {
+        Self {
+            last_history_file,
+            last_profile_name,
+            profile_models,
+        }
     }
 
     fn empty() -> Self {
-        Self::new(None)
+        Self::new(None, None, None)
     }
 
     pub(crate) fn load(cache_path: Option<PathBuf>) -> Self {
@@ -75,7 +85,7 @@ mod tests {
 
     use tempfile::TempDir;
 
-    use crate::config::cache_config::{CACHE_FILE, CacheConfig};
+    use crate::config::cache_config::{CacheConfig, CACHE_FILE};
 
     #[test]
     fn load_invalid_cache_config() {

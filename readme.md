@@ -9,6 +9,8 @@ A command-line interface for interacting with Ollama and Anthropic models.
 - Use commands to modify and customize the current session
 - Newlines are supported with ALT + ENTER
 - Reuse and modify prompts
+- Define multiple profiles with up to three models per profile (fast, balanced, deep)
+- Switch between profiles and models on the fly
 
 How the messages array is formed in the request JSON:
 
@@ -23,8 +25,10 @@ How the messages array is formed in the request JSON:
 ## Quick start
 
 ```bash
+# Note, requires the default model to be present for ollama (gemma3:12b)
 git clone https://github.com/mituuz/convo-forge.git
 cd convo-forge
+# When running the command for the first time, it generates a config file with the default values
 cargo run -- chat.md
 
 # Basic commands
@@ -84,103 +88,7 @@ cforge chat.txt -f code.rs
 
 ### Commands
 
-Commands can be entered during a chat by prepending the command with `:`. Commands are case-insensitive.
-
-- [Help](#help)
-- [List](#list)
-- [Switch](#switch)
-- [Edit](#edit)
-- [Exit](#exit)
-- [Sysprompt](#sysprompt)
-- [Context](#context)
-- [Prompt](#prompt)
-
-#### Path aliases
-
-These can be used to quickly find files from cforge and knowledge directories without having to write the full path.
-
-- `/` - Absolute path
-- ` ` - Relative to the current dir
-- `@c/` - Expands to the data directory
-- `@k/` - Expands to the knowledge directory
-- `@p/` - Expands to the prompt directory
-
-You can [configure](#configuration) each file command with a custom prefix, either a path alias or absolute path.
-
-e.g. `:swi <tab> :switch @c/`
-e.g. `:swi <tab> :switch /home/user/my_dir`
-
-#### Help
-
-List available commands.
-
-`:help`
-
-#### List
-
-List all files in the data directory, optionally add a filter string.
-
-`:list <filter>`
-
-#### Switch
-
-Switch to a different history file. Supports either absolute or relative paths in the data directory.
-
-`:switch relative/path`
-`:switch /absolute/path`
-
-Supports [path aliases](#path-aliases)
-
-#### Edit
-
-Open the current history file in the user's editor.
-
-1. `$EDITOR`
-2. `$VISUAL`
-3. windows - `notepad` (untested)
-4. other - `vi`
-
-`:edit`
-
-#### Exit
-
-Exit the current chat.
-
-`:q`
-
-#### Sysprompt
-
-Update the system prompt for this session. Does not modify any configurations.
-
-`:sysprompt Enter the new system prompt here`
-
-#### Context
-
-Change the context file for this session.
-
-`:context relative/path`
-`:context /absolute/path`
-
-Supports [path aliases](#path-aliases)
-
-#### Prompt
-
-Use or edit a prompt file. You can use `${{user_prompt}}` in a prompt file to control where
-the user prompt is inserted when the message is sent. If it is not included,
-the user prompt is appended after the prompt file content.
-
-To use a prompt file, write your actual prompt after the command and file.
-(e.g., using ALT + ENTER to move to the next line)
-
-```
-:prompt /path/to/file
-User prompt to send along the selected prompt
-```
-
-Edit a prompt by just calling
-
-`:prompt relative/path`
-`:prompt /absolute/path`
+For a full list of commands, see [docs/commands.md](docs/commands.md).
 
 ## Configuration
 
@@ -189,9 +97,6 @@ You can configure your cforge by creating and modifying TOML configuration locat
 An example toml populated with the default values.
 
 ```toml
-# AI model used.
-model = "gemma3:12b"
-
 # Path to the knowledge directory.
 # Aliased to `@k/`
 knowledge_dir = ""
@@ -208,10 +113,6 @@ Keep your answers helpful, concise, and relevant to both the user's direct query
 # Show estimated token count compared to the model's on each prompt if the provider supports it (ollama yes, anthropic no)
 token_estimation = true
 
-# ollama/anthropic
-# To use anthropic, use must have an environment variable `ANTHROPIC_API_KEY` set with a valid API key
-provider = "ollama"
-
 # Control the token limit for anthropic models
 max_tokens = 1024
 
@@ -224,6 +125,16 @@ switch = "@c/"
 list = "@c/"
 context = "@k/"
 prompt = "@p/"
+
+# You can define multiple profiles with up to three model types per profile (fast, balanced, deep)
+[profiles_config]
+[[profiles_config.profiles]]
+name = "local"
+provider = "ollama"
+
+[[profiles_config.profiles.models]]
+model = "gemma3:12b"
+model_type = "balanced"
 
 [rustyline]
 # Switch rustyline input mode between `emacs` and `vi`.

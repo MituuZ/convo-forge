@@ -13,6 +13,7 @@
  * OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
+use crate::config::profiles_config::{Profile, ProfilesConfig};
 use crate::config::rustyline_config::RustylineConfig;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -22,34 +23,42 @@ const CONFIG_FILE: &str = "cforge.toml";
 
 #[derive(Deserialize, Serialize)]
 pub struct UserConfig {
-    #[serde(default = "default_model")]
-    pub model: String,
-
     #[serde(default = "default_knowledge_dir")]
     pub knowledge_dir: String,
 
     #[serde(default = "default_system_prompt")]
     pub system_prompt: String,
 
-    #[serde(default)]
-    pub rustyline: RustylineConfig,
-
     #[serde(default = "default_token_estimation")]
     pub token_estimation: bool,
-
-    #[serde(default = "default_provider")]
-    pub provider: String,
 
     #[serde(default = "default_max_tokens")]
     pub max_tokens: usize,
 
     #[serde(default = "default_command_prefixes")]
     pub command_prefixes: HashMap<String, String>,
+
+    #[serde(default)]
+    pub rustyline: RustylineConfig,
+
+    #[serde(default)]
+    pub profiles_config: ProfilesConfig,
 }
 
 impl UserConfig {
     pub fn load(config_path: PathBuf) -> Self {
-        let config_str = fs::read_to_string(config_path.join(CONFIG_FILE)).unwrap_or_else(|e| {
+        let path = config_path.join(CONFIG_FILE);
+
+        if !path.exists() {
+            let default = UserConfig::default();
+            let toml_str =
+                toml::to_string_pretty(&default).expect("Could not serialize default config");
+            fs::write(&path, toml_str).expect("Could not write default config file");
+            println!("Created default config at {:?}", path);
+            return default;
+        }
+
+        let config_str = fs::read_to_string(&path).unwrap_or_else(|e| {
             panic!("Could not read config file: {e}");
         });
 
@@ -59,19 +68,57 @@ impl UserConfig {
 
         config
     }
+
+    /// This method searches for a profile with the given `profile_name`
+    /// in the list of profiles. If a profile with the specified name is
+    /// found, it is returned. Otherwise, the first profile in the list is
+    /// returned as a fallback. The fallback behavior assumes that the
+    /// `profiles_config` is never empty because it has been validated
+    /// during the `load()` process.
+    ///
+    /// # Returns
+    ///
+    /// * A reference to the `Profile` that matches the given name, or the
+    ///   first profile in the list if no match is found.
+    ///
+    /// # Panics
+    ///
+    /// This function will panic if it attempts to unwrap the first profile
+    /// and `profiles_config.profiles` is empty. However, this situation
+    /// should not occur because `profiles_config` is assumed to be validated
+    /// during the `load()` process to ensure that it always contains at least
+    /// one profile.
+    pub fn find_profile(&self, profile_name: &str) -> Profile {
+        match self
+            .profiles_config
+            .profiles
+            .iter()
+            .find(|profile| profile.name == profile_name)
+        {
+            Some(profile) => profile.clone(),
+            // This can never be empty, because profiles_config is validated in load()
+            None => {
+                let profile = self.profiles_config.profiles.first().unwrap();
+                eprintln!(
+                    "Profile {} not found, using {} profile instead",
+                    profile_name, profile.name
+                );
+                profile.clone()
+            }
+        }
+    }
 }
 
 impl Default for UserConfig {
     fn default() -> Self {
         Self {
-            model: default_model(),
             knowledge_dir: default_knowledge_dir(),
             system_prompt: default_system_prompt(),
             rustyline: RustylineConfig::default(),
             token_estimation: default_token_estimation(),
-            provider: default_provider(),
             max_tokens: default_max_tokens(),
             command_prefixes: default_command_prefixes(),
+            profiles_config: ProfilesConfig::default(),
         }
     }
 }
@@ -87,16 +134,8 @@ fn default_command_prefixes() -> HashMap<String, String> {
     path_aliases
 }
 
-fn default_model() -> String {
-    "gemma3:12b".to_string()
-}
-
 fn default_token_estimation() -> bool {
     true
-}
-
-fn default_provider() -> String {
-    "ollama".to_string()
 }
 
 fn default_max_tokens() -> usize {
@@ -129,8 +168,6 @@ mod tests {
     fn default_values() {
         let config = UserConfig::default();
         assert_eq!(true, config.token_estimation);
-        assert_eq!("ollama", config.provider);
-        assert_eq!("gemma3:12b", config.model);
         assert_eq!(1024, config.max_tokens);
         assert_eq!("", config.knowledge_dir);
 
@@ -151,10 +188,7 @@ mod tests {
         assert_eq!("@p/", config.command_prefixes.get("prompt").unwrap());
         assert_eq!(4, config.command_prefixes.len());
 
-        assert_eq!(
-            RustylineConfig::default(),
-            config.rustyline
-        );
+        assert_eq!(RustylineConfig::default(), config.rustyline);
     }
 
     #[test]
@@ -186,7 +220,6 @@ mod tests {
         let config = UserConfig::load(temp_dir.path().to_path_buf());
 
         assert_eq!(false, config.token_estimation);
-        assert_eq!("anthropic", config.provider);
     }
 
     #[test]
@@ -196,8 +229,6 @@ mod tests {
 
         // Should use defaults
         assert_eq!(true, config.token_estimation);
-        assert_eq!("ollama", config.provider);
-        assert_eq!("gemma3:12b", config.model);
         assert_eq!(1024, config.max_tokens);
         assert_eq!("", config.knowledge_dir);
     }

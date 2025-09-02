@@ -12,7 +12,6 @@
  * WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS
  * OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- *
  */
 
 use serde::Deserialize;
@@ -20,8 +19,8 @@ use serde_json::Value;
 use std::io;
 use std::process::Command;
 
-use crate::api::ChatApi;
 use crate::api::client_util::create_messages;
+use crate::api::ChatClient;
 
 static LLM_PROTOCOL: &str = "http";
 static LLM_HOST: &str = "localhost";
@@ -46,7 +45,7 @@ pub(crate) struct OllamaMessage {
     pub(crate) content: String,
 }
 
-impl ChatApi for OllamaClient {
+impl ChatClient for OllamaClient {
     fn generate_response(
         &self,
         history_messages_json: Value,
@@ -73,6 +72,10 @@ impl ChatApi for OllamaClient {
 
     fn update_system_prompt(&mut self, new_system_prompt: String) {
         self.system_prompt = new_system_prompt;
+    }
+
+    fn system_prompt(&self) -> String {
+        self.system_prompt.to_string()
     }
 }
 

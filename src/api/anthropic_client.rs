@@ -12,12 +12,11 @@
  * WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS
  * OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- *
  */
 use serde_json::Value;
 use std::{env, io};
 
-use crate::api::{ChatApi, client_util::create_messages};
+use crate::api::{client_util::create_messages, ChatClient};
 
 static LLM_PROTOCOL: &str = "https";
 static LLM_HOST: &str = "api.anthropic.com";
@@ -29,7 +28,7 @@ pub struct AnthropicClient {
     max_tokens: usize,
 }
 
-impl ChatApi for AnthropicClient {
+impl ChatClient for AnthropicClient {
     fn generate_response(
         &self,
         history_messages_json: Value,
@@ -56,6 +55,10 @@ impl ChatApi for AnthropicClient {
 
     fn update_system_prompt(&mut self, system_prompt: String) {
         self.system_prompt = system_prompt;
+    }
+
+    fn system_prompt(&self) -> String {
+        self.system_prompt.to_string()
     }
 }
 

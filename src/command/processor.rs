@@ -13,33 +13,34 @@
  * OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-use std::collections::HashMap;
-use std::path::PathBuf;
-use std::{fs, io};
-
-use crate::api::ChatApi;
+use crate::api::ChatClient;
 use crate::command::command_util::get_editor;
 use crate::command::commands::{CommandParams, CommandResult, CommandStruct};
 use crate::config::AppConfig;
 use crate::history_file::HistoryFile;
 use crate::user_input::{Command, UserInput};
+use std::collections::HashMap;
+use std::path::PathBuf;
+use std::{fs, io};
 
 pub(crate) struct CommandProcessor<'a> {
-    chat_api: &'a mut Box<dyn ChatApi>,
+    chat_api: &'a mut Box<dyn ChatClient>,
     history: &'a mut HistoryFile,
     app_config: &'a mut AppConfig,
     command_registry: &'a HashMap<String, CommandStruct<'a>>,
     context_file_path: &'a mut Option<PathBuf>,
+    rebuild_chat_client: &'a mut bool,
     context_file_content: Option<String>,
 }
 
 impl<'a> CommandProcessor<'a> {
     pub fn new(
-        chat_api: &'a mut Box<dyn ChatApi>,
+        chat_api: &'a mut Box<dyn ChatClient>,
         history: &'a mut HistoryFile,
         app_config: &'a mut AppConfig,
         command_registry: &'a HashMap<String, CommandStruct<'a>>,
         context_file_path: &'a mut Option<PathBuf>,
+        update_chat_api: &'a mut bool,
         context_file_content: Option<String>,
     ) -> Self {
         Self {
@@ -48,6 +49,7 @@ impl<'a> CommandProcessor<'a> {
             app_config,
             command_registry,
             context_file_path,
+            rebuild_chat_client: update_chat_api,
             context_file_content,
         }
     }
@@ -90,20 +92,62 @@ impl<'a> CommandProcessor<'a> {
                         println!("Removed context file");
                     }
                 },
-                CommandResult::HandlePrompt(prompt_file, user_prompt) => {
-                    match user_prompt {
-                        None => {
-                            let editor = get_editor();
+                CommandResult::HandlePrompt(prompt_file, user_prompt) => match user_prompt {
+                    None => {
+                        let editor = get_editor();
 
-                            let status = std::process::Command::new(editor).arg(prompt_file).status();
-                            if !status.is_ok_and(|s| s.success()) {
-                                eprintln!("Error opening file in editor");
-                            }
+                        let status = std::process::Command::new(editor).arg(prompt_file).status();
+                        if !status.is_ok_and(|s| s.success()) {
+                            eprintln!("Error opening file in editor");
                         }
-                        Some(user_prompt) => {
-                            let combined_prompt = Self::combine(prompt_file, user_prompt);
-                            self.handle_prompt(combined_prompt)?;
-                        }
+                    }
+                    Some(user_prompt) => {
+                        let combined_prompt = Self::combine(prompt_file, user_prompt);
+                        self.handle_prompt(combined_prompt)?;
+                    }
+                },
+                CommandResult::SwitchModel(new_model) => {
+                    let maybe_model = self.app_config.current_profile.maybe_model(new_model);
+
+                    if let Some(model) = maybe_model {
+                        self.app_config.switch_model(&model);
+                        *self.rebuild_chat_client = true;
+                    } else {
+                        println!(
+                            "Model of type {} not found in profile {}",
+                            new_model, self.app_config.current_profile.name
+                        );
+                        self.app_config
+                            .current_profile
+                            .print_models(&self.app_config.current_model.model_type, "  ");
+                        return Ok(CommandResult::Continue);
+                    }
+                }
+                CommandResult::SwitchProfile(new_profile) => {
+                    let maybe_profile = self.app_config.maybe_profile(new_profile);
+
+                    if let Some(profile) = maybe_profile {
+                        self.app_config.switch_profile(&profile);
+                        *self.rebuild_chat_client = true;
+                    } else {
+                        println!("No profile found with name: {}", new_profile);
+                        return Ok(CommandResult::Continue);
+                    }
+                }
+                CommandResult::PrintModels => {
+                    let current_profile = self.app_config.get_profile();
+                    current_profile.print_models(
+                        &self.app_config.current_model.model_type,
+                        "  ",
+                    );
+                }
+                CommandResult::PrintProfiles => {
+                    for profile in &self.app_config.user_config.profiles_config.profiles {
+                        profile.print(
+                            &self.app_config.current_profile.name,
+                            &self.app_config.current_model.model_type,
+                        );
+                        println!();
                     }
                 }
                 _ => {}
