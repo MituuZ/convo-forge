@@ -380,6 +380,7 @@ fn context_file_command(command_params: CommandParams) -> io::Result<CommandResu
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::api::ChatResponse;
     use std::env;
     use tempfile::TempDir;
 
@@ -401,8 +402,11 @@ mod tests {
             _: serde_json::Value,
             _: &str,
             _: Option<&str>,
-        ) -> io::Result<String> {
-            Ok("Hello".to_string())
+        ) -> io::Result<ChatResponse> {
+            Ok(ChatResponse {
+                content: "Hello".to_string(),
+                tool_calls: None,
+            })
         }
 
         fn model_context_size(&self) -> Option<usize> {

@@ -15,12 +15,12 @@
  */
 use serde::Deserialize;
 use serde_json::Value;
-use std::fmt::{Display, Formatter};
+use std::fmt::Display;
 use std::io;
 use std::process::Command;
 
 use crate::api::client_util::create_messages;
-use crate::api::ChatClient;
+use crate::api::{ChatClient, ChatResponse, ToolCall};
 
 static LLM_PROTOCOL: &str = "http";
 static LLM_HOST: &str = "localhost";
@@ -52,35 +52,13 @@ pub(crate) struct OllamaMessage {
     pub(crate) tool_calls: Option<Vec<ToolCall>>,
 }
 
-#[derive(Deserialize, Debug)]
-pub(crate) struct ToolCall {
-    pub(crate) function: Function,
-}
-
-#[derive(Deserialize, Debug)]
-pub(crate) struct Function {
-    pub(crate) name: String,
-    pub(crate) arguments: serde_json::Value,
-}
-
-impl Display for ToolCall {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "Function: {}, Arguments: {}",
-            self.function.name,
-            self.function.arguments
-        )
-    }
-}
-
 impl ChatClient for OllamaClient {
     fn generate_response(
         &self,
         history_messages_json: Value,
         user_prompt: &str,
         context_content: Option<&str>,
-    ) -> io::Result<String> {
+    ) -> io::Result<ChatResponse> {
         let messages = create_messages(
             &self.system_prompt,
             context_content.unwrap_or(""),
@@ -92,7 +70,10 @@ impl ChatClient for OllamaClient {
         let send_body = Self::build_json_body(&self.model_information, messages);
 
         let response = Self::poll_for_response(&send_body)?;
-        Ok(response.message.content)
+        Ok(ChatResponse {
+            content: response.message.content,
+            tool_calls: response.message.tool_calls,
+        })
     }
 
     fn model_context_size(&self) -> Option<usize> {
@@ -178,13 +159,6 @@ impl OllamaClient {
             .body_mut()
             .read_json()
             .map_err(|e| io::Error::other(e.to_string()))?;
-
-        if let Some(tools) = ollama_response.message.tool_calls.as_ref() {
-            println!("\nModel requested following tool calls:");
-            for tool in tools {
-                println!("{tool}");
-            }
-        }
 
         Ok(ollama_response)
     }
@@ -353,7 +327,8 @@ mod tests {
     embedding length    2560      
     quantization        Q4_K_M"#;
 
-        let context_size = OllamaClient::parse_model_information(no_context_length, "").context_size;
+        let context_size =
+            OllamaClient::parse_model_information(no_context_length, "").context_size;
         assert_eq!(context_size, None);
     }
 
@@ -383,7 +358,8 @@ mod tests {
     tools
     "#;
 
-        let tools_supported = OllamaClient::parse_model_information(invalid_format, "").supports_tools;
+        let tools_supported =
+            OllamaClient::parse_model_information(invalid_format, "").supports_tools;
         assert!(tools_supported);
     }
 
@@ -399,7 +375,8 @@ mod tests {
     completion
     "#;
 
-        let tools_supported = OllamaClient::parse_model_information(invalid_format, "").supports_tools;
+        let tools_supported =
+            OllamaClient::parse_model_information(invalid_format, "").supports_tools;
         assert!(!tools_supported);
     }
 
@@ -416,7 +393,8 @@ mod tests {
     completion
     "#;
 
-        let tools_supported = OllamaClient::parse_model_information(invalid_format, "").supports_tools;
+        let tools_supported =
+            OllamaClient::parse_model_information(invalid_format, "").supports_tools;
         assert!(!tools_supported);
     }
 }

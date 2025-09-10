@@ -185,18 +185,27 @@ impl<'a> CommandProcessor<'a> {
             self.context_file_content.as_deref(),
         )?;
 
+        // Print the initial AI response with the delimiter to make it easier to parse
+        println!("{}", self.history.append_ai_response(&llm_response.content)?);
+
+        // How the hell should I handle multiple tool calls and responses.
+        // Run them all, concat and feed back to the LLM?
+        if let Some(tool_calls) = &llm_response.tool_calls {
+            println!("\nModel requested following tool calls:");
+            for tool in tool_calls {
+                println!("{tool}")
+            }
+        }
+
         // TODO
         // Match the LLM response to a simple response or MCP tool call
         // If it's a simple response, print it and return
         // If it's a MCP tool call: (Note: there can be multiple tool calls in the response)
         // 1. Print the tool name and the tool parameters to the user
         // 2. Execute the tool
-        // 3. Call `handle_prompt` again with the result
+        // 3. Call `handle_prompt` again with the result (remember to use `tool` role)
 
         self.history.append_user_input(&prompt)?;
-
-        // Print the AI response with the delimiter to make it easier to parse
-        println!("{}", self.history.append_ai_response(&llm_response)?);
 
         Ok(CommandResult::Continue)
     }

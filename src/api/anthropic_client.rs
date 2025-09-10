@@ -16,7 +16,7 @@
 use serde_json::Value;
 use std::{env, io};
 
-use crate::api::{client_util::create_messages, ChatClient};
+use crate::api::{client_util::create_messages, ChatClient, ChatResponse};
 
 static LLM_PROTOCOL: &str = "https";
 static LLM_HOST: &str = "api.anthropic.com";
@@ -34,7 +34,7 @@ impl ChatClient for AnthropicClient {
         history_messages_json: Value,
         user_prompt: &str,
         context_content: Option<&str>,
-    ) -> io::Result<String> {
+    ) -> io::Result<ChatResponse> {
         let messages = create_messages(
             &self.system_prompt,
             context_content.unwrap_or(""),
@@ -46,7 +46,10 @@ impl ChatClient for AnthropicClient {
         let send_body = Self::build_json_body(&self.model, self.max_tokens, messages);
 
         let response = Self::send_request_and_handle_response(&send_body)?;
-        Ok(response)
+        Ok(ChatResponse {
+            content: response,
+            tool_calls: None,
+        })
     }
 
     fn model_context_size(&self) -> Option<usize> {
