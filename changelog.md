@@ -4,7 +4,9 @@
 
 _Support tools for Ollama_
 
-- Check if current model has `tools` capability
+### Added
+
+- Check if current model has `tools` capability and enable tool calls if it does
 - Report tool calls when they are made
 
 ## 0.6.0
