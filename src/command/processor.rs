@@ -24,7 +24,7 @@ use std::path::PathBuf;
 use std::{fs, io};
 
 pub(crate) struct CommandProcessor<'a> {
-    chat_api: &'a mut Box<dyn ChatClient>,
+    chat_client: &'a mut Box<dyn ChatClient>,
     history: &'a mut HistoryFile,
     app_config: &'a mut AppConfig,
     command_registry: &'a HashMap<String, CommandStruct<'a>>,
@@ -35,21 +35,21 @@ pub(crate) struct CommandProcessor<'a> {
 
 impl<'a> CommandProcessor<'a> {
     pub fn new(
-        chat_api: &'a mut Box<dyn ChatClient>,
+        chat_client: &'a mut Box<dyn ChatClient>,
         history: &'a mut HistoryFile,
         app_config: &'a mut AppConfig,
         command_registry: &'a HashMap<String, CommandStruct<'a>>,
         context_file_path: &'a mut Option<PathBuf>,
-        update_chat_api: &'a mut bool,
+        rebuild_chat_client: &'a mut bool,
         context_file_content: Option<String>,
     ) -> Self {
         Self {
-            chat_api,
+            chat_client,
             history,
             app_config,
             command_registry,
             context_file_path,
-            rebuild_chat_client: update_chat_api,
+            rebuild_chat_client,
             context_file_content,
         }
     }
@@ -64,7 +64,7 @@ impl<'a> CommandProcessor<'a> {
     fn handle_command(&mut self, command: Command) -> io::Result<CommandResult> {
         let command_params = CommandParams::new(
             command.args,
-            self.chat_api,
+            self.chat_client,
             self.history,
             self.app_config.data_dir.display().to_string(),
         );
@@ -179,11 +179,19 @@ impl<'a> CommandProcessor<'a> {
             }
         };
 
-        let llm_response = self.chat_api.generate_response(
+        let llm_response = self.chat_client.generate_response(
             history_json,
             &prompt,
             self.context_file_content.as_deref(),
         )?;
+
+        // TODO
+        // Match the LLM response to a simple response or MCP tool call
+        // If it's a simple response, print it and return
+        // If it's a MCP tool call:
+        // 1. Print the tool name and the tool parameters to the user
+        // 2. Execute the tool
+        // 3. Call `handle_prompt` again with the result
 
         self.history.append_user_input(&prompt)?;
 

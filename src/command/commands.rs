@@ -38,7 +38,7 @@ pub enum CommandResult {
 
 pub struct CommandParams<'a> {
     pub(crate) args: Vec<String>,
-    chat_api: &'a mut Box<dyn ChatClient>,
+    chat_client: &'a mut Box<dyn ChatClient>,
     history: &'a mut HistoryFile,
     cforge_dir: String,
 }
@@ -46,13 +46,13 @@ pub struct CommandParams<'a> {
 impl<'a> CommandParams<'a> {
     pub fn new(
         args: Vec<String>,
-        chat_api: &'a mut Box<dyn ChatClient>,
+        chat_client: &'a mut Box<dyn ChatClient>,
         history: &'a mut HistoryFile,
         cforge_dir: String,
     ) -> Self {
         CommandParams {
             args,
-            chat_api,
+            chat_client,
             history,
             cforge_dir,
         }
@@ -363,7 +363,7 @@ fn edit_command(command_params: CommandParams) -> io::Result<CommandResult> {
 
 fn sysprompt_command(command_params: CommandParams) -> io::Result<CommandResult> {
     command_params
-        .chat_api
+        .chat_client
         .update_system_prompt(command_params.args.join(" "));
     Ok(CommandResult::Continue)
 }
