@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.7.0
+
+_Support tools for Ollama_
+
+- Check if current model has `tools` capability
+- Report tool calls when they are made
+
 ## 0.6.0
 
 _Add profiles_

@@ -188,7 +188,7 @@ impl<'a> CommandProcessor<'a> {
         // TODO
         // Match the LLM response to a simple response or MCP tool call
         // If it's a simple response, print it and return
-        // If it's a MCP tool call:
+        // If it's a MCP tool call: (Note: there can be multiple tool calls in the response)
         // 1. Print the tool name and the tool parameters to the user
         // 2. Execute the tool
         // 3. Call `handle_prompt` again with the result
