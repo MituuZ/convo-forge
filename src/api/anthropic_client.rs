@@ -52,6 +52,10 @@ impl ChatClient for AnthropicClient {
         })
     }
 
+    fn generate_tool_response(&self, _: Value) -> Result<ChatResponse, io::Error> {
+        todo!()
+    }
+
     fn model_context_size(&self) -> Option<usize> {
         None
     }

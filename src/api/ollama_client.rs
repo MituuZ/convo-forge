@@ -66,6 +66,17 @@ impl ChatClient for OllamaClient {
         Ok(response.message)
     }
 
+    fn generate_tool_response(&self, tool_responses: Value) -> io::Result<ChatResponse> {
+        let send_body = serde_json::json!({
+            "model": self.model_information.model,
+            "messages": tool_responses,
+            "stream": false,
+        });
+
+        let response = Self::poll_for_response(&send_body)?;
+        Ok(response.message)
+    }
+
     fn model_context_size(&self) -> Option<usize> {
         self.model_information.context_size
     }

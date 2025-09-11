@@ -12,7 +12,6 @@
  * WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS
  * OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- *
  */
 
 use lazy_static::lazy_static;
@@ -26,6 +25,12 @@ static DELIMITER_USER_INPUT: &str = r#"
 
 -------------------------------------------------------------------
                         --- User Input ---
+-------------------------------------------------------------------
+"#;
+static DELIMITER_TOOL_INPUT: &str = r#"
+
+-------------------------------------------------------------------
+                        --- Tool Input ---
 -------------------------------------------------------------------
 "#;
 static DELIMITER_AI_RESPONSE: &str = r#"
@@ -178,6 +183,25 @@ impl HistoryFile {
         self.content.push_str(&entry);
 
         Ok(())
+    }
+
+    pub(crate) fn append_tool_input(&mut self, input: String) -> io::Result<(String)> {
+        let mut file = OpenOptions::new().append(true).open(&self.path)?;
+
+        let entry = format!("{DELIMITER_TOOL_INPUT}{input}");
+        file.write_all(entry.as_bytes())?;
+
+        self.content.push_str(&entry);
+
+        Ok(input.to_string())
+    }
+
+    pub(crate) fn maybe_append_ai_response(&mut self, response: &str) -> io::Result<(String)> {
+        if response.trim().is_empty() {
+            Ok(String::new())
+        } else {
+            self.append_ai_response(response)
+        }
     }
 
     /// Append AI response to the history file and update internal content

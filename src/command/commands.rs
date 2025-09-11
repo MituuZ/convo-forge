@@ -381,6 +381,7 @@ fn context_file_command(command_params: CommandParams) -> io::Result<CommandResu
 mod tests {
     use super::*;
     use crate::api::ChatResponse;
+    use serde_json::Value;
     use std::env;
     use tempfile::TempDir;
 
@@ -399,7 +400,7 @@ mod tests {
     impl ChatClient for MockClient {
         fn generate_response(
             &self,
-            _: serde_json::Value,
+            _: Value,
             _: &str,
             _: Option<&str>,
         ) -> io::Result<ChatResponse> {
@@ -407,6 +408,10 @@ mod tests {
                 content: "Hello".to_string(),
                 tool_calls: None,
             })
+        }
+
+        fn generate_tool_response(&self, _: Value) -> Result<ChatResponse, io::Error> {
+            todo!()
         }
 
         fn model_context_size(&self) -> Option<usize> {

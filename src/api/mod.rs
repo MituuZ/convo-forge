@@ -15,7 +15,9 @@
  */
 use crate::api::{anthropic_client::AnthropicClient, ollama_client::OllamaClient};
 use serde::Deserialize;
+use serde_json::Value;
 use std::fmt::{Display, Formatter};
+use std::io;
 
 pub mod anthropic_client;
 mod client_util;
@@ -51,10 +53,15 @@ impl Display for ToolCall {
 pub trait ChatClient {
     fn generate_response(
         &self,
-        history_messages_json: serde_json::Value,
+        history_messages_json: Value,
         user_prompt: &str,
         context_content: Option<&str>,
-    ) -> std::io::Result<ChatResponse>;
+    ) -> io::Result<ChatResponse>;
+
+    fn generate_tool_response(
+        &self,
+        tool_prompt: Value,
+    ) -> io::Result<ChatResponse>;
 
     fn model_context_size(&self) -> Option<usize>;
 

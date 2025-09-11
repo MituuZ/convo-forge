@@ -18,7 +18,9 @@ use crate::command::command_util::get_editor;
 use crate::command::commands::{CommandParams, CommandResult, CommandStruct};
 use crate::config::AppConfig;
 use crate::history_file::HistoryFile;
+use crate::tools::tools::get_tools;
 use crate::user_input::{Command, UserInput};
+use serde_json::Value;
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::{fs, io};
@@ -136,10 +138,7 @@ impl<'a> CommandProcessor<'a> {
                 }
                 CommandResult::PrintModels => {
                     let current_profile = self.app_config.get_profile();
-                    current_profile.print_models(
-                        &self.app_config.current_model.model_type,
-                        "  ",
-                    );
+                    current_profile.print_models(&self.app_config.current_model.model_type, "  ");
                 }
                 CommandResult::PrintProfiles => {
                     for profile in &self.app_config.user_config.profiles_config.profiles {
@@ -185,27 +184,67 @@ impl<'a> CommandProcessor<'a> {
             self.context_file_content.as_deref(),
         )?;
 
-        // Print the initial AI response with the delimiter to make it easier to parse
-        println!("{}", self.history.append_ai_response(&llm_response.content)?);
+        self.history.append_user_input(&prompt)?;
+
+        // Print and save the initial AI response with the delimiter
+        println!(
+            "{}",
+            self.history
+                .maybe_append_ai_response(&llm_response.content)?
+        );
 
         // How the hell should I handle multiple tool calls and responses.
         // Run them all, concat and feed back to the LLM?
+        // If the response contains any MCP tool calls:
+        // 1. Print the tool name and the tool parameters to the user
+        // 2. Execute the tools in a loop
+        // 3. Call `handle_prompt` again with the result (remember to use the `tool` role)
         if let Some(tool_calls) = &llm_response.tool_calls {
+            let mut results = Value::Array(Vec::new());
+
             println!("\nModel requested following tool calls:");
-            for tool in tool_calls {
-                println!("{tool}")
+            let tools = get_tools();
+            for tool_call in tool_calls {
+                let maybe_tool = tools.iter().find(|t| t.name == tool_call.function.name);
+                match maybe_tool {
+                    Some(tool) => {
+                        println!("Tool: {} ({})", tool.name, tool.description);
+
+                        let mut result = format!(
+                            "Result from a tool '{}' with function '{}': ",
+                            tool.name, tool.description
+                        )
+                            .to_string();
+                        result.push_str(&*tool.execute(tool_call.function.arguments.clone()));
+                        result.push_str("");
+
+                        results.as_array_mut().unwrap().push(serde_json::json!({
+                            "content": result,
+                            "role": "tool"
+                        }));
+                        println!("Result: {}", self.history.append_tool_input(result)?);
+                    }
+                    None => println!("Tool '{}' not found", tool_call.function.name),
+                };
+            }
+
+            if results.as_array().unwrap().is_empty() {
+                return Ok(CommandResult::Continue);
+            } else {
+                results.as_array_mut().unwrap().push(serde_json::json!({
+                    "content": "Note! The user does not see tool results, so you MUST include them in your response.",
+                    "role": "tool"
+                }));
+
+                // Send, print and save the tool response with the delimiter
+                let tool_response = self.chat_client.generate_tool_response(results)?;
+
+                println!(
+                    "{}",
+                    self.history.append_ai_response(&tool_response.content)?
+                );
             }
         }
-
-        // TODO
-        // Match the LLM response to a simple response or MCP tool call
-        // If it's a simple response, print it and return
-        // If it's a MCP tool call: (Note: there can be multiple tool calls in the response)
-        // 1. Print the tool name and the tool parameters to the user
-        // 2. Execute the tool
-        // 3. Call `handle_prompt` again with the result (remember to use `tool` role)
-
-        self.history.append_user_input(&prompt)?;
 
         Ok(CommandResult::Continue)
     }
