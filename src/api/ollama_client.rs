@@ -15,12 +15,11 @@
  */
 use serde::Deserialize;
 use serde_json::Value;
-use std::fmt::Display;
 use std::io;
 use std::process::Command;
 
 use crate::api::client_util::create_messages;
-use crate::api::{ChatClient, ChatResponse, ToolCall};
+use crate::api::{ChatClient, ChatResponse};
 
 static LLM_PROTOCOL: &str = "http";
 static LLM_HOST: &str = "localhost";
@@ -40,16 +39,10 @@ pub struct OllamaClient {
 
 #[derive(Deserialize, Debug)]
 pub(crate) struct OllamaResponse {
-    pub(crate) message: OllamaMessage,
+    pub(crate) chat_response: ChatResponse,
     pub(crate) done: bool,
     pub(crate) done_reason: String,
     // pub(crate) error: Option<String>, TODO: Check if this can be used
-}
-
-#[derive(Deserialize, Debug)]
-pub(crate) struct OllamaMessage {
-    pub(crate) content: String,
-    pub(crate) tool_calls: Option<Vec<ToolCall>>,
 }
 
 impl ChatClient for OllamaClient {
@@ -70,10 +63,7 @@ impl ChatClient for OllamaClient {
         let send_body = Self::build_json_body(&self.model_information, messages);
 
         let response = Self::poll_for_response(&send_body)?;
-        Ok(ChatResponse {
-            content: response.message.content,
-            tool_calls: response.message.tool_calls,
-        })
+        Ok(response.chat_response)
     }
 
     fn model_context_size(&self) -> Option<usize> {
@@ -128,7 +118,7 @@ impl OllamaClient {
         });
 
         match Self::send_request_and_handle_response(&send_body) {
-            Ok(response) => Ok(response.message.content),
+            Ok(response) => Ok(response.chat_response.content),
             Err(e) => Err(e),
         }
     }
@@ -138,7 +128,7 @@ impl OllamaClient {
 
         if ollama_response.done
             && ollama_response.done_reason == "load"
-            && ollama_response.message.content.is_empty()
+            && ollama_response.chat_response.content.is_empty()
         {
             println!("Model responded with an empty message. Retrying request...");
 
