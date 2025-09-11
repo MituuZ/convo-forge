@@ -82,6 +82,10 @@ impl ChatClient for OllamaClient {
         self.model_information.context_size
     }
 
+    fn model_supports_tools(&self) -> bool {
+        self.model_information.supports_tools
+    }
+
     fn update_system_prompt(&mut self, new_system_prompt: String) {
         self.system_prompt = new_system_prompt;
     }

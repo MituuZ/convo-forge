@@ -95,6 +95,12 @@ fn main() -> io::Result<()> {
             rebuild_chat_client = false;
         }
 
+        if &app_config.current_profile.provider == "ollama" {
+            if chat_client.model_supports_tools() {
+                println!("Model supports tools");
+            }
+        }
+
         // Read the context file if provided
         let context_file_content = if let Some(file_path) = &context_file_path {
             match fs::read_to_string(file_path.clone()) {

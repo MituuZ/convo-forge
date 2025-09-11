@@ -418,6 +418,10 @@ mod tests {
             None
         }
 
+        fn model_supports_tools(&self) -> bool {
+            false
+        }
+
         fn update_system_prompt(&mut self, system_prompt: String) {
             self.system_prompt = system_prompt;
         }
