@@ -13,14 +13,13 @@
  * OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-use crate::api::ChatClient;
+use crate::api::{ChatClient, ChatResponse, ToolCall};
 use crate::command::command_util::get_editor;
 use crate::command::commands::{CommandParams, CommandResult, CommandStruct};
 use crate::config::AppConfig;
 use crate::history_file::HistoryFile;
-use crate::tools::tools::get_tools;
+use crate::tools::tools::{get_tools, Tool};
 use crate::user_input::{Command, UserInput};
-use serde_json::Value;
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::{fs, io};
@@ -169,6 +168,73 @@ impl<'a> CommandProcessor<'a> {
         }
     }
 
+    fn handle_tool_prompt(&mut self, tool_prompt: ChatResponse) -> io::Result<CommandResult> {
+        // Print and save the initial AI response with the delimiter
+        println!(
+            "{}",
+            self.history
+                .maybe_append_ai_response(&tool_prompt.content)?
+        );
+
+        if let Some(tool_calls) = &tool_prompt.tool_calls {
+            println!("\nModel requested following tool calls:");
+            let tools = get_tools();
+
+            // Run the first tool call and continue
+            let mut tool: Option<&Tool> = None;
+            let mut i = 0;
+            let mut tool_call: Option<&ToolCall> = None;
+
+            while tool.is_none() && i < tool_calls.len() {
+                let tc = &tool_calls[i];
+                tool_call = Some(tc);
+                let maybe_tool = tools.iter().find(|t| t.name == tc.function.name);
+                if let Some(t) = maybe_tool {
+                    tool = Some(t);
+                }
+                i += 1;
+            }
+
+            if let Some(t) = tool
+                && let Some(tc) = tool_call
+            {
+                println!("Tool request: {} ({})", t.name, t.description);
+
+                let mut result = format!(
+                    "Result from a tool '{}' with function '{}' and params {}: ",
+                    t.name, t.description, tc.function.arguments
+                )
+                    .to_string();
+                result.push_str(&*t.execute(tc.function.arguments.clone()));
+                result.push_str(
+                    "Note! The user does not see tool results, so you MUST include them in your response. You can make more tool requests now if necessary."
+                );
+
+                let param = serde_json::json!([
+                    {
+                        "role": "tool",
+                        "content": result
+                    }
+                ]);
+
+                // Send, print and save the tool response with the delimiter
+                let tool_response = self.chat_client.generate_tool_response(param)?;
+
+                self.handle_tool_prompt(tool_response)
+            } else {
+                println!("No valid tools calls were made");
+                Ok(CommandResult::Continue)
+            }
+        } else {
+            println!(
+                "{}",
+                self.history
+                    .maybe_append_ai_response(&tool_prompt.content)?
+            );
+            Ok(CommandResult::Continue)
+        }
+    }
+
     fn handle_prompt(&mut self, prompt: String) -> io::Result<CommandResult> {
         let history_json = match self.history.get_content_json() {
             Ok(s) => s,
@@ -200,49 +266,50 @@ impl<'a> CommandProcessor<'a> {
         // 2. Execute the tools in a loop
         // 3. Call `handle_prompt` again with the result (remember to use the `tool` role)
         if let Some(tool_calls) = &llm_response.tool_calls {
-            let mut results = Value::Array(Vec::new());
-
             println!("\nModel requested following tool calls:");
             let tools = get_tools();
-            for tool_call in tool_calls {
-                let maybe_tool = tools.iter().find(|t| t.name == tool_call.function.name);
-                match maybe_tool {
-                    Some(tool) => {
-                        println!("Tool: {} ({})", tool.name, tool.description);
 
-                        let mut result = format!(
-                            "Result from a tool '{}' with function '{}': ",
-                            tool.name, tool.description
-                        )
-                            .to_string();
-                        result.push_str(&*tool.execute(tool_call.function.arguments.clone()));
-                        result.push_str("");
+            // Run the first tool call and continue
+            let mut tool: Option<&Tool> = None;
+            let mut i = 0;
+            let mut tool_call: Option<&ToolCall> = None;
 
-                        results.as_array_mut().unwrap().push(serde_json::json!({
-                            "content": result,
-                            "role": "tool"
-                        }));
-                        println!("Result: {}", self.history.append_tool_input(result)?);
-                    }
-                    None => println!("Tool '{}' not found", tool_call.function.name),
-                };
+            while tool.is_none() && i < tool_calls.len() {
+                let tc = &tool_calls[i];
+                tool_call = Some(tc);
+                let maybe_tool = tools.iter().find(|t| t.name == tc.function.name);
+                if let Some(t) = maybe_tool {
+                    tool = Some(t);
+                }
+                i += 1;
             }
 
-            if results.as_array().unwrap().is_empty() {
-                return Ok(CommandResult::Continue);
-            } else {
-                results.as_array_mut().unwrap().push(serde_json::json!({
-                    "content": "Note! The user does not see tool results, so you MUST include them in your response.",
-                    "role": "tool"
-                }));
+            if let Some(t) = tool
+                && let Some(tc) = tool_call
+            {
+                println!("Tool request: {} ({})", t.name, t.description);
+
+                let mut result = format!(
+                    "Result from a tool '{}' with function '{}': ",
+                    t.name, t.description
+                )
+                    .to_string();
+                result.push_str(&*t.execute(tc.function.arguments.clone()));
+                result.push_str(
+                    "Note! The user does not see tool results, so you MUST include them in your response. You can make more tool requests now if necessary."
+                );
+
+                let param = serde_json::json!([
+                    {
+                        "role": "tool",
+                        "content": result
+                    }
+                ]);
 
                 // Send, print and save the tool response with the delimiter
-                let tool_response = self.chat_client.generate_tool_response(results)?;
+                let tool_response = self.chat_client.generate_tool_response(param)?;
 
-                println!(
-                    "{}",
-                    self.history.append_ai_response(&tool_response.content)?
-                );
+                return self.handle_tool_prompt(tool_response);
             }
         }
 
