@@ -191,7 +191,7 @@ impl OllamaClient {
             base_body
                 .as_object_mut()
                 .unwrap()
-                .insert("tools".to_string(), tools);
+                .insert("tool".to_string(), tools);
         }
 
         base_body
@@ -237,7 +237,7 @@ impl OllamaClient {
                 }
             } else if line.contains("Capabilities") {
                 passed_capabilites = true;
-            } else if passed_capabilites && line.contains("tools") {
+            } else if passed_capabilites && line.contains("tool") {
                 supports_tools = true;
             }
         }
@@ -356,7 +356,7 @@ mod tests {
     embedding length    2560
   Capabilities
     completion
-    tools
+    tool
     "#;
 
         let tools_supported =
@@ -389,7 +389,7 @@ mod tests {
     parameters          4.3B
     context length      invalid
     embedding length    2560
-    tools
+    tool
   Capabilities
     completion
     "#;

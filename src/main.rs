@@ -15,7 +15,7 @@
  */
 
 pub mod api;
-pub mod tools;
+pub mod tool;
 mod command;
 pub mod config;
 mod history_file;

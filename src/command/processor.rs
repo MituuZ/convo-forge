@@ -18,7 +18,7 @@ use crate::command::command_util::get_editor;
 use crate::command::commands::{CommandParams, CommandResult, CommandStruct};
 use crate::config::AppConfig;
 use crate::history_file::HistoryFile;
-use crate::tools::tools::{get_tools, Tool};
+use crate::tool::tools::{get_tools, Tool};
 use crate::user_input::{Command, UserInput};
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -210,7 +210,7 @@ impl<'a> CommandProcessor<'a> {
     }
 
     /// Checks if the response contains any tool calls and executes them
-    /// Calls itself again, if there are sequential tools calls
+    /// Calls itself again, if there are sequential tool calls
     /// Might want to implement some logic for this later
     fn handle_sequential_tool_prompt(&mut self, chat_response: ChatResponse) -> io::Result<()> {
         if let Some(tool_calls) = &chat_response.tool_calls {
@@ -242,7 +242,7 @@ impl<'a> CommandProcessor<'a> {
                     t.name, t.description, tc.function.arguments
                 )
                     .to_string();
-                result.push_str(&*t.execute(tc.function.arguments.clone()));
+                result.push_str(&t.execute(tc.function.arguments.clone()));
                 result.push_str(
                     "Note! The user does not see tool results, \
                     so you MUST include them in your response. \
@@ -263,7 +263,7 @@ impl<'a> CommandProcessor<'a> {
 
                 self.handle_sequential_tool_prompt(tool_response)
             } else {
-                println!("No valid tools calls were made");
+                println!("No valid tool calls were made");
                 Ok(())
             }
         } else {

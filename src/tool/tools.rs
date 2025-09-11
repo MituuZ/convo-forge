@@ -20,7 +20,6 @@ type ToolFn = fn(Value) -> String;
 pub struct Tool {
     pub(crate) name: String,
     pub(crate) description: String,
-    args: Value,
     tool_fn: ToolFn,
 }
 
@@ -35,7 +34,6 @@ pub fn get_tools() -> Vec<Tool> {
         Tool {
             name: "get_weather".to_string(),
             description: "Get weather for the user".to_string(),
-            args: Value::Null,
             tool_fn: get_weather_tool,
         },
     ]

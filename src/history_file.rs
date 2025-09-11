@@ -43,9 +43,10 @@ static DELIMITER_AI_RESPONSE: &str = r#"
 lazy_static! {
     static ref DELIMITER_REGEX: Regex = {
         let pattern = format!(
-            r"({}|{})",
+            r"({}|{}|{})",
             regex::escape(DELIMITER_USER_INPUT),
-            regex::escape(DELIMITER_AI_RESPONSE)
+            regex::escape(DELIMITER_AI_RESPONSE),
+            regex::escape(DELIMITER_TOOL_INPUT),
         );
         Regex::new(&pattern).expect("Failed to compile regex pattern")
     };
@@ -135,8 +136,10 @@ impl HistoryFile {
                 let delimiter = &self.content[current_match.start()..current_match.end()];
                 let role = if delimiter == DELIMITER_USER_INPUT {
                     "user"
-                } else {
+                } else if delimiter == DELIMITER_AI_RESPONSE {
                     "assistant"
+                } else {
+                    "tool"
                 };
 
                 // Get the content after this delimiter but before the next
@@ -185,7 +188,7 @@ impl HistoryFile {
         Ok(())
     }
 
-    pub(crate) fn append_tool_input(&mut self, input: String) -> io::Result<(String)> {
+    pub(crate) fn append_tool_input(&mut self, input: String) -> io::Result<String> {
         let mut file = OpenOptions::new().append(true).open(&self.path)?;
 
         let entry = format!("{DELIMITER_TOOL_INPUT}{input}");
@@ -196,7 +199,7 @@ impl HistoryFile {
         Ok(input.to_string())
     }
 
-    pub(crate) fn maybe_append_ai_response(&mut self, response: &str) -> io::Result<(String)> {
+    pub(crate) fn maybe_append_ai_response(&mut self, response: &str) -> io::Result<String> {
         if response.trim().is_empty() {
             Ok(String::new())
         } else {
@@ -455,12 +458,13 @@ mod tests {
         let cforge_dir = temp_dir.path().to_string_lossy().to_string();
 
         let content = format!(
-            "{}{}{}{}{}{}",
+            "{}{}{}{}{}{}{}",
             create_message(DELIMITER_USER_INPUT, "User message 1"),
             create_message(DELIMITER_AI_RESPONSE, "AI response 1"),
             create_message(DELIMITER_USER_INPUT, "User message 2"),
             create_message(DELIMITER_AI_RESPONSE, "AI response 2"),
             create_message(DELIMITER_USER_INPUT, "User message 3"),
+            create_message(DELIMITER_TOOL_INPUT, "Tool input 1"),
             create_message(DELIMITER_AI_RESPONSE, "AI response 3"),
         );
 
@@ -490,6 +494,10 @@ mod tests {
                 {
                     "role": "user",
                     "content": "User message 3"
+                },
+                {
+                    "role": "tool",
+                    "content": "Tool input 1"
                 },
                 {
                     "role": "assistant",
