@@ -8,6 +8,11 @@ _Support internal tools for Ollama models_
 
 - Check if current model has `tools` capability and enable tool calls if it does
 - Report tool calls when they are made
+- Add the following basic tools for Ollama models:
+    - `grep`
+    - `pwd`
+    - `git status`
+    - `git diff`
 
 ## 0.6.0
 
