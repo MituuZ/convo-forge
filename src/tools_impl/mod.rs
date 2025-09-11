@@ -15,3 +15,5 @@
  */
 pub(crate) mod grep;
 pub(crate) mod pwd;
+pub(crate) mod git_status;
+pub(crate) mod git_diff;
