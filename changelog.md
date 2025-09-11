@@ -11,8 +11,8 @@ _Support internal tools for Ollama models_
 - Add the following basic tools for Ollama models:
     - `grep`
     - `pwd`
-    - `git status`
-    - `git diff`
+    - `Git Status`
+    - `Git Diff`
 - `tools` command to list available tools
 
 ## 0.6.0
