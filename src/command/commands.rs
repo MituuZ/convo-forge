@@ -750,9 +750,10 @@ mod tests {
         assert!(registry.contains_key("prompt"));
         assert!(registry.contains_key("model"));
         assert!(registry.contains_key("profile"));
+        assert!(registry.contains_key("tools"));
 
         // Check the total number of command
-        assert_eq!(registry.len(), 10);
+        assert_eq!(registry.len(), 11);
     }
 
     #[test]
