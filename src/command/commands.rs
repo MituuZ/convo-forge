@@ -739,7 +739,6 @@ mod tests {
         let temp_map = HashMap::new();
         let registry = create_command_registry(temp_map);
 
-        // Check that all expected command are registered
         assert!(registry.contains_key("q"));
         assert!(registry.contains_key("list"));
         assert!(registry.contains_key("switch"));
@@ -752,7 +751,6 @@ mod tests {
         assert!(registry.contains_key("profile"));
         assert!(registry.contains_key("tools"));
 
-        // Check the total number of commands
         assert_eq!(registry.len(), 11);
     }
 
