@@ -95,6 +95,7 @@ fn main() -> io::Result<()> {
             rebuild_chat_client = false;
         }
 
+        // TODO: This shouldn't be printed on every iteration and model information should be fetched once
         if &app_config.current_profile.provider == "ollama" {
             if chat_client.model_supports_tools() {
                 println!("Model supports tools");

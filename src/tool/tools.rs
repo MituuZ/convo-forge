@@ -14,7 +14,9 @@
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 use crate::tools_impl;
+use colored::Colorize;
 use serde_json::Value;
+use std::fmt::{Display, Formatter};
 
 type ToolFn = fn(Value) -> String;
 
@@ -48,6 +50,19 @@ impl Tool {
                 "parameters": self.parameters,
             }
         })
+    }
+}
+
+impl Display for Tool {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{} {}\n{} {}\n\n",
+            "Name:".bold().cyan(),
+            self.name,
+            "Description:".bold().cyan(),
+            self.description
+        )
     }
 }
 

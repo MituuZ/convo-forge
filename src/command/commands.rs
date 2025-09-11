@@ -19,6 +19,8 @@ use crate::command::command_util::get_editor;
 use crate::command::commands::CommandResult::HandlePrompt;
 use crate::config::profiles_config::ModelType;
 use crate::history_file::HistoryFile;
+use crate::tool::tools::get_tools;
+use colored::Colorize;
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::process::Command;
@@ -104,9 +106,9 @@ impl<'a> CommandStruct<'a> {
         match self.command_example {
             Some(example) => format!(
                 "{:<12} - {}\n            {}",
-                self.command_string, self.description, example
+                self.command_string.cyan(), self.description, example
             ),
-            None => format!("{:<12} - {}", self.command_string, self.description),
+            None => format!("{:<12} - {}", self.command_string.cyan(), self.description),
         }
     }
 }
@@ -214,8 +216,25 @@ pub(crate) fn create_command_registry<'a>(
             None,
             profile_command,
             None,
-        )
+        ),
+        cmd(
+            "tools",
+            "display cforge tools",
+            None,
+            None,
+            tools_command,
+            None,
+        ),
     ])
+}
+
+fn tools_command(command_params: CommandParams) -> io::Result<CommandResult> {
+    let tools = get_tools();
+    for tool in tools {
+        println!("{tool}");
+    }
+
+    Ok(CommandResult::Continue)
 }
 
 fn prompt_command(command_params: CommandParams) -> io::Result<CommandResult> {
@@ -320,14 +339,14 @@ fn help_command(_command_params: CommandParams) -> io::Result<CommandResult> {
             .then(a.command_string.cmp(b.command_string))
     });
 
-    println!("General commands:");
+    println!("{}", "General commands:".bright_green());
     for cmd in &commands {
         if cmd.file_command.is_none() {
             println!("{}", cmd.display());
         }
     }
 
-    println!("\nFile commands (supports file completion):");
+    println!("{} (supports file completion):", "\nFile commands".bright_green());
     for cmd in &commands {
         if cmd.file_command.is_some() {
             println!("{}", cmd.display());
