@@ -14,6 +14,7 @@
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+use colored::Colorize;
 use lazy_static::lazy_static;
 use regex::Regex;
 use std::fs::OpenOptions;
@@ -180,7 +181,7 @@ impl HistoryFile {
     pub(crate) fn append_user_input(&mut self, input: &str) -> io::Result<()> {
         let mut file = OpenOptions::new().append(true).open(&self.path)?;
 
-        let entry = format!("{DELIMITER_USER_INPUT}{input}");
+        let entry = format!("{}{input}", DELIMITER_USER_INPUT.green());
         file.write_all(entry.as_bytes())?;
 
         self.content.push_str(&entry);
@@ -191,7 +192,7 @@ impl HistoryFile {
     pub(crate) fn append_tool_input(&mut self, input: String) -> io::Result<String> {
         let mut file = OpenOptions::new().append(true).open(&self.path)?;
 
-        let entry = format!("{DELIMITER_TOOL_INPUT}{input}");
+        let entry = format!("{}{input}", DELIMITER_TOOL_INPUT.blue());
         file.write_all(entry.as_bytes())?;
 
         self.content.push_str(&entry);
@@ -214,7 +215,7 @@ impl HistoryFile {
 
         let response_with_note = response.to_string();
 
-        let entry = format!("{DELIMITER_AI_RESPONSE}{response_with_note}");
+        let entry = format!("{}{response_with_note}", DELIMITER_AI_RESPONSE.yellow());
         file.write_all(entry.as_bytes())?;
 
         self.content.push_str(&entry);
