@@ -13,6 +13,7 @@ _Support internal tools for Ollama models_
     - `pwd`
     - `git status`
     - `git diff`
+- `tools` command to list available tools
 
 ## 0.6.0
 
