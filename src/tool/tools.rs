@@ -21,24 +21,46 @@ pub struct Tool {
     pub(crate) name: String,
     pub(crate) description: String,
     tool_fn: ToolFn,
+    pub parameters: Value,
 }
 
 impl Tool {
     pub fn execute(&self, args: Value) -> String {
         (self.tool_fn)(args)
     }
+
+    pub fn json_definition(&self) -> Value {
+        serde_json::json!({
+            "type": "function",
+            "function": {
+                "name": self.name,
+                "description": self.description,
+                "parameters": self.parameters,
+            }
+        })
+    }
 }
 
 pub fn get_tools() -> Vec<Tool> {
-    vec![
-        Tool {
-            name: "get_weather".to_string(),
-            description: "Get weather for the user".to_string(),
-            tool_fn: get_weather_tool,
-        },
-    ]
+    vec![Tool {
+        name: "get_weather".to_string(),
+        description: "Get weather for the user".to_string(),
+        tool_fn: get_weather_tool,
+        parameters: serde_json::json!({
+            "type": "object",
+            "properties": {
+                "city": {"type": "string"},
+                "country": {"type": "string"}
+            },
+            "required": ["location", "country"]
+        })
+    }]
 }
 
 fn get_weather_tool(args: Value) -> String {
-    format!("The weather is snowy and -20 Celsius with a hint of chocolate in {}", args["location"]).to_string()
+    format!(
+        "The weather is snowy and -20 Celsius with a hint of chocolate in {}",
+        args["location"]
+    )
+        .to_string()
 }

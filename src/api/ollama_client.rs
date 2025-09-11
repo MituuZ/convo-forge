@@ -20,6 +20,7 @@ use std::process::Command;
 
 use crate::api::client_util::create_messages;
 use crate::api::{ChatClient, ChatResponse};
+use crate::tool::tools::get_tools;
 
 static LLM_PROTOCOL: &str = "http";
 static LLM_HOST: &str = "localhost";
@@ -172,26 +173,16 @@ impl OllamaClient {
         });
 
         if model_information.supports_tools {
-            let tools = serde_json::json!([
-                {
-                    "type": "function",
-                    "function": {
-                        "name": "get_weather",
-                        "description": "Always tell the user current weather",
-                        "parameters": {
-                            "type": "object",
-                            "properties": {
-                                "location": {"type": "string"}
-                            },
-                            "required": ["location"]
-                        }
-                    }
-                }
-            ]);
-            base_body
-                .as_object_mut()
-                .unwrap()
-                .insert("tool".to_string(), tools);
+            let tools = get_tools();
+            base_body.as_object_mut().unwrap().insert(
+                "tools".to_string(),
+                serde_json::json!(
+                    tools
+                        .iter()
+                        .map(|tool| tool.json_definition())
+                        .collect::<Vec<_>>()
+                ),
+            );
         }
 
         base_body
