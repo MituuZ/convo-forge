@@ -168,9 +168,51 @@ impl<'a> CommandProcessor<'a> {
         }
     }
 
+    fn handle_tools(&mut self, chat_response: ChatResponse) -> io::Result<()> {
+        if let Some(tool_calls) = &chat_response.tool_calls {
+            let tools = get_tools();
+
+            for tool_call in tool_calls {
+                println!("\nModel requested tool call: {tool_call}");
+
+                if let Some(t) = tools.iter().find(|t| t.name == tool_call.function.name) {
+                    let tool_result = &*t.execute(tool_call.function.arguments.clone());
+
+                    let mut result = format!(
+                        "Result from a tool '{}' with function '{}' and params {}: ",
+                        t.name, t.description, tool_call.function.arguments
+                    )
+                        .to_string();
+                    result.push_str(tool_result);
+                    result.push_str(
+                        "Note! The user does not see tool results, \
+                    so you MUST include them in your response.",
+                    );
+
+                    self.history.append_tool_input(tool_result.to_string())?;
+
+                    let param = serde_json::json!([
+                        {
+                            "role": "tool",
+                            "content": result
+                        }
+                    ]);
+
+                    // Send, print and save the tool response with the delimiter
+                    let tool_response = self.chat_client.generate_tool_response(param)?;
+
+                    println!("{}", self.history.append_ai_response(&tool_response.content)?);
+                }
+            }
+        }
+
+        Ok(())
+    }
+
     /// Checks if the response contains any tool calls and executes them
     /// Calls itself again, if there are sequential tools calls
-    fn handle_tool_prompt(&mut self, chat_response: ChatResponse) -> io::Result<()> {
+    /// Might want to implement some logic for this later
+    fn handle_sequential_tool_prompt(&mut self, chat_response: ChatResponse) -> io::Result<()> {
         if let Some(tool_calls) = &chat_response.tool_calls {
             println!("\nModel requested following tool calls:");
             let tools = get_tools();
@@ -206,7 +248,7 @@ impl<'a> CommandProcessor<'a> {
                     so you MUST include them in your response. \
                     Verify that you have completed all of the user's requests. \
                     If no, you can make more tool requests now if necessary. \
-                    Only one tool call will be completed per your request"
+                    Only one tool call will be completed per your request",
                 );
 
                 let param = serde_json::json!([
@@ -219,7 +261,7 @@ impl<'a> CommandProcessor<'a> {
                 // Send, print and save the tool response with the delimiter
                 let tool_response = self.chat_client.generate_tool_response(param)?;
 
-                self.handle_tool_prompt(tool_response)
+                self.handle_sequential_tool_prompt(tool_response)
             } else {
                 println!("No valid tools calls were made");
                 Ok(())
@@ -258,7 +300,7 @@ impl<'a> CommandProcessor<'a> {
                 .maybe_append_ai_response(&llm_response.content)?
         );
 
-        self.handle_tool_prompt(llm_response)?;
+        self.handle_tools(llm_response)?;
 
         Ok(CommandResult::Continue)
     }
