@@ -20,6 +20,7 @@ mod command;
 pub mod config;
 mod history_file;
 mod user_input;
+mod tools_impl;
 
 use crate::api::{get_chat_client_implementation, ChatClient};
 use crate::command::commands::{create_command_registry, CommandResult};

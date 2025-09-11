@@ -13,47 +13,46 @@
  * OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-use crate::tools_impl;
+use crate::tool::tools::Tool;
 use serde_json::Value;
 
-type ToolFn = fn(Value) -> String;
-
-pub struct Tool {
-    pub(crate) name: String,
-    pub(crate) description: String,
-    tool_fn: ToolFn,
-    pub parameters: Value,
-}
-
-impl Tool {
-    pub fn execute(&self, args: Value) -> String {
-        (self.tool_fn)(args)
-    }
-
-    pub fn new(name: &str, description: &str, parameters: Value, tool_fn: ToolFn) -> Self {
-        Tool {
-            name: name.to_string(),
-            description: description.to_string(),
-            tool_fn,
-            parameters,
-        }
-    }
-
-    pub fn json_definition(&self) -> Value {
+pub fn tool() -> Tool {
+    Tool::new(
+        "grep",
+        "Search for a pattern using 'grep' with *",
         serde_json::json!({
-            "type": "function",
-            "function": {
-                "name": self.name,
-                "description": self.description,
-                "parameters": self.parameters,
-            }
-        })
-    }
+            "type": "object",
+            "properties": {
+                "pattern": {"type": "string"},
+            },
+            "required": ["pattern"]
+        }),
+        grep_impl,
+    )
 }
+fn grep_impl(args: Value) -> String {
+    let pattern = args["pattern"].as_str().unwrap_or("");
 
-pub fn get_tools() -> Vec<Tool> {
-    vec![
-        tools_impl::grep::tool(),
-        tools_impl::pwd::tool(),
-    ]
+    // Validate pattern for shell metacharacters
+    if pattern.contains(|c: char| ";&|`$(){}[]<>\\\"'".contains(c)) {
+        return "Error: Pattern contains invalid characters".to_string();
+    }
+
+    if pattern.is_empty() {
+        return "Error: Empty pattern".to_string();
+    }
+
+    let output = std::process::Command::new("grep")
+        .arg(pattern)
+        .arg("*")
+        .output()
+        .expect("Failed to execute grep command");
+
+    let result = String::from_utf8_lossy(&output.stdout).to_string();
+
+    if result.is_empty() {
+        "No matches found".to_string()
+    } else {
+        result.to_string()
+    }
 }

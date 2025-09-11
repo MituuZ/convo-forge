@@ -13,47 +13,25 @@
  * OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-use crate::tools_impl;
-use serde_json::Value;
+use crate::tool::tools::Tool;
 
-type ToolFn = fn(Value) -> String;
-
-pub struct Tool {
-    pub(crate) name: String,
-    pub(crate) description: String,
-    tool_fn: ToolFn,
-    pub parameters: Value,
-}
-
-impl Tool {
-    pub fn execute(&self, args: Value) -> String {
-        (self.tool_fn)(args)
-    }
-
-    pub fn new(name: &str, description: &str, parameters: Value, tool_fn: ToolFn) -> Self {
-        Tool {
-            name: name.to_string(),
-            description: description.to_string(),
-            tool_fn,
-            parameters,
-        }
-    }
-
-    pub fn json_definition(&self) -> Value {
+pub fn tool() -> Tool {
+    Tool::new(
+        "pwd",
+        "Show current working directory",
         serde_json::json!({
-            "type": "function",
-            "function": {
-                "name": self.name,
-                "description": self.description,
-                "parameters": self.parameters,
-            }
-        })
-    }
+                "type": "object",
+                "properties": {},
+                "required": []
+            }),
+        pwd_impl,
+    )
 }
 
-pub fn get_tools() -> Vec<Tool> {
-    vec![
-        tools_impl::grep::tool(),
-        tools_impl::pwd::tool(),
-    ]
+fn pwd_impl(_args: serde_json::Value) -> String {
+    let output = std::process::Command::new("pwd")
+        .output()
+        .expect("Failed to execute pwd command");
+
+    String::from_utf8_lossy(&output.stdout).to_string()
 }

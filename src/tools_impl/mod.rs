@@ -13,47 +13,5 @@
  * OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-use crate::tools_impl;
-use serde_json::Value;
-
-type ToolFn = fn(Value) -> String;
-
-pub struct Tool {
-    pub(crate) name: String,
-    pub(crate) description: String,
-    tool_fn: ToolFn,
-    pub parameters: Value,
-}
-
-impl Tool {
-    pub fn execute(&self, args: Value) -> String {
-        (self.tool_fn)(args)
-    }
-
-    pub fn new(name: &str, description: &str, parameters: Value, tool_fn: ToolFn) -> Self {
-        Tool {
-            name: name.to_string(),
-            description: description.to_string(),
-            tool_fn,
-            parameters,
-        }
-    }
-
-    pub fn json_definition(&self) -> Value {
-        serde_json::json!({
-            "type": "function",
-            "function": {
-                "name": self.name,
-                "description": self.description,
-                "parameters": self.parameters,
-            }
-        })
-    }
-}
-
-pub fn get_tools() -> Vec<Tool> {
-    vec![
-        tools_impl::grep::tool(),
-        tools_impl::pwd::tool(),
-    ]
-}
+pub(crate) mod grep;
+pub(crate) mod pwd;
