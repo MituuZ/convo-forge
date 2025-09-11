@@ -42,25 +42,84 @@ impl Tool {
 }
 
 pub fn get_tools() -> Vec<Tool> {
-    vec![Tool {
-        name: "get_weather".to_string(),
-        description: "Get weather for the user".to_string(),
-        tool_fn: get_weather_tool,
-        parameters: serde_json::json!({
-            "type": "object",
-            "properties": {
-                "city": {"type": "string"},
-                "country": {"type": "string"}
-            },
-            "required": ["location", "country"]
-        })
-    }]
+    vec![
+        Tool {
+            name: "get_weather".to_string(),
+            description: "Get weather for the user".to_string(),
+            tool_fn: get_weather_tool,
+            parameters: serde_json::json!({
+                "type": "object",
+                "properties": {
+                    "city": {"type": "string"},
+                    "country": {"type": "string"}
+                },
+                "required": ["city", "country"]
+            })
+        },
+        Tool {
+            name: "grep".to_string(),
+            description: "Search for a pattern using 'grep' with *".to_string(),
+            tool_fn: grep_tool,
+            parameters: serde_json::json!({
+                "type": "object",
+                "properties": {
+                    "pattern": {"type": "string"},
+                },
+                "required": ["pattern"]
+            })
+        },
+        Tool {
+            name: "pwd".to_string(),
+            description: "Show current working directory".to_string(),
+            tool_fn: pwd_tool,
+            parameters: serde_json::json!({
+                "type": "object",
+                "properties": {},
+                "required": []
+            })
+        }
+    ]
 }
 
 fn get_weather_tool(args: Value) -> String {
     format!(
         "The weather is snowy and -20 Celsius with a hint of chocolate in {}",
-        args["location"]
+        args["city"]
     )
         .to_string()
+}
+
+fn grep_tool(args: Value) -> String {
+    let pattern = args["pattern"].as_str().unwrap_or("");
+
+    // Validate pattern for shell metacharacters
+    if pattern.contains(|c: char| ";&|`$(){}[]<>\\\"'".contains(c)) {
+        return "Error: Pattern contains invalid characters".to_string();
+    }
+
+    if pattern.is_empty() {
+        return "Error: Empty pattern".to_string();
+    }
+
+    let output = std::process::Command::new("grep")
+        .arg(pattern)
+        .arg("*")
+        .output()
+        .expect("Failed to execute grep command");
+
+    let result = String::from_utf8_lossy(&output.stdout).to_string();
+
+    if result.is_empty() {
+        "No matches found".to_string()
+    } else {
+        result.to_string()
+    }
+}
+
+fn pwd_tool(_args: Value) -> String {
+    let output = std::process::Command::new("pwd")
+        .output()
+        .expect("Failed to execute pwd command");
+
+    String::from_utf8_lossy(&output.stdout).to_string()
 }
