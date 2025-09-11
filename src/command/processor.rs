@@ -168,15 +168,10 @@ impl<'a> CommandProcessor<'a> {
         }
     }
 
-    fn handle_tool_prompt(&mut self, tool_prompt: ChatResponse) -> io::Result<CommandResult> {
-        // Print and save the initial AI response with the delimiter
-        println!(
-            "{}",
-            self.history
-                .maybe_append_ai_response(&tool_prompt.content)?
-        );
-
-        if let Some(tool_calls) = &tool_prompt.tool_calls {
+    /// Checks if the response contains any tool calls and executes them
+    /// Calls itself again, if there are sequential tools calls
+    fn handle_tool_prompt(&mut self, chat_response: ChatResponse) -> io::Result<()> {
+        if let Some(tool_calls) = &chat_response.tool_calls {
             println!("\nModel requested following tool calls:");
             let tools = get_tools();
 
@@ -207,7 +202,11 @@ impl<'a> CommandProcessor<'a> {
                     .to_string();
                 result.push_str(&*t.execute(tc.function.arguments.clone()));
                 result.push_str(
-                    "Note! The user does not see tool results, so you MUST include them in your response. You can make more tool requests now if necessary."
+                    "Note! The user does not see tool results, \
+                    so you MUST include them in your response. \
+                    Verify that you have completed all of the user's requests. \
+                    If no, you can make more tool requests now if necessary. \
+                    Only one tool call will be completed per your request"
                 );
 
                 let param = serde_json::json!([
@@ -223,15 +222,15 @@ impl<'a> CommandProcessor<'a> {
                 self.handle_tool_prompt(tool_response)
             } else {
                 println!("No valid tools calls were made");
-                Ok(CommandResult::Continue)
+                Ok(())
             }
         } else {
             println!(
                 "{}",
                 self.history
-                    .maybe_append_ai_response(&tool_prompt.content)?
+                    .maybe_append_ai_response(&chat_response.content)?
             );
-            Ok(CommandResult::Continue)
+            Ok(())
         }
     }
 
@@ -259,59 +258,7 @@ impl<'a> CommandProcessor<'a> {
                 .maybe_append_ai_response(&llm_response.content)?
         );
 
-        // How the hell should I handle multiple tool calls and responses.
-        // Run them all, concat and feed back to the LLM?
-        // If the response contains any MCP tool calls:
-        // 1. Print the tool name and the tool parameters to the user
-        // 2. Execute the tools in a loop
-        // 3. Call `handle_prompt` again with the result (remember to use the `tool` role)
-        if let Some(tool_calls) = &llm_response.tool_calls {
-            println!("\nModel requested following tool calls:");
-            let tools = get_tools();
-
-            // Run the first tool call and continue
-            let mut tool: Option<&Tool> = None;
-            let mut i = 0;
-            let mut tool_call: Option<&ToolCall> = None;
-
-            while tool.is_none() && i < tool_calls.len() {
-                let tc = &tool_calls[i];
-                tool_call = Some(tc);
-                let maybe_tool = tools.iter().find(|t| t.name == tc.function.name);
-                if let Some(t) = maybe_tool {
-                    tool = Some(t);
-                }
-                i += 1;
-            }
-
-            if let Some(t) = tool
-                && let Some(tc) = tool_call
-            {
-                println!("Tool request: {} ({})", t.name, t.description);
-
-                let mut result = format!(
-                    "Result from a tool '{}' with function '{}': ",
-                    t.name, t.description
-                )
-                    .to_string();
-                result.push_str(&*t.execute(tc.function.arguments.clone()));
-                result.push_str(
-                    "Note! The user does not see tool results, so you MUST include them in your response. You can make more tool requests now if necessary."
-                );
-
-                let param = serde_json::json!([
-                    {
-                        "role": "tool",
-                        "content": result
-                    }
-                ]);
-
-                // Send, print and save the tool response with the delimiter
-                let tool_response = self.chat_client.generate_tool_response(param)?;
-
-                return self.handle_tool_prompt(tool_response);
-            }
-        }
+        self.handle_tool_prompt(llm_response)?;
 
         Ok(CommandResult::Continue)
     }
