@@ -752,7 +752,7 @@ mod tests {
         assert!(registry.contains_key("profile"));
         assert!(registry.contains_key("tools"));
 
-        // Check the total number of command
+        // Check the total number of commands
         assert_eq!(registry.len(), 11);
     }
 
