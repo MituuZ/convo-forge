@@ -2,7 +2,7 @@
 
 ## 0.7.0
 
-_Support internal tools for Ollama models_
+_Initial support for internal tools for Ollama models_
 
 ### Added
 
