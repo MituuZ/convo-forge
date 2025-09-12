@@ -17,6 +17,7 @@
 - [ ] Keybinds for commands?
 - [ ] Support memories, which are included in the prompt by default (session/global) (could be implemented as a tool)
 - [ ] Add Anthropic context sizes manually? There doesn't seem to be an API
+- [ ] Refactor model information and display (context size and tool support (+ future requirements))
 
 ## Tools
 
