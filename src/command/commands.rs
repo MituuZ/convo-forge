@@ -228,7 +228,7 @@ pub(crate) fn create_command_registry<'a>(
     ])
 }
 
-fn tools_command(command_params: CommandParams) -> io::Result<CommandResult> {
+fn tools_command(_: CommandParams) -> io::Result<CommandResult> {
     let tools = get_tools();
     for tool in tools {
         println!("{tool}");
