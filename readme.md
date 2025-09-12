@@ -11,6 +11,7 @@ A command-line interface for interacting with Ollama and Anthropic models.
 - Reuse and modify prompts
 - Define multiple profiles with up to three models per profile (fast, balanced, deep)
 - Switch between profiles and models on the fly
+- Let models use tools (a limited set)
 
 How the messages array is formed in the request JSON:
 
