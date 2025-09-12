@@ -74,3 +74,87 @@ pub fn get_tools() -> Vec<Tool> {
         tools_impl::git_diff::tool(),
     ]
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::collections::HashSet;
+
+    fn test_tool_impl(args: Value) -> String {
+        args.to_string()
+    }
+
+    fn get_test_tool() -> Tool {
+        Tool::new(
+            "Test Tools",
+            "Used for testing",
+            serde_json::json!({
+                "type": "object",
+                "properties": {
+                    "test_string": {"type": "string"},
+                },
+                "required": ["test_string"]
+            }),
+            test_tool_impl,
+        )
+    }
+
+    #[test]
+    fn test_tool_display() {
+        let tool = get_test_tool();
+        assert_eq!(
+            format!("{}", tool),
+            "Name: Test Tools\nDescription: Used for testing\n\n"
+        );
+    }
+
+    #[test]
+    fn test_tool_json_definition() {
+        let tool = get_test_tool();
+        assert_eq!(
+            tool.json_definition(),
+            serde_json::json!({
+                "type": "function",
+                "function": {
+                    "name": "Test Tools",
+                    "description": "Used for testing",
+                    "parameters": serde_json::json!({
+                        "type": "object",
+                        "properties": {
+                            "test_string": {"type": "string"},
+                        },
+                        "required": ["test_string"]
+                    })
+                }
+            })
+        )
+    }
+
+    #[test]
+    fn test_tool_execution() {
+        let tool = get_test_tool();
+        assert_eq!(
+            tool.execute(serde_json::json!({"test_string": "test"})),
+            "{\"test_string\":\"test\"}"
+        );
+    }
+
+    #[test]
+    fn verify_tools_unique_names() {
+        let tools = get_tools();
+        let number_of_tools = tools.len();
+
+        assert_eq!(tools.len(), number_of_tools);
+
+        let mut seen_tool_names: HashSet<String> = HashSet::new();
+        for tool in tools {
+            assert!(
+                seen_tool_names.insert(tool.name.clone()),
+                "Tool name {} is not unique",
+                tool.name
+            );
+        }
+
+        assert_eq!(number_of_tools, seen_tool_names.len(), "Not all tools have unique names");
+    }
+}
