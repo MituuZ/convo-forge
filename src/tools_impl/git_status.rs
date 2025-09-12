@@ -29,10 +29,8 @@ pub fn tool() -> Tool {
 }
 
 fn git_status_impl(_args: serde_json::Value) -> String {
-    let output = std::process::Command::new("git")
-        .arg("status")
-        .output()
-        .expect("Failed to execute pwd command");
-
-    String::from_utf8_lossy(&output.stdout).to_string()
+    match std::process::Command::new("git").arg("status").output() {
+        Ok(output) => String::from_utf8_lossy(&output.stdout).to_string(),
+        Err(e) => format!("Failed to execute git status command: {}", e),
+    }
 }

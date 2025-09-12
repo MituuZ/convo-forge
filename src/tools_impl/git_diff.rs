@@ -14,6 +14,7 @@
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 use crate::tool::tools::Tool;
+use std::process::Command;
 
 pub fn tool() -> Tool {
     Tool::new(
@@ -29,10 +30,8 @@ pub fn tool() -> Tool {
 }
 
 fn git_diff_impl(_args: serde_json::Value) -> String {
-    let output = std::process::Command::new("git")
-        .arg("diff")
-        .output()
-        .expect("Failed to execute pwd command");
-
-    String::from_utf8_lossy(&output.stdout).to_string()
+    match Command::new("git").arg("diff").output() {
+        Ok(output) => String::from_utf8_lossy(&output.stdout).to_string(),
+        Err(e) => format!("Failed to execute git diff command: {}", e),
+    }
 }
