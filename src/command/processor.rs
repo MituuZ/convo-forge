@@ -13,18 +13,19 @@
  * OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-use crate::api::ChatClient;
+use crate::api::{ChatClient, ChatResponse, ToolCall};
 use crate::command::command_util::get_editor;
 use crate::command::commands::{CommandParams, CommandResult, CommandStruct};
 use crate::config::AppConfig;
 use crate::history_file::HistoryFile;
+use crate::tool::tools::{get_tools, Tool};
 use crate::user_input::{Command, UserInput};
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::{fs, io};
 
 pub(crate) struct CommandProcessor<'a> {
-    chat_api: &'a mut Box<dyn ChatClient>,
+    chat_client: &'a mut Box<dyn ChatClient>,
     history: &'a mut HistoryFile,
     app_config: &'a mut AppConfig,
     command_registry: &'a HashMap<String, CommandStruct<'a>>,
@@ -35,21 +36,21 @@ pub(crate) struct CommandProcessor<'a> {
 
 impl<'a> CommandProcessor<'a> {
     pub fn new(
-        chat_api: &'a mut Box<dyn ChatClient>,
+        chat_client: &'a mut Box<dyn ChatClient>,
         history: &'a mut HistoryFile,
         app_config: &'a mut AppConfig,
         command_registry: &'a HashMap<String, CommandStruct<'a>>,
         context_file_path: &'a mut Option<PathBuf>,
-        update_chat_api: &'a mut bool,
+        rebuild_chat_client: &'a mut bool,
         context_file_content: Option<String>,
     ) -> Self {
         Self {
-            chat_api,
+            chat_client,
             history,
             app_config,
             command_registry,
             context_file_path,
-            rebuild_chat_client: update_chat_api,
+            rebuild_chat_client,
             context_file_content,
         }
     }
@@ -64,7 +65,7 @@ impl<'a> CommandProcessor<'a> {
     fn handle_command(&mut self, command: Command) -> io::Result<CommandResult> {
         let command_params = CommandParams::new(
             command.args,
-            self.chat_api,
+            self.chat_client,
             self.history,
             self.app_config.data_dir.display().to_string(),
         );
@@ -136,10 +137,7 @@ impl<'a> CommandProcessor<'a> {
                 }
                 CommandResult::PrintModels => {
                     let current_profile = self.app_config.get_profile();
-                    current_profile.print_models(
-                        &self.app_config.current_model.model_type,
-                        "  ",
-                    );
+                    current_profile.print_models(&self.app_config.current_model.model_type, "  ");
                 }
                 CommandResult::PrintProfiles => {
                     for profile in &self.app_config.user_config.profiles_config.profiles {
@@ -170,6 +168,114 @@ impl<'a> CommandProcessor<'a> {
         }
     }
 
+    fn handle_tools(&mut self, chat_response: ChatResponse) -> io::Result<()> {
+        if let Some(tool_calls) = &chat_response.tool_calls {
+            let tools = get_tools();
+
+            for tool_call in tool_calls {
+                println!("\nModel requested tool call: {tool_call}");
+
+                if let Some(t) = tools.iter().find(|t| t.name == tool_call.function.name) {
+                    let tool_result = &*t.execute(tool_call.function.arguments.clone());
+
+                    let mut result = format!(
+                        "Result from a tool '{}' with function '{}' and params {}: ",
+                        t.name, t.description, tool_call.function.arguments
+                    )
+                        .to_string();
+                    result.push_str(tool_result);
+                    result.push_str(
+                        "Note! The user does not see tool results, \
+                    so you MUST include them in your response.",
+                    );
+
+                    self.history.append_tool_input(tool_result.to_string())?;
+
+                    let param = serde_json::json!([
+                        {
+                            "role": "tool",
+                            "content": result
+                        }
+                    ]);
+
+                    // Send, print and save the tool response with the delimiter
+                    let tool_response = self.chat_client.generate_tool_response(param)?;
+
+                    println!("{}", self.history.append_ai_response(&tool_response.content)?);
+                }
+            }
+        }
+
+        Ok(())
+    }
+
+    /// Checks if the response contains any tool calls and executes them
+    /// Calls itself again, if there are sequential tool calls
+    /// Might want to implement some logic for this later
+    fn handle_sequential_tool_prompt(&mut self, chat_response: ChatResponse) -> io::Result<()> {
+        if let Some(tool_calls) = &chat_response.tool_calls {
+            println!("\nModel requested following tool calls:");
+            let tools = get_tools();
+
+            // Run the first tool call and continue
+            let mut tool: Option<&Tool> = None;
+            let mut i = 0;
+            let mut tool_call: Option<&ToolCall> = None;
+
+            while tool.is_none() && i < tool_calls.len() {
+                let tc = &tool_calls[i];
+                tool_call = Some(tc);
+                let maybe_tool = tools.iter().find(|t| t.name == tc.function.name);
+                if let Some(t) = maybe_tool {
+                    tool = Some(t);
+                }
+                i += 1;
+            }
+
+            if let Some(t) = tool
+                && let Some(tc) = tool_call
+            {
+                println!("Tool request: {} ({})", t.name, t.description);
+
+                let mut result = format!(
+                    "Result from a tool '{}' with function '{}' and params {}: ",
+                    t.name, t.description, tc.function.arguments
+                )
+                    .to_string();
+                result.push_str(&t.execute(tc.function.arguments.clone()));
+                result.push_str(
+                    "Note! The user does not see tool results, \
+                    so you MUST include them in your response. \
+                    Verify that you have completed all of the user's requests. \
+                    If no, you can make more tool requests now if necessary. \
+                    Only one tool call will be completed per your request",
+                );
+
+                let param = serde_json::json!([
+                    {
+                        "role": "tool",
+                        "content": result
+                    }
+                ]);
+
+                // Send, print and save the tool response with the delimiter
+                let tool_response = self.chat_client.generate_tool_response(param)?;
+
+                self.handle_sequential_tool_prompt(tool_response)
+            } else {
+                println!("No valid tool calls were made");
+                Ok(())
+            }
+        } else {
+            println!(
+                "{}",
+                self.history
+                    .maybe_append_ai_response(&chat_response.content)?
+            );
+            Ok(())
+        }
+    }
+
     fn handle_prompt(&mut self, prompt: String) -> io::Result<CommandResult> {
         let history_json = match self.history.get_content_json() {
             Ok(s) => s,
@@ -179,7 +285,7 @@ impl<'a> CommandProcessor<'a> {
             }
         };
 
-        let llm_response = self.chat_api.generate_response(
+        let llm_response = self.chat_client.generate_response(
             history_json,
             &prompt,
             self.context_file_content.as_deref(),
@@ -187,8 +293,14 @@ impl<'a> CommandProcessor<'a> {
 
         self.history.append_user_input(&prompt)?;
 
-        // Print the AI response with the delimiter to make it easier to parse
-        println!("{}", self.history.append_ai_response(&llm_response)?);
+        // Print and save the initial AI response with the delimiter
+        println!(
+            "{}",
+            self.history
+                .maybe_append_ai_response(&llm_response.content)?
+        );
+
+        self.handle_tools(llm_response)?;
 
         Ok(CommandResult::Continue)
     }

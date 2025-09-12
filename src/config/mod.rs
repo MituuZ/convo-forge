@@ -151,6 +151,9 @@ impl AppConfig {
         if let Some(last_used_model_type) = profile_models.get(&profile.name) {
             self.current_model = profile.get_model(last_used_model_type).clone();
             profile_models.insert(profile.name.clone(), *last_used_model_type);
+        } else {
+            self.current_model = profile.models[0].clone();
+            profile_models.insert(profile.name.clone(), self.current_model.model_type);
         }
 
         self.cache_config.profile_models = Some(profile_models);

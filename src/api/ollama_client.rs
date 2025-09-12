@@ -13,36 +13,37 @@
  * OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-
 use serde::Deserialize;
 use serde_json::Value;
 use std::io;
 use std::process::Command;
 
 use crate::api::client_util::create_messages;
-use crate::api::ChatClient;
+use crate::api::{ChatClient, ChatResponse};
+use crate::tool::tools::get_tools;
 
 static LLM_PROTOCOL: &str = "http";
 static LLM_HOST: &str = "localhost";
 static LLM_PORT: &str = "11434";
 static LLM_ENDPOINT: &str = "/api/chat";
 
-pub struct OllamaClient {
+struct ModelInformation {
     model: String,
+    context_size: Option<usize>,
+    supports_tools: bool,
+}
+
+pub struct OllamaClient {
     pub(crate) system_prompt: String,
-    pub model_context_size: Option<usize>,
+    model_information: ModelInformation,
 }
 
 #[derive(Deserialize, Debug)]
 pub(crate) struct OllamaResponse {
-    pub(crate) message: OllamaMessage,
+    pub(crate) message: ChatResponse,
     pub(crate) done: bool,
     pub(crate) done_reason: String,
-}
-
-#[derive(Deserialize, Debug)]
-pub(crate) struct OllamaMessage {
-    pub(crate) content: String,
+    // pub(crate) error: Option<String>, TODO: Check if this can be used
 }
 
 impl ChatClient for OllamaClient {
@@ -51,7 +52,7 @@ impl ChatClient for OllamaClient {
         history_messages_json: Value,
         user_prompt: &str,
         context_content: Option<&str>,
-    ) -> io::Result<String> {
+    ) -> io::Result<ChatResponse> {
         let messages = create_messages(
             &self.system_prompt,
             context_content.unwrap_or(""),
@@ -60,14 +61,29 @@ impl ChatClient for OllamaClient {
             "system",
         );
 
-        let send_body = Self::build_json_body(self.model.as_str(), messages);
+        let send_body = Self::build_json_body(&self.model_information, messages);
 
         let response = Self::poll_for_response(&send_body)?;
-        Ok(response.message.content)
+        Ok(response.message)
+    }
+
+    fn generate_tool_response(&self, tool_responses: Value) -> io::Result<ChatResponse> {
+        let send_body = serde_json::json!({
+            "model": self.model_information.model,
+            "messages": tool_responses,
+            "stream": false,
+        });
+
+        let response = Self::poll_for_response(&send_body)?;
+        Ok(response.message)
     }
 
     fn model_context_size(&self) -> Option<usize> {
-        self.model_context_size
+        self.model_information.context_size
+    }
+
+    fn model_supports_tools(&self) -> bool {
+        self.model_information.supports_tools
     }
 
     fn update_system_prompt(&mut self, new_system_prompt: String) {
@@ -83,9 +99,12 @@ impl OllamaClient {
     /// Create the client and verify that it is responding
     pub fn new(model: String, system_prompt: String) -> Self {
         Self {
-            model: model.clone(),
             system_prompt,
-            model_context_size: None,
+            model_information: ModelInformation {
+                model: model.clone(),
+                context_size: None,
+                supports_tools: false,
+            },
         }
     }
 
@@ -96,21 +115,22 @@ impl OllamaClient {
                 println!("\n\nModel is not available: {e}");
                 panic!(
                     "Failed to verify ollama client\nCheck that Ollama is installed or run `ollama pull {}` to pull the model.",
-                    &self.model
+                    &self.model_information.model
                 );
             }
         }
 
-        self.model_context_size = Self::get_model_context_size(&self.model).unwrap_or_else(|e| {
-            eprintln!("Error getting model context size: {e}");
-            None
-        });
+        if let Ok(model_info) = Self::get_model_information(&self.model_information.model) {
+            self.model_information = model_info;
+        } else {
+            eprintln!("Error getting model information");
+        }
     }
 
     /// Send an empty message to ollama to preload the model.
     fn preload(&self) -> io::Result<String> {
         let send_body = serde_json::json!({
-            "model": self.model,
+            "model": self.model_information.model,
         });
 
         match Self::send_request_and_handle_response(&send_body) {
@@ -149,20 +169,35 @@ impl OllamaClient {
         Ok(ollama_response)
     }
 
-    fn build_json_body(model: &str, messages: Vec<Value>) -> Value {
-        serde_json::json!({
-            "model": model,
+    fn build_json_body(model_information: &ModelInformation, messages: Vec<Value>) -> Value {
+        let mut base_body = serde_json::json!({
+            "model": model_information.model,
             "messages": messages,
             "stream": false,
-        })
+        });
+
+        if model_information.supports_tools {
+            let tools = get_tools();
+            base_body.as_object_mut().unwrap().insert(
+                "tools".to_string(),
+                serde_json::json!(
+                    tools
+                        .iter()
+                        .map(|tool| tool.json_definition())
+                        .collect::<Vec<_>>()
+                ),
+            );
+        }
+
+        base_body
     }
 
     fn api_url() -> String {
         format!("{LLM_PROTOCOL}://{LLM_HOST}:{LLM_PORT}{LLM_ENDPOINT}")
     }
 
-    /// Gets the context size for a specific model by executing the `ollama show [model]` command.
-    pub(crate) fn get_model_context_size(model_name: &str) -> io::Result<Option<usize>> {
+    /// Gets the context size and tool support information for a specific model by executing the `ollama show [model]` command.
+    fn get_model_information(model_name: &str) -> Result<ModelInformation, io::Error> {
         let output = Command::new("ollama")
             .arg("show")
             .arg(model_name)
@@ -175,11 +210,14 @@ impl OllamaClient {
         }
 
         let output_str = String::from_utf8_lossy(&output.stdout);
-        Ok(Self::parse_context_size(&output_str))
+        Ok(Self::parse_model_information(&output_str, model_name))
     }
 
-    /// Parses the context size from the output of `ollama show [model]` command.
-    fn parse_context_size(output: &str) -> Option<usize> {
+    fn parse_model_information(output: &str, model_name: &str) -> ModelInformation {
+        let mut supports_tools = false;
+        let mut context_size = None;
+        let mut passed_capabilites = false;
+
         // Look for the line containing "context length" in the Model section
         for line in output.lines() {
             let line = line.trim();
@@ -188,13 +226,22 @@ impl OllamaClient {
                 let parts: Vec<&str> = line.split_whitespace().collect();
                 if parts.len() >= 3 {
                     // The context length should be the last part
-                    if let Ok(context_size) = parts.last().unwrap().parse::<usize>() {
-                        return Some(context_size);
+                    if let Ok(parsed_context_size) = parts.last().unwrap().parse::<usize>() {
+                        context_size = Some(parsed_context_size);
                     }
                 }
+            } else if line.contains("Capabilities") {
+                passed_capabilites = true;
+            } else if passed_capabilites && line.contains("tool") {
+                supports_tools = true;
             }
         }
-        None
+
+        ModelInformation {
+            model: model_name.to_string(),
+            context_size,
+            supports_tools,
+        }
     }
 }
 
@@ -209,7 +256,7 @@ mod tests {
 
         let client = OllamaClient::new(model.clone(), system_prompt.clone());
 
-        assert_eq!(client.model, model);
+        assert_eq!(client.model_information.model, model);
         assert_eq!(client.system_prompt, system_prompt);
     }
 
@@ -250,7 +297,7 @@ mod tests {
     Last modified: February 21, 2024    
     ..."#;
 
-        let context_size = OllamaClient::parse_context_size(example_output);
+        let context_size = OllamaClient::parse_model_information(example_output, "").context_size;
         assert_eq!(context_size, Some(131072));
     }
 
@@ -263,7 +310,7 @@ mod tests {
     context length: 131072    
     embedding length: 2560"#;
 
-        let context_size = OllamaClient::parse_context_size(different_format);
+        let context_size = OllamaClient::parse_model_information(different_format, "").context_size;
         assert_eq!(context_size, Some(131072));
     }
 
@@ -276,7 +323,8 @@ mod tests {
     embedding length    2560      
     quantization        Q4_K_M"#;
 
-        let context_size = OllamaClient::parse_context_size(no_context_length);
+        let context_size =
+            OllamaClient::parse_model_information(no_context_length, "").context_size;
         assert_eq!(context_size, None);
     }
 
@@ -289,7 +337,60 @@ mod tests {
     context length      invalid    
     embedding length    2560"#;
 
-        let context_size = OllamaClient::parse_context_size(invalid_format);
+        let context_size = OllamaClient::parse_model_information(invalid_format, "").context_size;
         assert_eq!(context_size, None);
+    }
+
+    #[test]
+    fn test_parse_tools_supported() {
+        // Test with invalid format for context length
+        let invalid_format = r#"Model
+    architecture        gemma3
+    parameters          4.3B
+    context length      invalid
+    embedding length    2560
+  Capabilities
+    completion
+    tool
+    "#;
+
+        let tools_supported =
+            OllamaClient::parse_model_information(invalid_format, "").supports_tools;
+        assert!(tools_supported);
+    }
+
+    #[test]
+    fn test_parse_tools_not_supported() {
+        // Test with invalid format for context length
+        let invalid_format = r#"Model
+    architecture        gemma3
+    parameters          4.3B
+    context length      invalid
+    embedding length    2560
+  Capabilities
+    completion
+    "#;
+
+        let tools_supported =
+            OllamaClient::parse_model_information(invalid_format, "").supports_tools;
+        assert!(!tools_supported);
+    }
+
+    #[test]
+    fn test_parse_tools_not_supported_alt_format() {
+        // Test with invalid format for context length
+        let invalid_format = r#"Model
+    architecture        gemma3
+    parameters          4.3B
+    context length      invalid
+    embedding length    2560
+    tool
+  Capabilities
+    completion
+    "#;
+
+        let tools_supported =
+            OllamaClient::parse_model_information(invalid_format, "").supports_tools;
+        assert!(!tools_supported);
     }
 }

@@ -19,6 +19,8 @@ use crate::command::command_util::get_editor;
 use crate::command::commands::CommandResult::HandlePrompt;
 use crate::config::profiles_config::ModelType;
 use crate::history_file::HistoryFile;
+use crate::tool::tools::get_tools;
+use colored::Colorize;
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::process::Command;
@@ -38,7 +40,7 @@ pub enum CommandResult {
 
 pub struct CommandParams<'a> {
     pub(crate) args: Vec<String>,
-    chat_api: &'a mut Box<dyn ChatClient>,
+    chat_client: &'a mut Box<dyn ChatClient>,
     history: &'a mut HistoryFile,
     cforge_dir: String,
 }
@@ -46,13 +48,13 @@ pub struct CommandParams<'a> {
 impl<'a> CommandParams<'a> {
     pub fn new(
         args: Vec<String>,
-        chat_api: &'a mut Box<dyn ChatClient>,
+        chat_client: &'a mut Box<dyn ChatClient>,
         history: &'a mut HistoryFile,
         cforge_dir: String,
     ) -> Self {
         CommandParams {
             args,
-            chat_api,
+            chat_client,
             history,
             cforge_dir,
         }
@@ -104,9 +106,9 @@ impl<'a> CommandStruct<'a> {
         match self.command_example {
             Some(example) => format!(
                 "{:<12} - {}\n            {}",
-                self.command_string, self.description, example
+                self.command_string.cyan(), self.description, example
             ),
-            None => format!("{:<12} - {}", self.command_string, self.description),
+            None => format!("{:<12} - {}", self.command_string.cyan(), self.description),
         }
     }
 }
@@ -214,8 +216,25 @@ pub(crate) fn create_command_registry<'a>(
             None,
             profile_command,
             None,
-        )
+        ),
+        cmd(
+            "tools",
+            "display cforge tools",
+            None,
+            None,
+            tools_command,
+            None,
+        ),
     ])
+}
+
+fn tools_command(_: CommandParams) -> io::Result<CommandResult> {
+    let tools = get_tools();
+    for tool in tools {
+        println!("{tool}");
+    }
+
+    Ok(CommandResult::Continue)
 }
 
 fn prompt_command(command_params: CommandParams) -> io::Result<CommandResult> {
@@ -320,14 +339,14 @@ fn help_command(_command_params: CommandParams) -> io::Result<CommandResult> {
             .then(a.command_string.cmp(b.command_string))
     });
 
-    println!("General commands:");
+    println!("{}", "General commands:".bright_green());
     for cmd in &commands {
         if cmd.file_command.is_none() {
             println!("{}", cmd.display());
         }
     }
 
-    println!("\nFile commands (supports file completion):");
+    println!("{} (supports file completion):", "\nFile commands".bright_green());
     for cmd in &commands {
         if cmd.file_command.is_some() {
             println!("{}", cmd.display());
@@ -363,7 +382,7 @@ fn edit_command(command_params: CommandParams) -> io::Result<CommandResult> {
 
 fn sysprompt_command(command_params: CommandParams) -> io::Result<CommandResult> {
     command_params
-        .chat_api
+        .chat_client
         .update_system_prompt(command_params.args.join(" "));
     Ok(CommandResult::Continue)
 }
@@ -380,6 +399,8 @@ fn context_file_command(command_params: CommandParams) -> io::Result<CommandResu
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::api::ChatResponse;
+    use serde_json::Value;
     use std::env;
     use tempfile::TempDir;
 
@@ -398,15 +419,26 @@ mod tests {
     impl ChatClient for MockClient {
         fn generate_response(
             &self,
-            _: serde_json::Value,
+            _: Value,
             _: &str,
             _: Option<&str>,
-        ) -> io::Result<String> {
-            Ok("Hello".to_string())
+        ) -> io::Result<ChatResponse> {
+            Ok(ChatResponse {
+                content: "Hello".to_string(),
+                tool_calls: None,
+            })
+        }
+
+        fn generate_tool_response(&self, _: Value) -> Result<ChatResponse, io::Error> {
+            todo!()
         }
 
         fn model_context_size(&self) -> Option<usize> {
             None
+        }
+
+        fn model_supports_tools(&self) -> bool {
+            false
         }
 
         fn update_system_prompt(&mut self, system_prompt: String) {
@@ -707,7 +739,6 @@ mod tests {
         let temp_map = HashMap::new();
         let registry = create_command_registry(temp_map);
 
-        // Check that all expected command are registered
         assert!(registry.contains_key("q"));
         assert!(registry.contains_key("list"));
         assert!(registry.contains_key("switch"));
@@ -718,9 +749,9 @@ mod tests {
         assert!(registry.contains_key("prompt"));
         assert!(registry.contains_key("model"));
         assert!(registry.contains_key("profile"));
+        assert!(registry.contains_key("tools"));
 
-        // Check the total number of command
-        assert_eq!(registry.len(), 10);
+        assert_eq!(registry.len(), 11);
     }
 
     #[test]

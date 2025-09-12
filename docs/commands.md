@@ -161,3 +161,9 @@ Provider: anthropic
 Available models for profile remote:
   * balanced: claude-3-haiku-20240307
 ```
+
+## Tools
+
+Displays the available tools.
+
+`:tools`

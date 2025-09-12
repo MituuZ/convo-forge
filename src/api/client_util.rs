@@ -115,7 +115,10 @@ mod tests {
             messages[0],
             json!({"role": "system", "content": "You are a helpful assistant."})
         );
-        assert_eq!(messages[1], json!({"role": "user", "content": "Hello!\n\nAdditional context: This is some context."}));
+        assert_eq!(
+            messages[1],
+            json!({"role": "user", "content": "Hello!\n\nAdditional context: This is some context."})
+        );
     }
 
     #[test]

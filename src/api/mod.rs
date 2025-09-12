@@ -13,22 +13,59 @@
  * OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-
 use crate::api::{anthropic_client::AnthropicClient, ollama_client::OllamaClient};
+use serde::Deserialize;
+use serde_json::Value;
+use std::fmt::{Display, Formatter};
+use std::io;
 
 pub mod anthropic_client;
 mod client_util;
 pub mod ollama_client;
 
+#[derive(Deserialize, Debug)]
+pub struct ChatResponse {
+    pub content: String,
+    pub tool_calls: Option<Vec<ToolCall>>,
+}
+
+#[derive(Deserialize, Debug)]
+pub struct ToolCall {
+    pub(crate) function: Function,
+}
+
+#[derive(Deserialize, Debug)]
+pub(crate) struct Function {
+    pub(crate) name: String,
+    pub(crate) arguments: serde_json::Value,
+}
+
+impl Display for ToolCall {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "Function: {}, Arguments: {}",
+            self.function.name, self.function.arguments
+        )
+    }
+}
+
 pub trait ChatClient {
     fn generate_response(
         &self,
-        history_messages_json: serde_json::Value,
+        history_messages_json: Value,
         user_prompt: &str,
         context_content: Option<&str>,
-    ) -> std::io::Result<String>;
+    ) -> io::Result<ChatResponse>;
+
+    fn generate_tool_response(
+        &self,
+        tool_prompt: Value,
+    ) -> io::Result<ChatResponse>;
 
     fn model_context_size(&self) -> Option<usize>;
+
+    fn model_supports_tools(&self) -> bool;
 
     fn update_system_prompt(&mut self, system_prompt: String);
 
@@ -42,7 +79,11 @@ pub fn get_chat_client_implementation(
     max_tokens: usize,
 ) -> Box<dyn ChatClient> {
     match provider.to_lowercase().as_str() {
-        "anthropic" => Box::new(AnthropicClient::new(model.to_string(), system_prompt, max_tokens)),
+        "anthropic" => Box::new(AnthropicClient::new(
+            model.to_string(),
+            system_prompt,
+            max_tokens,
+        )),
         "ollama" => {
             let mut client = OllamaClient::new(model.to_string(), system_prompt);
             client.verify();

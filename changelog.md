@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.7.0
+
+_Initial support for internal tools for Ollama models_
+
+### Added
+
+- Check if current model has `tools` capability and enable tool calls if it does
+- Report tool calls when they are made
+- Add the following basic tools for Ollama models:
+    - `grep`
+    - `pwd`
+    - `Git Status`
+    - `Git Diff`
+- `tools` command to list available tools
+
 ## 0.6.0
 
 _Add profiles_

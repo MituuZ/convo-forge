@@ -12,9 +12,9 @@
  * WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS
  * OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- *
  */
 
+use colored::Colorize;
 use lazy_static::lazy_static;
 use regex::Regex;
 use std::fs::OpenOptions;
@@ -28,6 +28,12 @@ static DELIMITER_USER_INPUT: &str = r#"
                         --- User Input ---
 -------------------------------------------------------------------
 "#;
+static DELIMITER_TOOL_INPUT: &str = r#"
+
+-------------------------------------------------------------------
+                        --- Tool Input ---
+-------------------------------------------------------------------
+"#;
 static DELIMITER_AI_RESPONSE: &str = r#"
 
 -------------------------------------------------------------------
@@ -38,9 +44,10 @@ static DELIMITER_AI_RESPONSE: &str = r#"
 lazy_static! {
     static ref DELIMITER_REGEX: Regex = {
         let pattern = format!(
-            r"({}|{})",
+            r"({}|{}|{})",
             regex::escape(DELIMITER_USER_INPUT),
-            regex::escape(DELIMITER_AI_RESPONSE)
+            regex::escape(DELIMITER_AI_RESPONSE),
+            regex::escape(DELIMITER_TOOL_INPUT),
         );
         Regex::new(&pattern).expect("Failed to compile regex pattern")
     };
@@ -130,8 +137,10 @@ impl HistoryFile {
                 let delimiter = &self.content[current_match.start()..current_match.end()];
                 let role = if delimiter == DELIMITER_USER_INPUT {
                     "user"
-                } else {
+                } else if delimiter == DELIMITER_AI_RESPONSE {
                     "assistant"
+                } else {
+                    "tool"
                 };
 
                 // Get the content after this delimiter but before the next
@@ -172,12 +181,31 @@ impl HistoryFile {
     pub(crate) fn append_user_input(&mut self, input: &str) -> io::Result<()> {
         let mut file = OpenOptions::new().append(true).open(&self.path)?;
 
-        let entry = format!("{DELIMITER_USER_INPUT}{input}");
+        let entry = format!("{}{input}", DELIMITER_USER_INPUT.green());
         file.write_all(entry.as_bytes())?;
 
         self.content.push_str(&entry);
 
         Ok(())
+    }
+
+    pub(crate) fn append_tool_input(&mut self, input: String) -> io::Result<String> {
+        let mut file = OpenOptions::new().append(true).open(&self.path)?;
+
+        let entry = format!("{}{input}", DELIMITER_TOOL_INPUT.blue());
+        file.write_all(entry.as_bytes())?;
+
+        self.content.push_str(&entry);
+
+        Ok(input.to_string())
+    }
+
+    pub(crate) fn maybe_append_ai_response(&mut self, response: &str) -> io::Result<String> {
+        if response.trim().is_empty() {
+            Ok(String::new())
+        } else {
+            self.append_ai_response(response)
+        }
     }
 
     /// Append AI response to the history file and update internal content
@@ -187,7 +215,7 @@ impl HistoryFile {
 
         let response_with_note = response.to_string();
 
-        let entry = format!("{DELIMITER_AI_RESPONSE}{response_with_note}");
+        let entry = format!("{}{response_with_note}", DELIMITER_AI_RESPONSE.yellow());
         file.write_all(entry.as_bytes())?;
 
         self.content.push_str(&entry);
@@ -431,12 +459,13 @@ mod tests {
         let cforge_dir = temp_dir.path().to_string_lossy().to_string();
 
         let content = format!(
-            "{}{}{}{}{}{}",
+            "{}{}{}{}{}{}{}",
             create_message(DELIMITER_USER_INPUT, "User message 1"),
             create_message(DELIMITER_AI_RESPONSE, "AI response 1"),
             create_message(DELIMITER_USER_INPUT, "User message 2"),
             create_message(DELIMITER_AI_RESPONSE, "AI response 2"),
             create_message(DELIMITER_USER_INPUT, "User message 3"),
+            create_message(DELIMITER_TOOL_INPUT, "Tool input 1"),
             create_message(DELIMITER_AI_RESPONSE, "AI response 3"),
         );
 
@@ -466,6 +495,10 @@ mod tests {
                 {
                     "role": "user",
                     "content": "User message 3"
+                },
+                {
+                    "role": "tool",
+                    "content": "Tool input 1"
                 },
                 {
                     "role": "assistant",

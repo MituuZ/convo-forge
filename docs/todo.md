@@ -15,8 +15,15 @@
 - [x] The model might not realize that it has the context file available
 - [ ] Custom completions for `model` and `profile` commands
 - [ ] Keybinds for commands?
-- [ ] Support memories, which are included in the prompt by default (session/global)
+- [ ] Support memories, which are included in the prompt by default (session/global) (could be implemented as a tool)
 - [ ] Add Anthropic context sizes manually? There doesn't seem to be an API
+- [ ] Refactor model information and display (context size and tool support (+ future requirements))
+
+## Tools
+
+- [ ] Add OS checks to avoid calling unsupported commands
+- [ ] Check if the user has the required tools installed (e.g. `git` and `rg`)
+- [ ] Check Anthropic's tool support
 
 ## Commands
 
