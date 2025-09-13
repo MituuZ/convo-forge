@@ -20,6 +20,7 @@ use crate::config::AppConfig;
 use crate::history_file::HistoryFile;
 use crate::tool::tools::{get_tools, Tool};
 use crate::user_input::{Command, UserInput};
+use serde_json::Value;
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::{fs, io};
@@ -168,9 +169,13 @@ impl<'a> CommandProcessor<'a> {
         }
     }
 
-    fn handle_tools(&mut self, chat_response: ChatResponse) -> io::Result<()> {
-        if let Some(tool_calls) = &chat_response.tool_calls {
+    fn handle_tools(&mut self, chat_response: ChatResponse, current_tool_calls: usize) -> io::Result<()> {
+        if current_tool_calls > 10 {
+            eprintln!("More than 10 tool calls detected, exiting loop");
+            Ok(())
+        } else if let Some(tool_calls) = &chat_response.tool_calls {
             let tools = get_tools();
+            let mut result_array = Value::Array(Vec::new());
 
             for tool_call in tool_calls {
                 println!("\nModel requested tool call: {tool_call}");
@@ -181,38 +186,37 @@ impl<'a> CommandProcessor<'a> {
                         Some(self.app_config.clone()),
                     );
 
-                    let mut result = format!(
-                        "Result from a tool '{}' with function '{}' and params {}: ",
-                        t.name, t.description, tool_call.function.arguments
-                    )
-                        .to_string();
-                    result.push_str(tool_result);
-                    result.push_str(
-                        "Note! The user does not see tool results, \
-                    so you MUST include them in your response.",
-                    );
+                    // TODO: Make each tool return a json object instead of a string for a nicer formatting
+                    let tool_result = serde_json::json!({
+                        "tool_name": t.name,
+                        "tool_params": tool_call.function.arguments,
+                        "tool_result": tool_result,
+                    });;
+
+                    result_array.as_array_mut().unwrap().push(tool_result.clone());
 
                     self.history.append_tool_input(tool_result.to_string())?;
-
-                    let param = serde_json::json!([
-                        {
-                            "role": "tool",
-                            "content": result
-                        }
-                    ]);
-
-                    // Send, print and save the tool response with the delimiter
-                    let tool_response = self.chat_client.generate_tool_response(param)?;
-
-                    println!(
-                        "{}",
-                        self.history.append_ai_response(&tool_response.content)?
-                    );
                 }
             }
-        }
 
-        Ok(())
+            let param = serde_json::json!([
+                        {
+                            "role": "tool",
+                            "content": result_array.to_string()
+                        }
+                    ]);
+            // Send, print and save the tool response with the delimiter
+            let tool_response = self.chat_client.generate_tool_response(param)?;
+
+            println!(
+                "{}",
+                self.history.append_ai_response(&tool_response.content)?
+            );
+
+            self.handle_tools(tool_response, current_tool_calls + 1)
+        } else {
+            Ok(())
+        }
     }
 
     /// Checks if the response contains any tool calls and executes them
@@ -306,7 +310,7 @@ impl<'a> CommandProcessor<'a> {
                 .maybe_append_ai_response(&llm_response.content)?
         );
 
-        self.handle_tools(llm_response)?;
+        self.handle_tools(llm_response, 0)?;
 
         Ok(CommandResult::Continue)
     }
