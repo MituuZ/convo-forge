@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.7.1
+
+_Redo `grep` tool and update rustyline_
+
+### Fixed
+
+- Run grep against knowledge dir
+- Don't panic if `grep` fails
+
 ## 0.7.0
 
 _Initial support for internal tools for Ollama models_
