@@ -13,12 +13,13 @@
  * OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
+use crate::config::AppConfig;
 use crate::tool::tools_impl;
 use colored::Colorize;
 use serde_json::Value;
 use std::fmt::{Display, Formatter};
 
-type ToolFn = fn(Value) -> String;
+type ToolFn = fn(Value, Option<AppConfig>) -> String;
 
 pub struct Tool {
     pub(crate) name: String,
@@ -28,8 +29,8 @@ pub struct Tool {
 }
 
 impl Tool {
-    pub fn execute(&self, args: Value) -> String {
-        (self.tool_fn)(args)
+    pub fn execute(&self, args: Value, app_config: Option<AppConfig>) -> String {
+        (self.tool_fn)(args, app_config)
     }
 
     pub fn new(name: &str, description: &str, parameters: Value, tool_fn: ToolFn) -> Self {
@@ -80,7 +81,7 @@ mod tests {
     use super::*;
     use std::collections::HashSet;
 
-    fn test_tool_impl(args: Value) -> String {
+    fn test_tool_impl(args: Value, _: Option<AppConfig>) -> String {
         args.to_string()
     }
 
@@ -134,7 +135,7 @@ mod tests {
     fn test_tool_execution() {
         let tool = get_test_tool();
         assert_eq!(
-            tool.execute(serde_json::json!({"test_string": "test"})),
+            tool.execute(serde_json::json!({"test_string": "test"}), None),
             "{\"test_string\":\"test\"}"
         );
     }

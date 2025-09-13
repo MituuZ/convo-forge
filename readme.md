@@ -89,7 +89,11 @@ cforge chat.txt -f code.rs
 
 ### Commands
 
-For a full list of commands, see [docs/commands.md](docs/commands.md).
+For a full list of commands, see [docs/commands.md](docs/commands.md "Link to commands.md").
+
+### Tools
+
+For a full list of tools, see [docs/tools.md](docs/tools.md "Link to tools.md").
 
 ## Configuration
 

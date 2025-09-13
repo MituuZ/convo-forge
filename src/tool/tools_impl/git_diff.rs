@@ -13,6 +13,7 @@
  * OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
+use crate::config::AppConfig;
 use crate::tool::tools::Tool;
 use std::process::Command;
 
@@ -29,7 +30,7 @@ pub fn tool() -> Tool {
     )
 }
 
-fn git_diff_impl(_args: serde_json::Value) -> String {
+fn git_diff_impl(_args: serde_json::Value, _: Option<AppConfig>) -> String {
     match Command::new("git").arg("diff").output() {
         Ok(output) => String::from_utf8_lossy(&output.stdout).to_string(),
         Err(e) => format!("Failed to execute git diff command: {}", e),

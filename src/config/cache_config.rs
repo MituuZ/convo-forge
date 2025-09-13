@@ -25,11 +25,17 @@ use std::{
 
 const CACHE_FILE: &str = "cforge.cache.toml";
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct CacheConfig {
     pub last_history_file: Option<String>,
     pub last_profile_name: Option<String>,
     pub profile_models: Option<HashMap<String, ModelType>>,
+}
+
+impl Default for CacheConfig {
+    fn default() -> Self {
+        Self::empty()
+    }
 }
 
 impl CacheConfig {
