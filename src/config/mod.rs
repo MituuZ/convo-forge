@@ -19,8 +19,8 @@ use rustyline::{history::DefaultHistory, Cmd, Config, Editor, EventHandler, KeyE
 
 use crate::command::command_complete::CommandHelper;
 use crate::command::commands::{CommandStruct, FileCommandDirectory};
-use crate::config::profiles_config::{Model, Profile};
-use crate::config::{cache_config::CacheConfig, rustyline_config::build, user_config::UserConfig};
+use crate::config::profiles_config::{Model, ModelType, Profile};
+pub(crate) use crate::config::{cache_config::CacheConfig, rustyline_config::build, user_config::UserConfig};
 
 pub mod cache_config;
 pub mod profiles_config;
@@ -31,7 +31,7 @@ pub mod user_config;
 pub struct AppConfig {
     pub cache_config: CacheConfig,
     pub user_config: UserConfig,
-    rustyline_config: Config,
+    pub rustyline_config: Config,
     pub data_dir: PathBuf,
     pub prompt_dir: PathBuf,
     pub current_model: Model,
@@ -104,7 +104,7 @@ impl AppConfig {
             &self.user_config.knowledge_dir,
             &self.prompt_dir.display().to_string(),
         );
-        let mut editor = Editor::with_config(self.rustyline_config)?;
+        let mut editor = Editor::with_config(self.rustyline_config.clone())?;
         editor.set_helper(Some(helper));
 
         editor.bind_sequence(
@@ -175,6 +175,28 @@ impl AppConfig {
         self.cache_config.save(get_cache_path());
 
         println!("Switched to model: {}", model.model);
+    }
+}
+
+impl Default for AppConfig {
+    fn default() -> Self {
+        AppConfig {
+            cache_config: Default::default(),
+            user_config: Default::default(),
+            rustyline_config: Default::default(),
+            data_dir: Default::default(),
+            prompt_dir: Default::default(),
+            current_model: Model {
+                model: "".to_string(),
+                description: None,
+                model_type: ModelType::Fast,
+            },
+            current_profile: Profile {
+                name: "".to_string(),
+                provider: "".to_string(),
+                models: vec![],
+            },
+        }
     }
 }
 

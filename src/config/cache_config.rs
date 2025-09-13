@@ -32,6 +32,12 @@ pub struct CacheConfig {
     pub profile_models: Option<HashMap<String, ModelType>>,
 }
 
+impl Default for CacheConfig {
+    fn default() -> Self {
+        Self::empty()
+    }
+}
+
 impl CacheConfig {
     fn new(
         last_history_file: Option<String>,

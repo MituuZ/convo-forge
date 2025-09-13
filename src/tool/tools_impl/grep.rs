@@ -16,6 +16,7 @@
 use crate::config::AppConfig;
 use crate::tool::tools::Tool;
 use serde_json::Value;
+use std::process::Command;
 
 pub fn tool() -> Tool {
     Tool::new(
@@ -85,7 +86,7 @@ fn grep_impl(args: Value, app_config: Option<AppConfig>) -> String {
             .to_string();
     }
 
-    let output = match std::process::Command::new("grep")
+    let output = match Command::new("grep")
         .arg("-F")
         .arg("-I")
         .arg("-r")
@@ -134,5 +135,111 @@ fn grep_impl(args: Value, app_config: Option<AppConfig>) -> String {
         "No matches found".to_string()
     } else {
         result.to_string()
+    }
+}
+
+#[cfg(feature = "test")]
+mod mock_tests {
+    use super::*;
+    use mockcmd::mock;
+    use tempfile::TempDir;
+
+    fn setup_test_dir() -> TempDir {
+        tempfile::tempdir().unwrap()
+    }
+
+    fn create_test_config(dir: &TempDir) -> AppConfig {
+        AppConfig {
+            user_config: crate::config::UserConfig {
+                knowledge_dir: dir.path().to_string_lossy().to_string(),
+                ..Default::default()
+            },
+            ..Default::default()
+        }
+    }
+
+    #[test]
+    fn test_grep_with_content() {
+        let dir = setup_test_dir();
+
+        let args = serde_json::json!({
+            "pattern": "test"
+        });
+        let config = create_test_config(&dir);
+
+        mock("grep")
+            .with_arg("-F")
+            .with_arg("-I")
+            .with_arg("-r")
+            .with_arg("--max-count=1000")
+            .with_arg("test")
+            .with_stdout("Hello")
+            .with_status(2)
+            .register();
+
+        let result = grep_impl(args, Some(config));
+        assert_eq!(result, "Hello");
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tempfile::TempDir;
+
+    fn setup_test_dir() -> TempDir {
+        tempfile::tempdir().unwrap()
+    }
+
+    fn create_test_config(dir: &TempDir) -> AppConfig {
+        AppConfig {
+            user_config: crate::config::UserConfig {
+                knowledge_dir: dir.path().to_string_lossy().to_string(),
+                ..Default::default()
+            },
+            ..Default::default()
+        }
+    }
+
+    #[test]
+    fn test_grep_empty_pattern() {
+        let args = serde_json::json!({
+            "pattern": ""
+        });
+        assert_eq!(grep_impl(args, None), "Error: Empty pattern");
+    }
+
+    #[test]
+    fn test_grep_missing_pattern() {
+        let args = serde_json::json!({});
+        assert_eq!(grep_impl(args, None), "Error: Missing pattern");
+    }
+
+    #[test]
+    fn test_grep_invalid_chars() {
+        let args = serde_json::json!({
+            "pattern": "test;rm -rf"
+        });
+        let dir = setup_test_dir();
+        let config = create_test_config(&dir);
+        assert!(grep_impl(args, Some(config)).contains("Error: Pattern contains characters"));
+    }
+
+    #[test]
+    fn test_grep_no_config() {
+        let args = serde_json::json!({
+            "pattern": "test"
+        });
+        assert_eq!(grep_impl(args, None), "Error: App config not found");
+    }
+
+    #[test]
+    fn test_grep_empty_dir() {
+        let args = serde_json::json!({
+            "pattern": "test"
+        });
+        let dir = setup_test_dir();
+        let config = create_test_config(&dir);
+        assert_eq!(grep_impl(args, Some(config)), "No matches found");
     }
 }
