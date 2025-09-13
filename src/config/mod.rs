@@ -27,6 +27,7 @@ pub mod profiles_config;
 pub mod rustyline_config;
 pub mod user_config;
 
+#[derive(Debug, Clone)]
 pub struct AppConfig {
     pub cache_config: CacheConfig,
     pub user_config: UserConfig,

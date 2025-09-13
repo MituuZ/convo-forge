@@ -21,7 +21,7 @@ use std::{fs, path::PathBuf};
 
 const CONFIG_FILE: &str = "cforge.toml";
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct UserConfig {
     #[serde(default = "default_knowledge_dir")]
     pub knowledge_dir: String,

@@ -13,13 +13,15 @@
  * OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
+use crate::config::AppConfig;
 use crate::tool::tools::Tool;
 use serde_json::Value;
 
 pub fn tool() -> Tool {
     Tool::new(
         "grep",
-        "Search for a pattern using 'grep'\nCommand: `grep -F --max-count=1000 <pattern> *`",
+        "Search for a pattern using 'grep' from the knowledge dir\
+        \nCommand: `grep -F --max-count=1000 <pattern> *`",
         serde_json::json!({
             "type": "object",
             "properties": {
@@ -31,11 +33,44 @@ pub fn tool() -> Tool {
     )
 }
 
-fn grep_impl(args: Value) -> String {
-    let pattern = args["pattern"].as_str().unwrap_or("");
+fn grep_impl(args: Value, app_config: Option<AppConfig>) -> String {
+    let pattern = match args.get("pattern").and_then(|v| v.as_str()) {
+        Some(p) => {
+            if p.is_empty() {
+                return "Error: Empty pattern".to_string();
+            }
+            p.to_string()
+        }
+        None => {
+            return "Error: Missing pattern".to_string();
+        }
+    };
 
-    if pattern.is_empty() {
-        return "Error: Empty pattern".to_string();
+    let knowledge_base_path = match app_config {
+        None => {
+            return "Error: App config not found".to_string();
+        }
+        Some(app_config) => {
+            app_config.user_config.knowledge_dir.clone()
+        }
+    };
+
+    if knowledge_base_path.is_empty() {
+        return "Error: Knowledge dir path is empty".to_string();
+    }
+
+    let canon = match std::fs::canonicalize(knowledge_base_path.clone()) {
+        Ok(p) => p,
+        Err(_) => {
+            return format!(
+                "Error: '{}' cannot be resolved to a real directory",
+                knowledge_base_path
+            );
+        }
+    };
+
+    if !canon.is_dir() {
+        return format!("Error: '{}' is not a directory", canon.display());
     }
 
     if !pattern
@@ -51,11 +86,14 @@ fn grep_impl(args: Value) -> String {
     }
 
     let mut child = match std::process::Command::new("grep")
-        .arg(pattern)
         .arg("-F")
         .arg("-I")
+        .arg("-r")
         .arg("--max-count=1000")
-        .arg("*")
+        .arg(pattern.clone())
+        .current_dir(canon.clone())
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped())
         .spawn()
     {
         Ok(c) => c,
@@ -86,12 +124,19 @@ fn grep_impl(args: Value) -> String {
         }
     };
 
-    let result = String::from_utf8_lossy(&output.stdout).to_string();
+    let result = String::from_utf8_lossy(&output.stdout)
+        .trim_end()
+        .to_string();
 
     if !output.status.success() {
+        if output.status.code() == Some(1) && result.trim().is_empty() {
+            return "No matches found".to_string();
+        }
+
         return format!(
-            "Error: `grep` returned non-zero exit code: {}\nMessage: {}",
-            output.status, result
+            "Error: `grep` failed (code {:?})\nMessage: {}",
+            output.status.code(),
+            result
         );
     }
 
@@ -99,6 +144,13 @@ fn grep_impl(args: Value) -> String {
     if output.stdout.len() > MAX_BYTES {
         return "Error: Output exceeds size limit".into();
     }
+
+    eprintln!(
+        "[grep] dir='{}' pattern='{}' result='{}'",
+        canon.display(),
+        pattern,
+        if result.is_empty() { "none" } else { "found" }
+    );
 
     if result.is_empty() {
         "No matches found".to_string()

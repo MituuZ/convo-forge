@@ -18,7 +18,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::config::user_config::UserConfig;
 
-#[derive(Debug, Deserialize, Default, Serialize, PartialEq)]
+#[derive(Debug, Deserialize, Default, Serialize, PartialEq, Clone)]
 pub struct RustylineConfig {
     #[serde(default)]
     pub edit_mode: EditMode,

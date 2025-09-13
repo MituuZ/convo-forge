@@ -15,10 +15,10 @@
  */
 
 pub mod api;
-pub mod tool;
 mod command;
 pub mod config;
 mod history_file;
+pub mod tool;
 mod user_input;
 
 use crate::api::{get_chat_client_implementation, ChatClient};
@@ -72,7 +72,9 @@ fn main() -> io::Result<()> {
     println!("{}", history.get_content());
     println!(
         "\n\nYou're conversing with model '{}' ({}) from profile '{}'",
-        &app_config.current_model, &app_config.current_model.model_type, &app_config.current_profile.name
+        &app_config.current_model,
+        &app_config.current_model.model_type,
+        &app_config.current_profile.name
     );
 
     let mut chat_client: Box<dyn ChatClient> = get_chat_client_implementation(
@@ -95,10 +97,8 @@ fn main() -> io::Result<()> {
         }
 
         // TODO: This shouldn't be printed on every iteration and model information should be fetched once
-        if &app_config.current_profile.provider == "ollama" {
-            if chat_client.model_supports_tools() {
-                println!("Model supports tools");
-            }
+        if &app_config.current_profile.provider == "ollama" && chat_client.model_supports_tools() {
+            println!("Model supports tools");
         }
 
         // Read the context file if provided

@@ -176,7 +176,10 @@ impl<'a> CommandProcessor<'a> {
                 println!("\nModel requested tool call: {tool_call}");
 
                 if let Some(t) = tools.iter().find(|t| t.name == tool_call.function.name) {
-                    let tool_result = &*t.execute(tool_call.function.arguments.clone());
+                    let tool_result = &*t.execute(
+                        tool_call.function.arguments.clone(),
+                        Some(self.app_config.clone()),
+                    );
 
                     let mut result = format!(
                         "Result from a tool '{}' with function '{}' and params {}: ",
@@ -201,7 +204,10 @@ impl<'a> CommandProcessor<'a> {
                     // Send, print and save the tool response with the delimiter
                     let tool_response = self.chat_client.generate_tool_response(param)?;
 
-                    println!("{}", self.history.append_ai_response(&tool_response.content)?);
+                    println!(
+                        "{}",
+                        self.history.append_ai_response(&tool_response.content)?
+                    );
                 }
             }
         }
@@ -242,7 +248,7 @@ impl<'a> CommandProcessor<'a> {
                     t.name, t.description, tc.function.arguments
                 )
                     .to_string();
-                result.push_str(&t.execute(tc.function.arguments.clone()));
+                result.push_str(&t.execute(tc.function.arguments.clone(), Some(self.app_config.clone())));
                 result.push_str(
                     "Note! The user does not see tool results, \
                     so you MUST include them in your response. \
