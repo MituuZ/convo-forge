@@ -24,14 +24,13 @@ All OS level tools are executed using the `std::process::Command` API.
 
 ### grep
 
-Search for a pattern in the knowledge directory with a three-second timeout,
-1000 max matches and a max output size of 1 MiB.
+Search for a pattern in the knowledge directory with 1000 max matches and a max output size of 1 MiB.
 
 Command:
 
 ```bash
 # current_dir set on the std::process:Command
-grep -F -I --max-count=1000 <pattern> *
+grep -F -I -r --max-count=1000 <pattern>
 ```
 
 Input uses the following allowlist:

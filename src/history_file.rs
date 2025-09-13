@@ -181,7 +181,7 @@ impl HistoryFile {
     pub(crate) fn append_user_input(&mut self, input: &str) -> io::Result<()> {
         let mut file = OpenOptions::new().append(true).open(&self.path)?;
 
-        let entry = format!("{}{input}", DELIMITER_USER_INPUT.green());
+        let entry = format!("{}{input}", DELIMITER_USER_INPUT);
         file.write_all(entry.as_bytes())?;
 
         self.content.push_str(&entry);
@@ -193,11 +193,12 @@ impl HistoryFile {
         let mut file = OpenOptions::new().append(true).open(&self.path)?;
 
         let entry = format!("{}{input}", DELIMITER_TOOL_INPUT.blue());
-        file.write_all(entry.as_bytes())?;
+        let file_entry = format!("{}{input}", DELIMITER_TOOL_INPUT);
+        file.write_all(file_entry.as_bytes())?;
 
         self.content.push_str(&entry);
 
-        Ok(input.to_string())
+        Ok(file_entry)
     }
 
     pub(crate) fn maybe_append_ai_response(&mut self, response: &str) -> io::Result<String> {
@@ -216,7 +217,8 @@ impl HistoryFile {
         let response_with_note = response.to_string();
 
         let entry = format!("{}{response_with_note}", DELIMITER_AI_RESPONSE.yellow());
-        file.write_all(entry.as_bytes())?;
+        let file_entry = format!("{}{response_with_note}", DELIMITER_AI_RESPONSE);
+        file.write_all(file_entry.as_bytes())?;
 
         self.content.push_str(&entry);
 

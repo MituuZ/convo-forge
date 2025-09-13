@@ -85,7 +85,7 @@ fn grep_impl(args: Value, app_config: Option<AppConfig>) -> String {
             .to_string();
     }
 
-    let mut child = match std::process::Command::new("grep")
+    let output = match std::process::Command::new("grep")
         .arg("-F")
         .arg("-I")
         .arg("-r")
@@ -94,33 +94,11 @@ fn grep_impl(args: Value, app_config: Option<AppConfig>) -> String {
         .current_dir(canon.clone())
         .stdout(std::process::Stdio::piped())
         .stderr(std::process::Stdio::piped())
-        .spawn()
+        .output()
     {
         Ok(c) => c,
         Err(e) => {
             return format!("Error launching grep: {}", e);
-        }
-    };
-
-    let timeout = std::time::Duration::from_secs(3);
-    let start = std::time::Instant::now();
-    while start.elapsed() < timeout {
-        if let Ok(Some(_)) = child.try_wait() {
-            break;
-        }
-        std::thread::sleep(std::time::Duration::from_millis(100));
-    }
-
-    if start.elapsed() >= timeout {
-        let _ = child.kill();
-        let _ = child.wait();
-        return "Error: `grep` timed out".to_string();
-    }
-
-    let output = match child.wait_with_output() {
-        Ok(output) => output,
-        Err(error) => {
-            return format!("Error collecting `grep` output: {}", error);
         }
     };
 
