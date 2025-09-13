@@ -19,7 +19,7 @@ use serde_json::Value;
 pub fn tool() -> Tool {
     Tool::new(
         "grep",
-        "Search for a pattern using 'grep' with *",
+        "Search for a pattern using 'grep'\nCommand: `grep -F --max-count=1000 <pattern> *`",
         serde_json::json!({
             "type": "object",
             "properties": {
@@ -30,25 +30,75 @@ pub fn tool() -> Tool {
         grep_impl,
     )
 }
+
 fn grep_impl(args: Value) -> String {
     let pattern = args["pattern"].as_str().unwrap_or("");
-
-    // Validate pattern for shell metacharacters
-    if pattern.contains(|c: char| ";&|`$(){}[]<>\\\"'".contains(c)) {
-        return "Error: Pattern contains invalid characters".to_string();
-    }
 
     if pattern.is_empty() {
         return "Error: Empty pattern".to_string();
     }
 
-    let output = std::process::Command::new("grep")
+    if !pattern
+        .chars()
+        .all(|c| c.is_alphanumeric() || c.is_whitespace() || c == '-' || c == '_' || c == '.')
+    {
+        return "Error: Pattern contains characters outside of the allowlist:\
+\n- alphanumeric\
+\n- whitespace\
+\n- -_.
+        "
+            .to_string();
+    }
+
+    let mut child = match std::process::Command::new("grep")
         .arg(pattern)
+        .arg("-F")
+        .arg("-I")
+        .arg("--max-count=1000")
         .arg("*")
-        .output()
-        .expect("Failed to execute grep command");
+        .spawn()
+    {
+        Ok(c) => c,
+        Err(e) => {
+            return format!("Error launching grep: {}", e);
+        }
+    };
+
+    let timeout = std::time::Duration::from_secs(3);
+    let start = std::time::Instant::now();
+    while start.elapsed() < timeout {
+        if let Ok(Some(_)) = child.try_wait() {
+            break;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(100));
+    }
+
+    if start.elapsed() >= timeout {
+        let _ = child.kill();
+        let _ = child.wait();
+        return "Error: `grep` timed out".to_string();
+    }
+
+    let output = match child.wait_with_output() {
+        Ok(output) => output,
+        Err(error) => {
+            return format!("Error collecting `grep` output: {}", error);
+        }
+    };
 
     let result = String::from_utf8_lossy(&output.stdout).to_string();
+
+    if !output.status.success() {
+        return format!(
+            "Error: `grep` returned non-zero exit code: {}\nMessage: {}",
+            output.status, result
+        );
+    }
+
+    const MAX_BYTES: usize = 1_048_576; // 1 MiB
+    if output.stdout.len() > MAX_BYTES {
+        return "Error: Output exceeds size limit".into();
+    }
 
     if result.is_empty() {
         "No matches found".to_string()
