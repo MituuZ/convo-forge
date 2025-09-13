@@ -91,6 +91,10 @@ cforge chat.txt -f code.rs
 
 For a full list of commands, see [docs/commands.md](docs/commands.md).
 
+### Tools
+
+For a full list of tools, see [docs/tools.md](docs/tools.md).
+
 ## Configuration
 
 You can configure your cforge by creating and modifying TOML configuration located at `~/.config/cforge/cforge.toml`.
