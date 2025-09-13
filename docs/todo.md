@@ -22,9 +22,11 @@
 ## Tools
 
 - [ ] Add OS checks to avoid calling unsupported commands
-- [ ] Check if the user has the required tools installed (e.g. `git` and `rg`)
+- [ ] Check if the user has the required tools installed (e.g. `git`)
+- [ ] Add support for `rg`
 - [ ] Check Anthropic's tool support
 - [ ] Add an option to show tool results in the chat
+- [ ] Allow searching using a vector db
 
 ## Commands
 
