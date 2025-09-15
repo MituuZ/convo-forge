@@ -13,12 +13,12 @@
  * OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-use crate::api::{ChatClient, ChatResponse, ToolCall};
+use crate::api::{ChatClient, ChatResponse};
 use crate::command::command_util::get_editor;
 use crate::command::commands::{CommandParams, CommandResult, CommandStruct};
 use crate::config::AppConfig;
 use crate::history_file::HistoryFile;
-use crate::tool::tools::{get_tools, Tool};
+use crate::tool::tools::get_tools;
 use crate::user_input::{Command, UserInput};
 use serde_json::Value;
 use std::collections::HashMap;
@@ -169,7 +169,11 @@ impl<'a> CommandProcessor<'a> {
         }
     }
 
-    fn handle_tools(&mut self, chat_response: ChatResponse, current_tool_calls: usize) -> io::Result<()> {
+    fn handle_tools(
+        &mut self,
+        chat_response: ChatResponse,
+        current_tool_calls: usize,
+    ) -> io::Result<()> {
         if current_tool_calls > 10 {
             eprintln!("More than 10 tool calls detected, exiting loop");
             Ok(())
@@ -186,26 +190,26 @@ impl<'a> CommandProcessor<'a> {
                         Some(self.app_config.clone()),
                     );
 
-                    // TODO: Make each tool return a json object instead of a string for a nicer formatting
                     let tool_result = serde_json::json!({
                         "tool_name": t.name,
                         "tool_params": tool_call.function.arguments,
                         "tool_result": tool_result,
-                    });;
+                    });
 
-                    result_array.as_array_mut().unwrap().push(tool_result.clone());
-
-                    self.history.append_tool_input(tool_result.to_string())?;
+                    result_array
+                        .as_array_mut()
+                        .unwrap()
+                        .push(tool_result.clone());
                 }
             }
 
+            let content: String = result_array.to_string();
             let param = serde_json::json!([
-                        {
-                            "role": "tool",
-                            "content": result_array.to_string()
-                        }
-                    ]);
-            // Send, print and save the tool response with the delimiter
+                {
+                    "role": "tool",
+                    "content": content
+                },
+            ]);
             let tool_response = self.chat_client.generate_tool_response(param)?;
 
             println!(
@@ -215,73 +219,6 @@ impl<'a> CommandProcessor<'a> {
 
             self.handle_tools(tool_response, current_tool_calls + 1)
         } else {
-            Ok(())
-        }
-    }
-
-    /// Checks if the response contains any tool calls and executes them
-    /// Calls itself again, if there are sequential tool calls
-    /// Might want to implement some logic for this later
-    fn handle_sequential_tool_prompt(&mut self, chat_response: ChatResponse) -> io::Result<()> {
-        if let Some(tool_calls) = &chat_response.tool_calls {
-            println!("\nModel requested following tool calls:");
-            let tools = get_tools();
-
-            // Run the first tool call and continue
-            let mut tool: Option<&Tool> = None;
-            let mut i = 0;
-            let mut tool_call: Option<&ToolCall> = None;
-
-            while tool.is_none() && i < tool_calls.len() {
-                let tc = &tool_calls[i];
-                tool_call = Some(tc);
-                let maybe_tool = tools.iter().find(|t| t.name == tc.function.name);
-                if let Some(t) = maybe_tool {
-                    tool = Some(t);
-                }
-                i += 1;
-            }
-
-            if let Some(t) = tool
-                && let Some(tc) = tool_call
-            {
-                println!("Tool request: {} ({})", t.name, t.description);
-
-                let mut result = format!(
-                    "Result from a tool '{}' with function '{}' and params {}: ",
-                    t.name, t.description, tc.function.arguments
-                )
-                    .to_string();
-                result.push_str(&t.execute(tc.function.arguments.clone(), Some(self.app_config.clone())));
-                result.push_str(
-                    "Note! The user does not see tool results, \
-                    so you MUST include them in your response. \
-                    Verify that you have completed all of the user's requests. \
-                    If no, you can make more tool requests now if necessary. \
-                    Only one tool call will be completed per your request",
-                );
-
-                let param = serde_json::json!([
-                    {
-                        "role": "tool",
-                        "content": result
-                    }
-                ]);
-
-                // Send, print and save the tool response with the delimiter
-                let tool_response = self.chat_client.generate_tool_response(param)?;
-
-                self.handle_sequential_tool_prompt(tool_response)
-            } else {
-                println!("No valid tool calls were made");
-                Ok(())
-            }
-        } else {
-            println!(
-                "{}",
-                self.history
-                    .maybe_append_ai_response(&chat_response.content)?
-            );
             Ok(())
         }
     }

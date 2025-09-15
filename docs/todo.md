@@ -18,6 +18,7 @@
 - [ ] Support memories, which are included in the prompt by default (session/global) (could be implemented as a tool)
 - [ ] Add Anthropic context sizes manually? There doesn't seem to be an API
 - [ ] Refactor model information and display (context size and tool support (+ future requirements))
+- [ ] Add an option to run a temporary chat
 
 ## Tools
 
@@ -27,6 +28,10 @@
 - [ ] Check Anthropic's tool support
 - [ ] Add an option to show tool results in the chat
 - [ ] Allow searching using a vector db
+- [ ] Configure loop amount
+- [ ] Create an extension system for adding tools
+- [ ] Should tool results be saved (to history or maybe an alternative file) or (even) printed?
+    - `append_tool_input` in git history
 
 ## Commands
 

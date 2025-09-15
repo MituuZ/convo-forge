@@ -189,18 +189,6 @@ impl HistoryFile {
         Ok(())
     }
 
-    pub(crate) fn append_tool_input(&mut self, input: String) -> io::Result<String> {
-        let mut file = OpenOptions::new().append(true).open(&self.path)?;
-
-        let entry = format!("{}{input}", DELIMITER_TOOL_INPUT.blue());
-        let file_entry = format!("{}{input}", DELIMITER_TOOL_INPUT);
-        file.write_all(file_entry.as_bytes())?;
-
-        self.content.push_str(&entry);
-
-        Ok(file_entry)
-    }
-
     pub(crate) fn maybe_append_ai_response(&mut self, response: &str) -> io::Result<String> {
         if response.trim().is_empty() {
             Ok(String::new())
