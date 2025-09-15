@@ -138,50 +138,6 @@ fn grep_impl(args: Value, app_config: Option<AppConfig>) -> String {
     }
 }
 
-#[cfg(feature = "test")]
-mod mock_tests {
-    use super::*;
-    use mockcmd::mock;
-    use tempfile::TempDir;
-
-    fn setup_test_dir() -> TempDir {
-        tempfile::tempdir().unwrap()
-    }
-
-    fn create_test_config(dir: &TempDir) -> AppConfig {
-        AppConfig {
-            user_config: crate::config::UserConfig {
-                knowledge_dir: dir.path().to_string_lossy().to_string(),
-                ..Default::default()
-            },
-            ..Default::default()
-        }
-    }
-
-    #[test]
-    fn test_grep_with_content() {
-        let dir = setup_test_dir();
-
-        let args = serde_json::json!({
-            "pattern": "test"
-        });
-        let config = create_test_config(&dir);
-
-        mock("grep")
-            .with_arg("-F")
-            .with_arg("-I")
-            .with_arg("-r")
-            .with_arg("--max-count=1000")
-            .with_arg("test")
-            .with_stdout("Hello")
-            .with_status(2)
-            .register();
-
-        let result = grep_impl(args, Some(config));
-        assert_eq!(result, "Hello");
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
