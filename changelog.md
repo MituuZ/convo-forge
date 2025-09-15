@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.7.2
+
+_Make all requested tool calls and gather the output for a single prompt_
+
 ## 0.7.1
 
 _Redo `grep` tool and update rustyline_
