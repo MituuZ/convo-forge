@@ -28,8 +28,7 @@ fn main() {
         for entry in fs::read_dir(user_tools_dir).unwrap() {
             let entry = entry.unwrap();
             let path = entry.path();
-            if path.extension().and_then(|ext| ext.to_str()) == Some("rs") &&
-                path.file_stem().and_then(|stem| stem.to_str()) != Some("mod") {
+            if path.extension().and_then(|ext| ext.to_str()) == Some("rs") {
                 let file_stem = path.file_stem().unwrap().to_str().unwrap().to_string();
                 modules.push(file_stem.clone());
 
