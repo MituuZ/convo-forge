@@ -75,12 +75,6 @@ pub fn get_tools() -> Vec<Tool> {
         tools_impl::git_diff::tool(),
     ];
 
-    let user_tools = load_user_tools();
-
-    for user_tool in user_tools {
-        println!("Loaded user specified tool: {user_tool}")
-    }
-
     tools.extend(load_user_tools());
     tools
 }
