@@ -30,6 +30,7 @@
 - [ ] Allow searching using a vector db
 - [ ] Configure loop amount
 - [ ] Create an extension system for adding tools
+- [ ] Add tool validation for user-defined tools (e.g., check unique names)
 - [ ] Should tool results be saved (to history or maybe an alternative file) or (even) printed?
     - `append_tool_input` in git history
 
