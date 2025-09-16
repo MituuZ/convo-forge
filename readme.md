@@ -93,7 +93,15 @@ For a full list of commands, see [docs/commands.md](docs/commands.md "Link to co
 
 ### Tools
 
-For a full list of tools, see [docs/tools.md](docs/tools.md "Link to tools.md").
+cforge supports two types of tools:
+
+- Built-in tools
+- User tools
+    - gitignored by default
+    - included dynamically at build time by [build.rs](build.rs "Link to build.rs")
+    - implemented using Rust
+
+For the full documentation, see [docs/tools.md](docs/tools.md "Link to tools.md").
 
 ## Configuration
 

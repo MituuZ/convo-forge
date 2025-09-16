@@ -20,7 +20,82 @@ All OS level tools are executed using the `std::process::Command` API.
     2. Pass the tool response to the model
     3. Display the model response to the user
 
-## Supported tools
+## User tools
+
+Users can define their own tools by adding one or more `.rs` files under `src/user_tools/`.
+Each file must export a `pub fn tool() -> Tool` function returning a fully defined tool.
+
+`src/user_tools/` is gitignored by default.
+
+These tools are discovered at build time by [build.rs](../build.rs "Link to build.rs"),
+which generates a `user_tools_gen.rs` module that is included in the build.
+Changes under `src/user_tools/` trigger regeneration on rebuild.
+
+### Quick start
+
+1. Create `src/user_tools/hello.rs`.
+2. Implement a `pub fn tool() -> Tool`.
+
+```rust
+use crate::config::AppConfig;
+use crate::tool::tools::Tool;
+use serde_json::Value;
+
+pub fn tool() -> Tool {
+    Tool::new(
+        "hello",
+        "Prints a greeting",
+        serde_json::json!({
+            "type": "object",
+            "properties": { "name": { "type": "string" } },
+            "required": ["name"]
+        }),
+        |args: Value, _cfg: Option<AppConfig>| -> String {
+            let name = args.get("name").and_then(|v| v.as_str()).unwrap_or("world");
+            format!("Hello, {name}!")
+        },
+    )
+}
+```
+
+### Tool definition
+
+```rust
+pub struct Tool {
+    pub(crate) name: String,
+    pub(crate) description: String,
+    tool_fn: ToolFn,
+    pub parameters: Value,
+}
+
+impl Tool {
+    pub fn execute(&self, args: Value, app_config: Option<AppConfig>) -> String {
+        (self.tool_fn)(args, app_config)
+    }
+
+    pub fn new(name: &str, description: &str, parameters: Value, tool_fn: ToolFn) -> Self {
+        Tool {
+            name: name.to_string(),
+            description: description.to_string(),
+            tool_fn,
+            parameters,
+        }
+    }
+
+    pub fn json_definition(&self) -> Value {
+        serde_json::json!({
+            "type": "function",
+            "function": {
+                "name": self.name,
+                "description": self.description,
+                "parameters": self.parameters,
+            }
+        })
+    }
+}
+```
+
+## Built-in tools
 
 ### grep
 
