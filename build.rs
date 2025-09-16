@@ -16,7 +16,7 @@
 use std::fs;
 
 fn main() {
-    // println!("cargo:rerun-if-changed=src/user_tools");
+    println!("cargo:rerun-if-changed=src/user_tools");
 
     let out_dir = std::env::var("OUT_DIR").unwrap();
     let dest_path = std::path::Path::new(&out_dir).join("user_tools_gen.rs");
@@ -58,5 +58,4 @@ fn main() {
     code.push_str("\n    v\n}\n");
 
     fs::write(&dest_path, code).unwrap();
-    println!("cargo:rerun-if-changed=src/user_tools");
 }
