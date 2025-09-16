@@ -15,7 +15,3 @@ regex = "1.11.1"
 lazy_static = "1.5.0"
 colored = "3.0.0"
 dirs-next = "2.0.0"
-
-[features]
-default = []
-user_tools = []
