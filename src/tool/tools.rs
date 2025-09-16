@@ -68,12 +68,29 @@ impl Display for Tool {
 }
 
 pub fn get_tools() -> Vec<Tool> {
-    vec![
+    let mut tools = vec![
         tools_impl::grep::tool(),
         tools_impl::pwd::tool(),
         tools_impl::git_status::tool(),
         tools_impl::git_diff::tool(),
-    ]
+    ];
+
+    let user_tools = load_user_tools();
+
+    for user_tool in user_tools {
+        println!("Loaded user specified tool: {user_tool}")
+    }
+
+    tools.extend(load_user_tools());
+    tools
+}
+
+mod user_tools_generated {
+    include!(concat!(env!("OUT_DIR"), "/user_tools_gen.rs"));
+}
+
+fn load_user_tools() -> Vec<Tool> {
+    user_tools_generated::get_user_tools()
 }
 
 #[cfg(test)]

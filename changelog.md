@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.8.0
+
+_Add support for custom tools_
+
+### User tools
+
+Enables the user to define and implement their own tools in `src/user_tools.rs`.
+
+`build.rs` is used to generate a Rust module containing the user tools.
+
 ## 0.7.2
 
 _Make all requested tool calls and gather the output for a single prompt_

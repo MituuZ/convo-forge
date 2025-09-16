@@ -95,6 +95,15 @@ For a full list of commands, see [docs/commands.md](docs/commands.md "Link to co
 
 For a full list of tools, see [docs/tools.md](docs/tools.md "Link to tools.md").
 
+#### User tools
+
+Enables the user to define and implement their own tools in `src/user_tools.rs`.
+
+`src/user_tools` is gitignored by default.
+
+These tools are handled at build time by [build.rs](build.rs "Link to build.rs")
+which generates `user_tools_gen.rs` module containing the user tools.
+
 ## Configuration
 
 You can configure your cforge by creating and modifying TOML configuration located at `~/.config/cforge/cforge.toml`.
