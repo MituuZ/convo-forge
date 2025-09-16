@@ -2,7 +2,7 @@
 
 ## 0.8.0
 
-_Add support for custom tools_
+_Add support for user tools_
 
 ### User tools
 
