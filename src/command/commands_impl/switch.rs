@@ -14,8 +14,23 @@
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-use crate::command::commands::{CommandParams, CommandResult};
+use crate::command::commands::{CommandParams, CommandResult, CommandStruct, FileCommandDirectory};
+use std::collections::HashMap;
 use std::io;
+
+pub(crate) fn new<'a>(default_prefixes: &HashMap<String, String>) -> (String, CommandStruct<'a>) {
+    (
+        "switch".to_string(),
+        CommandStruct::new(
+            "switch",
+            "Switch to a different history file.                     Either relative to cforge_dir or absolute path. Creates the file if it doesn't exist.",
+            Some(":switch <history file>"),
+            Some(FileCommandDirectory::Cforge),
+            switch_command,
+            default_prefixes.get("switch").cloned(),
+        ),
+    )
+}
 
 pub(crate) fn switch_command(command_params: CommandParams) -> io::Result<CommandResult> {
     match command_params.args.first() {

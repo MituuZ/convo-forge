@@ -14,8 +14,23 @@
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-use crate::command::commands::{CommandParams, CommandResult};
+use crate::command::commands::{CommandParams, CommandResult, CommandStruct};
+use std::collections::HashMap;
 use std::io;
+
+pub(crate) fn new<'a>(_default_prefixes: &HashMap<String, String>) -> (String, CommandStruct<'a>) {
+    (
+        "sysprompt".to_string(),
+        CommandStruct::new(
+            "sysprompt",
+            "Set the system prompt for current session",
+            Some(":sysprompt <prompt>"),
+            None,
+            sysprompt_command,
+            None,
+        ),
+    )
+}
 
 pub(crate) fn sysprompt_command(command_params: CommandParams) -> io::Result<CommandResult> {
     command_params

@@ -15,9 +15,17 @@
  */
 
 use crate::command::command_util::get_editor;
-use crate::command::commands::{CommandParams, CommandResult};
+use crate::command::commands::{CommandParams, CommandResult, CommandStruct};
+use std::collections::HashMap;
 use std::io;
 use std::process::Command;
+
+pub(crate) fn new<'a>(_default_prefixes: &HashMap<String, String>) -> (String, CommandStruct<'a>) {
+    (
+        "edit".to_string(),
+        CommandStruct::new("edit", "Open the history file in your editor", None, None, edit_command, None),
+    )
+}
 
 pub(crate) fn edit_command(command_params: CommandParams) -> io::Result<CommandResult> {
     let history = command_params.history;

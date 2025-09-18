@@ -14,8 +14,23 @@
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-use crate::command::commands::{CommandParams, CommandResult};
+use crate::command::commands::{CommandParams, CommandResult, CommandStruct};
+use std::collections::HashMap;
 use std::io;
+
+pub(crate) fn new<'a>(_default_prefixes: &HashMap<String, String>) -> (String, CommandStruct<'a>) {
+    (
+        "q".to_string(),
+        CommandStruct::new(
+            "q",
+            "Exit the program",
+            None,
+            None,
+            quit_command,
+            None,
+        ),
+    )
+}
 
 pub(crate) fn quit_command(command_params: CommandParams) -> io::Result<CommandResult> {
     println!(

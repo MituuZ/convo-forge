@@ -19,6 +19,13 @@ use colored::Colorize;
 use std::collections::HashMap;
 use std::io;
 
+pub(crate) fn new<'a>(_default_prefixes: &HashMap<String, String>) -> (String, CommandStruct<'a>) {
+    (
+        "help".to_string(),
+        CommandStruct::new("help", "Show this help message", None, None, help_command, None),
+    )
+}
+
 pub(crate) fn help_command(_command_params: CommandParams) -> io::Result<CommandResult> {
     let temp_map = HashMap::new();
     let registry = create_command_registry(temp_map);

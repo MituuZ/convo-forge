@@ -39,9 +39,9 @@ pub enum CommandResult {
 
 pub struct CommandParams<'a> {
     pub(crate) args: Vec<String>,
-    chat_client: &'a mut Box<dyn ChatClient>,
-    history: &'a mut HistoryFile,
-    cforge_dir: String,
+    pub(crate) chat_client: &'a mut Box<dyn ChatClient>,
+    pub(crate) history: &'a mut HistoryFile,
+    pub(crate) cforge_dir: String,
 }
 
 impl<'a> CommandParams<'a> {
@@ -101,7 +101,7 @@ impl<'a> CommandStruct<'a> {
         (self.command_fn)(params)
     }
 
-    fn display(&self) -> String {
+    pub(crate) fn display(&self) -> String {
         match self.command_example {
             Some(example) => format!(
                 "{:<12} - {}\n            {}",
@@ -137,94 +137,25 @@ fn cmd<'a>(
 pub(crate) fn create_command_registry<'a>(
     default_prefixes: HashMap<String, String>,
 ) -> HashMap<String, CommandStruct<'a>> {
-    HashMap::from([
-        cmd("q", "Exit the program", None, None, commands_impl::quit::quit_command, None),
-        cmd(
-            "list",
-            "List files in the cforge directory. \
-                    Optionally, you can provide a pattern to filter the results.",
-            Some(":list <optional pattern>"),
-            Some(FileCommandDirectory::Cforge),
-            commands_impl::list::list_command,
-            default_prefixes.get("list").cloned(),
-        ),
-        cmd(
-            "switch",
-            "Switch to a different history file. \
-                    Either relative to cforge_dir or absolute path. Creates the file if it doesn't exist.",
-            Some(":switch <history file>"),
-            Some(FileCommandDirectory::Cforge),
-            commands_impl::switch::switch_command,
-            default_prefixes.get("switch").cloned(),
-        ),
-        cmd(
-            "help",
-            "Show this help message",
-            None,
-            None,
-            commands_impl::help::help_command,
-            None,
-        ),
-        cmd(
-            "edit",
-            "Open the history file in your editor",
-            None,
-            None,
-            commands_impl::edit::edit_command,
-            None,
-        ),
-        cmd(
-            "sysprompt",
-            "Set the system prompt for current session",
-            Some(":sysprompt <prompt>"),
-            None,
-            commands_impl::sysprompt::sysprompt_command,
-            None,
-        ),
-        cmd(
-            "context",
-            "Set or unset current context file",
-            Some(":context <optional path>"),
-            Some(FileCommandDirectory::Knowledge),
-            commands_impl::context::context_file_command,
-            default_prefixes.get("context").cloned(),
-        ),
-        cmd(
-            "prompt",
-            r"Select or edit a prompt file. Either relative to cforge_dir or absolute path. Creates the file if it doesn't exist.",
-            Some(
-                r":prompt <prompt file>
-            <actual prompt to use with the file>",
-            ),
-            Some(FileCommandDirectory::Prompt),
-            commands_impl::prompt::prompt_command,
-            default_prefixes.get("prompt").cloned(),
-        ),
-        cmd(
-            "model",
-            "Change current model",
-            Some(":model <model_type>"),
-            None,
-            commands_impl::model::model_command,
-            None,
-        ),
-        cmd(
-            "profile",
-            "Change current profile",
-            Some(":profile <profile>"),
-            None,
-            commands_impl::profile::profile_command,
-            None,
-        ),
-        cmd(
-            "tools",
-            "display cforge tools",
-            None,
-            None,
-            commands_impl::tools::tools_command,
-            None,
-        ),
-    ])
+    let constructors: Vec<(String, CommandStruct<'a>)> = vec![
+        commands_impl::quit::new(&default_prefixes),
+        commands_impl::list::new(&default_prefixes),
+        commands_impl::switch::new(&default_prefixes),
+        commands_impl::help::new(&default_prefixes),
+        commands_impl::edit::new(&default_prefixes),
+        commands_impl::sysprompt::new(&default_prefixes),
+        commands_impl::context::new(&default_prefixes),
+        commands_impl::prompt::new(&default_prefixes),
+        commands_impl::model::new(&default_prefixes),
+        commands_impl::profile::new(&default_prefixes),
+        commands_impl::tools::new(&default_prefixes),
+    ];
+
+    let mut map: HashMap<String, CommandStruct<'a>> = HashMap::new();
+    for (name, cmd) in constructors {
+        map.insert(name, cmd);
+    }
+    map
 }
 
 

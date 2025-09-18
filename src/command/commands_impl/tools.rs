@@ -14,9 +14,17 @@
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-use crate::command::commands::{CommandParams, CommandResult};
+use crate::command::commands::{CommandParams, CommandResult, CommandStruct};
 use crate::tool::tools::get_tools;
+use std::collections::HashMap;
 use std::io;
+
+pub(crate) fn new<'a>(_default_prefixes: &HashMap<String, String>) -> (String, CommandStruct<'a>) {
+    (
+        "tools".to_string(),
+        CommandStruct::new("tools", "display cforge tools", None, None, tools_command, None),
+    )
+}
 
 pub(crate) fn tools_command(_: CommandParams) -> io::Result<CommandResult> {
     let tools = get_tools();

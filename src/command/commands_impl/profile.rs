@@ -14,8 +14,23 @@
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-use crate::command::commands::{CommandParams, CommandResult};
+use crate::command::commands::{CommandParams, CommandResult, CommandStruct};
+use std::collections::HashMap;
 use std::io;
+
+pub(crate) fn new<'a>(_default_prefixes: &HashMap<String, String>) -> (String, CommandStruct<'a>) {
+    (
+        "profile".to_string(),
+        CommandStruct::new(
+            "profile",
+            "Change current profile",
+            Some(":profile <profile>"),
+            None,
+            profile_command,
+            None,
+        ),
+    )
+}
 
 pub(crate) fn profile_command(command_params: CommandParams) -> io::Result<CommandResult> {
     match command_params.args.first() {

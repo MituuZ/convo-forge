@@ -14,9 +14,24 @@
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-use crate::command::commands::{CommandParams, CommandResult};
+use crate::command::commands::{CommandParams, CommandResult, CommandStruct};
 use crate::config::profiles_config::ModelType;
+use std::collections::HashMap;
 use std::io;
+
+pub(crate) fn new<'a>(_default_prefixes: &HashMap<String, String>) -> (String, CommandStruct<'a>) {
+    (
+        "model".to_string(),
+        CommandStruct::new(
+            "model",
+            "Change current model",
+            Some(":model <model_type>"),
+            None,
+            model_command,
+            None,
+        ),
+    )
+}
 
 pub(crate) fn model_command(command_params: CommandParams) -> io::Result<CommandResult> {
     match command_params.args.first() {

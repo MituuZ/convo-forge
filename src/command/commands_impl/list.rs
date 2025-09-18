@@ -14,9 +14,24 @@
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-use crate::command::commands::{CommandParams, CommandResult};
+use crate::command::commands::{CommandParams, CommandResult, CommandStruct, FileCommandDirectory};
+use std::collections::HashMap;
 use std::io;
 use std::{fs};
+
+pub(crate) fn new<'a>(default_prefixes: &HashMap<String, String>) -> (String, CommandStruct<'a>) {
+    (
+        "list".to_string(),
+        CommandStruct::new(
+            "list",
+            "List files in the cforge directory.                     Optionally, you can provide a pattern to filter the results.",
+            Some(":list <optional pattern>"),
+            Some(FileCommandDirectory::Cforge),
+            list_command,
+            default_prefixes.get("list").cloned(),
+        ),
+    )
+}
 
 pub(crate) fn list_command(command_params: CommandParams) -> io::Result<CommandResult> {
     let empty_string = String::from("");
