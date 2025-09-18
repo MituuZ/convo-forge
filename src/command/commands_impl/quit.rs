@@ -14,8 +14,13 @@
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-pub mod commands;
-pub mod command_complete;
-pub mod processor;
-pub mod commands_impl;
-mod command_util;
+use crate::command::commands::{CommandParams, CommandResult};
+use std::io;
+
+pub(crate) fn quit_command(command_params: CommandParams) -> io::Result<CommandResult> {
+    println!(
+        "Ending conversation. All interactions saved to '{}'",
+        command_params.history.filename
+    );
+    Ok(CommandResult::Quit)
+}

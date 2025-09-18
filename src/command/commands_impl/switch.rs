@@ -14,8 +14,15 @@
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-pub mod commands;
-pub mod command_complete;
-pub mod processor;
-pub mod commands_impl;
-mod command_util;
+use crate::command::commands::{CommandParams, CommandResult};
+use std::io;
+
+pub(crate) fn switch_command(command_params: CommandParams) -> io::Result<CommandResult> {
+    match command_params.args.first() {
+        Some(new_history_file) => Ok(CommandResult::SwitchHistory(new_history_file.to_string())),
+        _ => {
+            println!("Error: No history file specified. Usage: :switch <history_file>");
+            Ok(CommandResult::Continue)
+        }
+    }
+}

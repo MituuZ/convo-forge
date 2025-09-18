@@ -14,8 +14,15 @@
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-pub mod commands;
-pub mod command_complete;
-pub mod processor;
-pub mod commands_impl;
-mod command_util;
+use crate::command::commands::{CommandParams, CommandResult};
+use crate::tool::tools::get_tools;
+use std::io;
+
+pub(crate) fn tools_command(_: CommandParams) -> io::Result<CommandResult> {
+    let tools = get_tools();
+    for tool in tools {
+        println!("{tool}");
+    }
+
+    Ok(CommandResult::Continue)
+}

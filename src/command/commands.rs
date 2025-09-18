@@ -16,10 +16,9 @@
 
 use crate::api::ChatClient;
 use crate::command::command_util::get_editor;
-use crate::command::commands::CommandResult::HandlePrompt;
+use crate::command::commands_impl;
 use crate::config::profiles_config::ModelType;
 use crate::history_file::HistoryFile;
-use crate::tool::tools::get_tools;
 use colored::Colorize;
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -139,14 +138,14 @@ pub(crate) fn create_command_registry<'a>(
     default_prefixes: HashMap<String, String>,
 ) -> HashMap<String, CommandStruct<'a>> {
     HashMap::from([
-        cmd("q", "Exit the program", None, None, quit_command, None),
+        cmd("q", "Exit the program", None, None, commands_impl::quit::quit_command, None),
         cmd(
             "list",
             "List files in the cforge directory. \
                     Optionally, you can provide a pattern to filter the results.",
             Some(":list <optional pattern>"),
             Some(FileCommandDirectory::Cforge),
-            list_command,
+            commands_impl::list::list_command,
             default_prefixes.get("list").cloned(),
         ),
         cmd(
@@ -155,7 +154,7 @@ pub(crate) fn create_command_registry<'a>(
                     Either relative to cforge_dir or absolute path. Creates the file if it doesn't exist.",
             Some(":switch <history file>"),
             Some(FileCommandDirectory::Cforge),
-            switch_command,
+            commands_impl::switch::switch_command,
             default_prefixes.get("switch").cloned(),
         ),
         cmd(
@@ -163,7 +162,7 @@ pub(crate) fn create_command_registry<'a>(
             "Show this help message",
             None,
             None,
-            help_command,
+            commands_impl::help::help_command,
             None,
         ),
         cmd(
@@ -171,7 +170,7 @@ pub(crate) fn create_command_registry<'a>(
             "Open the history file in your editor",
             None,
             None,
-            edit_command,
+            commands_impl::edit::edit_command,
             None,
         ),
         cmd(
@@ -179,7 +178,7 @@ pub(crate) fn create_command_registry<'a>(
             "Set the system prompt for current session",
             Some(":sysprompt <prompt>"),
             None,
-            sysprompt_command,
+            commands_impl::sysprompt::sysprompt_command,
             None,
         ),
         cmd(
@@ -187,7 +186,7 @@ pub(crate) fn create_command_registry<'a>(
             "Set or unset current context file",
             Some(":context <optional path>"),
             Some(FileCommandDirectory::Knowledge),
-            context_file_command,
+            commands_impl::context::context_file_command,
             default_prefixes.get("context").cloned(),
         ),
         cmd(
@@ -198,7 +197,7 @@ pub(crate) fn create_command_registry<'a>(
             <actual prompt to use with the file>",
             ),
             Some(FileCommandDirectory::Prompt),
-            prompt_command,
+            commands_impl::prompt::prompt_command,
             default_prefixes.get("prompt").cloned(),
         ),
         cmd(
@@ -206,7 +205,7 @@ pub(crate) fn create_command_registry<'a>(
             "Change current model",
             Some(":model <model_type>"),
             None,
-            model_command,
+            commands_impl::model::model_command,
             None,
         ),
         cmd(
@@ -214,7 +213,7 @@ pub(crate) fn create_command_registry<'a>(
             "Change current profile",
             Some(":profile <profile>"),
             None,
-            profile_command,
+            commands_impl::profile::profile_command,
             None,
         ),
         cmd(
@@ -222,38 +221,12 @@ pub(crate) fn create_command_registry<'a>(
             "display cforge tools",
             None,
             None,
-            tools_command,
+            commands_impl::tools::tools_command,
             None,
         ),
     ])
 }
 
-fn tools_command(_: CommandParams) -> io::Result<CommandResult> {
-    let tools = get_tools();
-    for tool in tools {
-        println!("{tool}");
-    }
-
-    Ok(CommandResult::Continue)
-}
-
-fn prompt_command(command_params: CommandParams) -> io::Result<CommandResult> {
-    match command_params.args.first() {
-        None => {
-            eprintln!("Error: No prompt file specified. Usage: :prompt <prompt_file>");
-            Ok(CommandResult::Continue)
-        }
-        Some(prompt_file) => {
-            let user_prompt = if command_params.args.len() > 1 {
-                Some(command_params.args[1..].join(" "))
-            } else {
-                None
-            };
-
-            Ok(HandlePrompt(PathBuf::from(prompt_file), user_prompt))
-        }
-    }
-}
 
 fn model_command(command_params: CommandParams) -> io::Result<CommandResult> {
     match command_params.args.first() {
@@ -400,6 +373,19 @@ fn context_file_command(command_params: CommandParams) -> io::Result<CommandResu
 mod tests {
     use super::*;
     use crate::api::ChatResponse;
+    use crate::command::commands::CommandResult::HandlePrompt;
+    // Import command implementations from per-file modules
+    use crate::command::commands_impl::{
+        edit::edit_command,
+        help::help_command,
+        list::list_command,
+        model::model_command,
+        profile::profile_command,
+        prompt::prompt_command,
+        quit::quit_command,
+        switch::switch_command,
+        sysprompt::sysprompt_command,
+    };
     use serde_json::Value;
     use std::env;
     use tempfile::TempDir;

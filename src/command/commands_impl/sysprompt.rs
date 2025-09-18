@@ -14,8 +14,12 @@
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-pub mod commands;
-pub mod command_complete;
-pub mod processor;
-pub mod commands_impl;
-mod command_util;
+use crate::command::commands::{CommandParams, CommandResult};
+use std::io;
+
+pub(crate) fn sysprompt_command(command_params: CommandParams) -> io::Result<CommandResult> {
+    command_params
+        .chat_client
+        .update_system_prompt(command_params.args.join(" "));
+    Ok(CommandResult::Continue)
+}

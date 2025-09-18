@@ -14,8 +14,36 @@
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-pub mod commands;
-pub mod command_complete;
-pub mod processor;
-pub mod commands_impl;
-mod command_util;
+use crate::command::commands::{create_command_registry, CommandParams, CommandResult, CommandStruct};
+use colored::Colorize;
+use std::collections::HashMap;
+use std::io;
+
+pub(crate) fn help_command(_command_params: CommandParams) -> io::Result<CommandResult> {
+    let temp_map = HashMap::new();
+    let registry = create_command_registry(temp_map);
+    let mut commands: Vec<&CommandStruct> = registry.values().collect();
+
+    commands.sort_by(|a, b| {
+        a.file_command
+            .is_some()
+            .cmp(&b.file_command.is_some())
+            .then(a.command_string.cmp(b.command_string))
+    });
+
+    println!("{}", "General commands:".bright_green());
+    for cmd in &commands {
+        if cmd.file_command.is_none() {
+            println!("{}", cmd.display());
+        }
+    }
+
+    println!("{} (supports file completion):", "\nFile commands".bright_green());
+    for cmd in &commands {
+        if cmd.file_command.is_some() {
+            println!("{}", cmd.display());
+        }
+    }
+
+    Ok(CommandResult::Continue)
+}

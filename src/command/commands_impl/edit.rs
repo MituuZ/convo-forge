@@ -14,8 +14,21 @@
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-pub mod commands;
-pub mod command_complete;
-pub mod processor;
-pub mod commands_impl;
-mod command_util;
+use crate::command::command_util::get_editor;
+use crate::command::commands::{CommandParams, CommandResult};
+use std::io;
+use std::process::Command;
+
+pub(crate) fn edit_command(command_params: CommandParams) -> io::Result<CommandResult> {
+    let history = command_params.history;
+    let editor = get_editor();
+
+    let status = Command::new(editor).arg(history.path.clone()).status();
+    if !status.is_ok_and(|s| s.success()) {
+        eprintln!("Error opening file in editor");
+    } else {
+        history.reload_content();
+    }
+
+    Ok(CommandResult::Continue)
+}
