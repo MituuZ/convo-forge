@@ -48,21 +48,8 @@ pub(crate) fn edit_command(command_params: CommandParams) -> io::Result<CommandR
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::api::ChatClient;
-    use crate::history_file::HistoryFile;
-    use crate::test_support::make_mock_client;
-    use std::{env, fs, io};
-    use tempfile::TempDir;
-
-    fn setup_test_environment() -> (Box<dyn ChatClient>, HistoryFile, TempDir, String) {
-        let temp_dir = TempDir::new().unwrap();
-        let dir_path = temp_dir.path().to_str().unwrap().to_string();
-        let chat_client: Box<dyn ChatClient> = make_mock_client();
-        let history_path = format!("{}/test-history.txt", dir_path);
-        fs::write(&history_path, "Test conversation content").unwrap();
-        let history = HistoryFile::new("test-history.txt".to_string(), dir_path.clone()).unwrap();
-        (chat_client, history, temp_dir, dir_path)
-    }
+    use crate::test_support::setup_test_environment;
+    use std::{env, io};
 
     #[test]
     fn test_edit_command() -> io::Result<()> {

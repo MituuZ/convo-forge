@@ -17,8 +17,10 @@
 #![cfg(test)]
 
 use crate::api::{ChatClient, ChatResponse};
+use crate::history_file::HistoryFile;
 use serde_json::Value;
-use std::io;
+use std::{fs, io};
+use tempfile::TempDir;
 
 pub struct TestMockClient {
     system_prompt: String,
@@ -53,3 +55,14 @@ pub fn make_mock_client() -> Box<dyn ChatClient> {
 pub fn make_mock_client_with_prompt<S: Into<String>>(prompt: S) -> Box<dyn ChatClient> {
     Box::new(TestMockClient { system_prompt: prompt.into() })
 }
+
+pub fn setup_test_environment() -> (Box<dyn ChatClient>, HistoryFile, TempDir, String) {
+    let temp_dir = TempDir::new().unwrap();
+    let dir_path = temp_dir.path().to_str().unwrap().to_string();
+    let chat_client: Box<dyn ChatClient> = make_mock_client();
+    let history_path = format!("{}/test-history.txt", dir_path);
+    fs::write(&history_path, "Test conversation content").unwrap();
+    let history = HistoryFile::new("test-history.txt".to_string(), dir_path.clone()).unwrap();
+    (chat_client, history, temp_dir, dir_path)
+}
+
