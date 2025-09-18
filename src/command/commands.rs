@@ -15,14 +15,12 @@
  */
 
 use crate::api::ChatClient;
-use crate::command::command_util::get_editor;
 use crate::command::commands_impl;
 use crate::config::profiles_config::ModelType;
 use crate::history_file::HistoryFile;
 use colored::Colorize;
 use std::collections::HashMap;
 use std::path::PathBuf;
-use std::process::Command;
 use std::{fs, io};
 
 pub enum CommandResult {
@@ -156,148 +154,6 @@ pub(crate) fn create_command_registry<'a>(
         map.insert(name, cmd);
     }
     map
-}
-
-
-fn model_command(command_params: CommandParams) -> io::Result<CommandResult> {
-    match command_params.args.first() {
-        Some(new_model) => {
-            if let Ok(new_model) = ModelType::parse_model_type(new_model) {
-                Ok(CommandResult::SwitchModel(new_model))
-            } else {
-                eprintln!("Error: Invalid model type specified: {}. Usage: :model <model>", new_model);
-                eprintln!("Valid models types are 'fast', 'balanced', or 'deep'\n");
-                Ok(CommandResult::PrintModels)
-            }
-        }
-        _ => {
-            Ok(CommandResult::PrintModels)
-        }
-    }
-}
-
-fn profile_command(command_params: CommandParams) -> io::Result<CommandResult> {
-    match command_params.args.first() {
-        Some(new_profile) => Ok(CommandResult::SwitchProfile(new_profile.to_string())),
-        _ => {
-            Ok(CommandResult::PrintProfiles)
-        }
-    }
-}
-
-fn quit_command(command_params: CommandParams) -> io::Result<CommandResult> {
-    println!(
-        "Ending conversation. All interactions saved to '{}'",
-        command_params.history.filename
-    );
-    Ok(CommandResult::Quit)
-}
-
-fn list_command(command_params: CommandParams) -> io::Result<CommandResult> {
-    let empty_string = String::from("");
-    let pattern = command_params.args.first().unwrap_or(&empty_string);
-
-    fn list_dir_contents(dir: &str, pattern: &str, cforge_dir: &str) -> io::Result<()> {
-        for entry in fs::read_dir(dir)? {
-            let entry = entry?;
-            let path = entry.path();
-
-            if (pattern.is_empty() || path.display().to_string().contains(pattern))
-                && !path.is_dir()
-            {
-                match path.display().to_string().strip_prefix(cforge_dir) {
-                    None => println!("{}", path.display()),
-                    Some(ds) => {
-                        let mut cleaned_ds = ds.to_string();
-                        if cleaned_ds.starts_with('/') {
-                            cleaned_ds = cleaned_ds[1..].to_string();
-                        }
-                        println!("{cleaned_ds}")
-                    }
-                }
-            }
-            if path.is_dir() {
-                list_dir_contents(path.to_str().unwrap(), pattern, cforge_dir)?;
-            }
-        }
-        Ok(())
-    }
-
-    list_dir_contents(
-        &command_params.cforge_dir,
-        pattern,
-        &command_params.cforge_dir,
-    )?;
-    Ok(CommandResult::Continue)
-}
-
-fn help_command(_command_params: CommandParams) -> io::Result<CommandResult> {
-    let temp_map = HashMap::new();
-    let registry = create_command_registry(temp_map);
-    let mut commands: Vec<&CommandStruct> = registry.values().collect();
-
-    commands.sort_by(|a, b| {
-        a.file_command
-            .is_some()
-            .cmp(&b.file_command.is_some())
-            .then(a.command_string.cmp(b.command_string))
-    });
-
-    println!("{}", "General commands:".bright_green());
-    for cmd in &commands {
-        if cmd.file_command.is_none() {
-            println!("{}", cmd.display());
-        }
-    }
-
-    println!("{} (supports file completion):", "\nFile commands".bright_green());
-    for cmd in &commands {
-        if cmd.file_command.is_some() {
-            println!("{}", cmd.display());
-        }
-    }
-
-    Ok(CommandResult::Continue)
-}
-
-fn switch_command(command_params: CommandParams) -> io::Result<CommandResult> {
-    match command_params.args.first() {
-        Some(new_history_file) => Ok(CommandResult::SwitchHistory(new_history_file.to_string())),
-        _ => {
-            println!("Error: No history file specified. Usage: :switch <history_file>");
-            Ok(CommandResult::Continue)
-        }
-    }
-}
-
-fn edit_command(command_params: CommandParams) -> io::Result<CommandResult> {
-    let history = command_params.history;
-    let editor = get_editor();
-
-    let status = Command::new(editor).arg(history.path.clone()).status();
-    if !status.is_ok_and(|s| s.success()) {
-        eprintln!("Error opening file in editor");
-    } else {
-        history.reload_content();
-    }
-
-    Ok(CommandResult::Continue)
-}
-
-fn sysprompt_command(command_params: CommandParams) -> io::Result<CommandResult> {
-    command_params
-        .chat_client
-        .update_system_prompt(command_params.args.join(" "));
-    Ok(CommandResult::Continue)
-}
-
-fn context_file_command(command_params: CommandParams) -> io::Result<CommandResult> {
-    match command_params.args.first() {
-        Some(new_context_file) => Ok(CommandResult::SwitchContext(Some(PathBuf::from(
-            new_context_file,
-        )))),
-        _ => Ok(CommandResult::SwitchContext(None)),
-    }
 }
 
 #[cfg(test)]
