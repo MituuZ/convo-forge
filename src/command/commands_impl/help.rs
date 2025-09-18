@@ -62,19 +62,8 @@ pub(crate) fn help_command(_command_params: CommandParams) -> io::Result<Command
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::api::ChatClient;
-    use crate::history_file::HistoryFile;
-    use crate::test_support::make_mock_client;
+    use crate::test_support::setup_test_environment;
     use std::io;
-    use tempfile::TempDir;
-
-    fn setup_test_environment() -> (Box<dyn ChatClient>, HistoryFile, TempDir, String) {
-        let temp_dir = TempDir::new().unwrap();
-        let dir_path = temp_dir.path().to_str().unwrap().to_string();
-        let chat_client: Box<dyn ChatClient> = make_mock_client();
-        let history = HistoryFile::new("test-history.txt".to_string(), dir_path.clone()).unwrap();
-        (chat_client, history, temp_dir, dir_path)
-    }
 
     #[test]
     fn test_help_command() -> io::Result<()> {
