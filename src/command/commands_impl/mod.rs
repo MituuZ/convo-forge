@@ -14,8 +14,15 @@
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-pub mod commands;
-pub mod command_complete;
-pub mod processor;
-pub mod commands_impl;
-mod command_util;
+/* Commands are implemented one per file, mirroring the tools_impl structure. */
+pub(crate) mod tools;
+pub(crate) mod prompt;
+pub(crate) mod model;
+pub(crate) mod profile;
+pub(crate) mod quit;
+pub(crate) mod list;
+pub(crate) mod help;
+pub(crate) mod switch;
+pub(crate) mod edit;
+pub(crate) mod sysprompt;
+pub(crate) mod context;

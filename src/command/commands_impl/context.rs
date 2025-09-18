@@ -14,8 +14,34 @@
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-pub mod commands;
-pub mod command_complete;
-pub mod processor;
-pub mod commands_impl;
-mod command_util;
+use crate::command::commands::{CommandParams, CommandResult, CommandStruct, FileCommandDirectory};
+use std::collections::HashMap;
+use std::io;
+use std::path::PathBuf;
+
+pub(crate) fn new<'a>(default_prefixes: &HashMap<String, String>) -> (String, CommandStruct<'a>) {
+    (
+        "context".to_string(),
+        CommandStruct::new(
+            "context",
+            "Set or unset current context file",
+            Some(":context <optional path>"),
+            Some(FileCommandDirectory::Knowledge),
+            context_file_command,
+            default_prefixes.get("context").cloned(),
+        ),
+    )
+}
+
+pub(crate) fn command<'a>(default_prefixes: &HashMap<String, String>) -> (String, CommandStruct<'a>) {
+    new(default_prefixes)
+}
+
+pub(crate) fn context_file_command(command_params: CommandParams) -> io::Result<CommandResult> {
+    match command_params.args.first() {
+        Some(new_context_file) => Ok(CommandResult::SwitchContext(Some(PathBuf::from(
+            new_context_file,
+        )))),
+        _ => Ok(CommandResult::SwitchContext(None)),
+    }
+}

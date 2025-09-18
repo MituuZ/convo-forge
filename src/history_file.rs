@@ -298,6 +298,7 @@ mod tests {
 
     #[test]
     fn test_append_multiple_entries() {
+        colored::control::set_override(false);
         let temp_file = NamedTempFile::new().unwrap();
         let path = temp_file.path().to_str().unwrap().to_string();
 
@@ -319,6 +320,7 @@ mod tests {
 
     #[test]
     fn test_append_ai_response_normal() {
+        colored::control::set_override(false);
         let temp_file = NamedTempFile::new().unwrap();
         let path = temp_file.path().to_str().unwrap().to_string();
         let ai_response = "AI response";

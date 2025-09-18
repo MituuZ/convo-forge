@@ -113,6 +113,7 @@ mod tests {
 
     #[test]
     fn test_tool_display() {
+        colored::control::set_override(false);
         let tool = get_test_tool();
         assert_eq!(
             format!("{}", tool),
