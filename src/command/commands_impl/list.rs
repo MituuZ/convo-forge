@@ -72,3 +72,59 @@ pub(crate) fn list_command(command_params: CommandParams) -> io::Result<CommandR
 
     Ok(CommandResult::Continue)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::api::{ChatClient, ChatResponse};
+    use crate::history_file::HistoryFile;
+    use serde_json::Value;
+    use std::{fs, io};
+    use tempfile::TempDir;
+
+    struct MockClient;
+    impl ChatClient for MockClient {
+        fn generate_response(&self, _: Value, _: &str, _: Option<&str>) -> io::Result<ChatResponse> {
+            Ok(ChatResponse { content: String::new(), tool_calls: None })
+        }
+        fn generate_tool_response(&self, _: Value) -> io::Result<ChatResponse> { unreachable!() }
+        fn model_context_size(&self) -> Option<usize> { None }
+        fn model_supports_tools(&self) -> bool { false }
+        fn update_system_prompt(&mut self, _: String) {}
+        fn system_prompt(&self) -> String { String::new() }
+    }
+
+    fn setup_test_environment() -> (Box<dyn ChatClient>, HistoryFile, TempDir, String) {
+        let temp_dir = TempDir::new().unwrap();
+        let dir_path = temp_dir.path().to_str().unwrap().to_string();
+        let chat_client: Box<dyn ChatClient> = Box::new(MockClient);
+        let history_path = format!("{}/test-history.txt", dir_path);
+        fs::write(&history_path, "Test conversation content").unwrap();
+        let history = HistoryFile::new("test-history.txt".to_string(), dir_path.clone()).unwrap();
+        (chat_client, history, temp_dir, dir_path)
+    }
+
+    #[test]
+    fn test_list_command() -> io::Result<()> {
+        let (mut client, mut history, _tmp, dir_path) = setup_test_environment();
+        fs::write(format!("{}/history1.txt", dir_path), "Content 1")?;
+        fs::write(format!("{}/history2.txt", dir_path), "Content 2")?;
+        let params = CommandParams::new(vec![], &mut client, &mut history, dir_path);
+        let result = list_command(params)?;
+        assert!(matches!(result, CommandResult::Continue));
+        Ok(())
+    }
+
+    #[test]
+    fn test_list_command_with_pattern() -> io::Result<()> {
+        let (mut client, mut history, _tmp, dir_path) = setup_test_environment();
+        fs::write(format!("{}/history1.txt", dir_path), "Content 1")?;
+        fs::write(format!("{}/history2.txt", dir_path), "Content 2")?;
+        fs::write(format!("{}/other.txt", dir_path), "Other content")?;
+        let args = vec!["history".to_string()];
+        let params = CommandParams::new(args, &mut client, &mut history, dir_path);
+        let result = list_command(params)?;
+        assert!(matches!(result, CommandResult::Continue));
+        Ok(())
+    }
+}

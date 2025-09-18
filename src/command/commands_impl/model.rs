@@ -54,3 +54,63 @@ pub(crate) fn model_command(command_params: CommandParams) -> io::Result<Command
         _ => Ok(CommandResult::PrintModels),
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::api::{ChatClient, ChatResponse};
+    use crate::history_file::HistoryFile;
+    use serde_json::Value;
+    use std::io;
+    use tempfile::TempDir;
+
+    struct MockClient;
+    impl ChatClient for MockClient {
+        fn generate_response(&self, _: Value, _: &str, _: Option<&str>) -> io::Result<ChatResponse> {
+            Ok(ChatResponse { content: String::new(), tool_calls: None })
+        }
+        fn generate_tool_response(&self, _: Value) -> io::Result<ChatResponse> { unreachable!() }
+        fn model_context_size(&self) -> Option<usize> { None }
+        fn model_supports_tools(&self) -> bool { false }
+        fn update_system_prompt(&mut self, _: String) {}
+        fn system_prompt(&self) -> String { String::new() }
+    }
+
+    fn setup_test_environment() -> (Box<dyn ChatClient>, HistoryFile, TempDir, String) {
+        let temp_dir = TempDir::new().unwrap();
+        let dir_path = temp_dir.path().to_str().unwrap().to_string();
+        let chat_client: Box<dyn ChatClient> = Box::new(MockClient);
+        let history = HistoryFile::new("test-history.txt".to_string(), dir_path.clone()).unwrap();
+        (chat_client, history, temp_dir, dir_path)
+    }
+
+    #[test]
+    fn test_model_command_no_input() -> io::Result<()> {
+        let (mut client, mut history, _tmp, dir_path) = setup_test_environment();
+        let params = CommandParams::new(vec![], &mut client, &mut history, dir_path);
+        let result = model_command(params)?;
+        assert!(matches!(result, CommandResult::PrintModels));
+        Ok(())
+    }
+
+    #[test]
+    fn test_model_command_invalid_input() -> io::Result<()> {
+        let (mut client, mut history, _tmp, dir_path) = setup_test_environment();
+        let input = "not a valid model type";
+        let args: Vec<String> = input.split_whitespace().map(|s| s.to_string()).collect();
+        let params = CommandParams::new(args, &mut client, &mut history, dir_path);
+        let result = model_command(params)?;
+        assert!(matches!(result, CommandResult::PrintModels));
+        Ok(())
+    }
+
+    #[test]
+    fn test_model_command() -> io::Result<()> {
+        let (mut client, mut history, _tmp, dir_path) = setup_test_environment();
+        let args: Vec<String> = vec!["fast".to_string()];
+        let params = CommandParams::new(args, &mut client, &mut history, dir_path);
+        let result = model_command(params)?;
+        assert!(matches!(result, CommandResult::SwitchModel(ModelType::Fast)));
+        Ok(())
+    }
+}
