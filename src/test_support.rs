@@ -52,10 +52,6 @@ pub fn make_mock_client() -> Box<dyn ChatClient> {
     Box::new(TestMockClient::default())
 }
 
-pub fn make_mock_client_with_prompt<S: Into<String>>(prompt: S) -> Box<dyn ChatClient> {
-    Box::new(TestMockClient { system_prompt: prompt.into() })
-}
-
 pub fn setup_test_environment() -> (Box<dyn ChatClient>, HistoryFile, TempDir, String) {
     let temp_dir = TempDir::new().unwrap();
     let dir_path = temp_dir.path().to_str().unwrap().to_string();
