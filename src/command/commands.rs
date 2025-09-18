@@ -138,17 +138,17 @@ pub(crate) fn create_command_registry<'a>(
     default_prefixes: HashMap<String, String>,
 ) -> HashMap<String, CommandStruct<'a>> {
     let constructors: Vec<(String, CommandStruct<'a>)> = vec![
-        commands_impl::quit::new(&default_prefixes),
-        commands_impl::list::new(&default_prefixes),
-        commands_impl::switch::new(&default_prefixes),
-        commands_impl::help::new(&default_prefixes),
-        commands_impl::edit::new(&default_prefixes),
-        commands_impl::sysprompt::new(&default_prefixes),
-        commands_impl::context::new(&default_prefixes),
-        commands_impl::prompt::new(&default_prefixes),
-        commands_impl::model::new(&default_prefixes),
-        commands_impl::profile::new(&default_prefixes),
-        commands_impl::tools::new(&default_prefixes),
+        commands_impl::quit::command(&default_prefixes),
+        commands_impl::list::command(&default_prefixes),
+        commands_impl::switch::command(&default_prefixes),
+        commands_impl::help::command(&default_prefixes),
+        commands_impl::edit::command(&default_prefixes),
+        commands_impl::sysprompt::command(&default_prefixes),
+        commands_impl::context::command(&default_prefixes),
+        commands_impl::prompt::command(&default_prefixes),
+        commands_impl::model::command(&default_prefixes),
+        commands_impl::profile::command(&default_prefixes),
+        commands_impl::tools::command(&default_prefixes),
     ];
 
     let mut map: HashMap<String, CommandStruct<'a>> = HashMap::new();

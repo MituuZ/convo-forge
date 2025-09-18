@@ -32,6 +32,10 @@ pub(crate) fn new<'a>(default_prefixes: &HashMap<String, String>) -> (String, Co
     )
 }
 
+pub(crate) fn command<'a>(default_prefixes: &HashMap<String, String>) -> (String, CommandStruct<'a>) {
+    new(default_prefixes)
+}
+
 pub(crate) fn switch_command(command_params: CommandParams) -> io::Result<CommandResult> {
     match command_params.args.first() {
         Some(new_history_file) => Ok(CommandResult::SwitchHistory(new_history_file.to_string())),

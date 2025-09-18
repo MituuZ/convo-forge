@@ -26,6 +26,10 @@ pub(crate) fn new<'a>(_default_prefixes: &HashMap<String, String>) -> (String, C
     )
 }
 
+pub(crate) fn command<'a>(default_prefixes: &HashMap<String, String>) -> (String, CommandStruct<'a>) {
+    new(default_prefixes)
+}
+
 pub(crate) fn tools_command(_: CommandParams) -> io::Result<CommandResult> {
     let tools = get_tools();
     for tool in tools {

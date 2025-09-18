@@ -33,6 +33,10 @@ pub(crate) fn new<'a>(default_prefixes: &HashMap<String, String>) -> (String, Co
     )
 }
 
+pub(crate) fn command<'a>(default_prefixes: &HashMap<String, String>) -> (String, CommandStruct<'a>) {
+    new(default_prefixes)
+}
+
 pub(crate) fn context_file_command(command_params: CommandParams) -> io::Result<CommandResult> {
     match command_params.args.first() {
         Some(new_context_file) => Ok(CommandResult::SwitchContext(Some(PathBuf::from(

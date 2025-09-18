@@ -32,6 +32,10 @@ pub(crate) fn new<'a>(_default_prefixes: &HashMap<String, String>) -> (String, C
     )
 }
 
+pub(crate) fn command<'a>(default_prefixes: &HashMap<String, String>) -> (String, CommandStruct<'a>) {
+    new(default_prefixes)
+}
+
 pub(crate) fn quit_command(command_params: CommandParams) -> io::Result<CommandResult> {
     println!(
         "Ending conversation. All interactions saved to '{}'",

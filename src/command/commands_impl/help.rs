@@ -26,6 +26,10 @@ pub(crate) fn new<'a>(_default_prefixes: &HashMap<String, String>) -> (String, C
     )
 }
 
+pub(crate) fn command<'a>(default_prefixes: &HashMap<String, String>) -> (String, CommandStruct<'a>) {
+    new(default_prefixes)
+}
+
 pub(crate) fn help_command(_command_params: CommandParams) -> io::Result<CommandResult> {
     let temp_map = HashMap::new();
     let registry = create_command_registry(temp_map);

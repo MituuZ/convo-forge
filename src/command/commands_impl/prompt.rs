@@ -37,6 +37,10 @@ pub(crate) fn new<'a>(default_prefixes: &HashMap<String, String>) -> (String, Co
     )
 }
 
+pub(crate) fn command<'a>(default_prefixes: &HashMap<String, String>) -> (String, CommandStruct<'a>) {
+    new(default_prefixes)
+}
+
 pub(crate) fn prompt_command(command_params: CommandParams) -> io::Result<CommandResult> {
     match command_params.args.first() {
         None => {
