@@ -23,7 +23,7 @@ pub(crate) fn new<'a>(_default_prefixes: &HashMap<String, String>) -> (String, C
         "profile".to_string(),
         CommandStruct::new(
             "profile",
-            "Change current profile",
+            "Change current profile by the profile name. If no profile is specified, the current profile is printed.",
             Some(":profile <profile>"),
             None,
             profile_command,

@@ -23,7 +23,7 @@ pub(crate) fn new<'a>(default_prefixes: &HashMap<String, String>) -> (String, Co
         "switch".to_string(),
         CommandStruct::new(
             "switch",
-            "Switch to a different history file.                     Either relative to cforge_dir or absolute path. Creates the file if it doesn't exist.",
+            "Switch to a different history file. Either relative to the data directory or absolute path. Creates the file if it doesn't exist.",
             Some(":switch <history file>"),
             Some(FileCommandDirectory::Cforge),
             switch_command,

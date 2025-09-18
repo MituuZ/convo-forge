@@ -24,7 +24,7 @@ pub(crate) fn new<'a>(default_prefixes: &HashMap<String, String>) -> (String, Co
         "list".to_string(),
         CommandStruct::new(
             "list",
-            "List files in the cforge directory.                     Optionally, you can provide a pattern to filter the results.",
+            "List files in the cforge directory. Optionally, you can provide a pattern to filter the results.",
             Some(":list <optional pattern>"),
             Some(FileCommandDirectory::Cforge),
             list_command,

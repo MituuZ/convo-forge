@@ -24,7 +24,7 @@ pub(crate) fn new<'a>(_default_prefixes: &HashMap<String, String>) -> (String, C
         "model".to_string(),
         CommandStruct::new(
             "model",
-            "Change current model",
+            "Change current model type. Valid model types are 'fast', 'balanced', or 'deep'. If no model type is specified, the current model type is printed.",
             Some(":model <model_type>"),
             None,
             model_command,
