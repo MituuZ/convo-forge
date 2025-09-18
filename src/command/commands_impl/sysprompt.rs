@@ -46,30 +46,16 @@ pub(crate) fn sysprompt_command(command_params: CommandParams) -> io::Result<Com
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::api::{ChatClient, ChatResponse};
+    use crate::api::ChatClient;
     use crate::history_file::HistoryFile;
-    use serde_json::Value;
+    use crate::test_support::{make_mock_client_with_prompt};
     use std::io;
     use tempfile::TempDir;
-
-    struct MockClient {
-        system_prompt: String,
-    }
-    impl ChatClient for MockClient {
-        fn generate_response(&self, _: Value, _: &str, _: Option<&str>) -> io::Result<ChatResponse> {
-            Ok(ChatResponse { content: String::new(), tool_calls: None })
-        }
-        fn generate_tool_response(&self, _: Value) -> io::Result<ChatResponse> { unreachable!() }
-        fn model_context_size(&self) -> Option<usize> { None }
-        fn model_supports_tools(&self) -> bool { false }
-        fn update_system_prompt(&mut self, sp: String) { self.system_prompt = sp; }
-        fn system_prompt(&self) -> String { self.system_prompt.clone() }
-    }
 
     fn setup_test_environment() -> (Box<dyn ChatClient>, HistoryFile, TempDir, String) {
         let temp_dir = TempDir::new().unwrap();
         let dir_path = temp_dir.path().to_str().unwrap().to_string();
-        let chat_client: Box<dyn ChatClient> = Box::new(MockClient { system_prompt: String::new() });
+        let chat_client: Box<dyn ChatClient> = make_mock_client_with_prompt("");
         let history = HistoryFile::new("test-history.txt".to_string(), dir_path.clone()).unwrap();
         (chat_client, history, temp_dir, dir_path)
     }

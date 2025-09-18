@@ -21,6 +21,9 @@ mod history_file;
 pub mod tool;
 mod user_input;
 
+#[cfg(test)]
+mod test_support;
+
 use crate::api::{get_chat_client_implementation, ChatClient};
 use crate::command::commands::{create_command_registry, CommandResult};
 use crate::config::AppConfig;

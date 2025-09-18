@@ -48,28 +48,16 @@ pub(crate) fn edit_command(command_params: CommandParams) -> io::Result<CommandR
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::api::{ChatClient, ChatResponse};
+    use crate::api::ChatClient;
     use crate::history_file::HistoryFile;
-    use serde_json::Value;
+    use crate::test_support::make_mock_client;
     use std::{env, fs, io};
     use tempfile::TempDir;
-
-    struct MockClient;
-    impl ChatClient for MockClient {
-        fn generate_response(&self, _: Value, _: &str, _: Option<&str>) -> io::Result<ChatResponse> {
-            Ok(ChatResponse { content: String::new(), tool_calls: None })
-        }
-        fn generate_tool_response(&self, _: Value) -> io::Result<ChatResponse> { unreachable!() }
-        fn model_context_size(&self) -> Option<usize> { None }
-        fn model_supports_tools(&self) -> bool { false }
-        fn update_system_prompt(&mut self, _: String) {}
-        fn system_prompt(&self) -> String { String::new() }
-    }
 
     fn setup_test_environment() -> (Box<dyn ChatClient>, HistoryFile, TempDir, String) {
         let temp_dir = TempDir::new().unwrap();
         let dir_path = temp_dir.path().to_str().unwrap().to_string();
-        let chat_client: Box<dyn ChatClient> = Box::new(MockClient);
+        let chat_client: Box<dyn ChatClient> = make_mock_client();
         let history_path = format!("{}/test-history.txt", dir_path);
         fs::write(&history_path, "Test conversation content").unwrap();
         let history = HistoryFile::new("test-history.txt".to_string(), dir_path.clone()).unwrap();
