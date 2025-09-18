@@ -14,8 +14,8 @@
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-use crate::command::commands::{CommandParams, CommandResult, CommandStruct, FileCommandDirectory};
 use crate::command::commands::CommandResult::HandlePrompt;
+use crate::command::commands::{CommandParams, CommandResult, CommandStruct, FileCommandDirectory};
 use std::collections::HashMap;
 use std::io;
 use std::path::PathBuf;
@@ -25,7 +25,7 @@ pub(crate) fn new<'a>(default_prefixes: &HashMap<String, String>) -> (String, Co
         "prompt".to_string(),
         CommandStruct::new(
             "prompt",
-            r"Select or edit a prompt file. Either relative to cforge_dir or absolute path. Creates the file if it doesn't exist.",
+            r"Select or edit a prompt file. Either relative to the prompt directory or asolute path. Creates the file if it doesn't exist.",
             Some(
                 r":prompt <prompt file>
             <actual prompt to use with the file>",
