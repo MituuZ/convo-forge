@@ -26,3 +26,4 @@ pub(crate) mod switch;
 pub(crate) mod edit;
 pub(crate) mod sysprompt;
 pub(crate) mod context;
+pub(crate) mod clear;

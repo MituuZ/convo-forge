@@ -125,6 +125,7 @@ pub(crate) fn create_command_registry<'a>(
         commands_impl::model::command(&default_prefixes),
         commands_impl::profile::command(&default_prefixes),
         commands_impl::tools::command(&default_prefixes),
+        commands_impl::clear::command(&default_prefixes),
     ];
 
     let mut map: HashMap<String, CommandStruct<'a>> = HashMap::new();
@@ -154,7 +155,8 @@ mod tests {
         assert!(registry.contains_key("model"));
         assert!(registry.contains_key("profile"));
         assert!(registry.contains_key("tools"));
+        assert!(registry.contains_key("clear"));
 
-        assert_eq!(registry.len(), 11);
+        assert_eq!(registry.len(), 12);
     }
 }
