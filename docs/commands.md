@@ -13,6 +13,7 @@ Commands are case-insensitive and support completion.
 - prompt
 - model
 - profile
+- clear
 
 ## Path aliases
 
@@ -65,6 +66,12 @@ Resolution order:
 4. other - `vi`
 
 `:edit`
+
+## Clear
+
+Clear the current history file by truncating its contents and reloading the in-memory chat history.
+
+`:clear`
 
 ## Exit
 

@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.9.0
+
+_Add clear command_
+
+### Commands
+
+- Add `:clear` to empty the current history file
+
 ## 0.8.0
 
 _Add support for user tools_
