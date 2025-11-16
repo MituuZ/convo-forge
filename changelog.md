@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.9.1
+
+_Refactor and cleanup_
+
 ## 0.9.0
 
 _Add clear command_
@@ -44,10 +48,10 @@ _Initial support for internal tools for Ollama models_
 - Check if current model has `tools` capability and enable tool calls if it does
 - Report tool calls when they are made
 - Add the following basic tools for Ollama models:
-    - `grep`
-    - `pwd`
-    - `Git Status`
-    - `Git Diff`
+  - `grep`
+  - `pwd`
+  - `Git Status`
+  - `Git Diff`
 - `tools` command to list available tools
 
 ## 0.6.0
@@ -66,14 +70,14 @@ Running `cforge` without a config file creates a new one with the default values
 
 - Add a profile system to allow storing multiple different configurations
 - Profiles can define multiple models with up to three types
-    - Fast
-    - Balanced
-    - Deep
-    - Types must be distinct for each profile
-    - Defaults to `balanced` if not specified
+  - Fast
+  - Balanced
+  - Deep
+  - Types must be distinct for each profile
+  - Defaults to `balanced` if not specified
 - Defaults to `local` profile if no profile is specified
-    - model: `gemma3:12b`
-    - model_type: `balanced`
+  - model: `gemma3:12b`
+  - model_type: `balanced`
 
 ### Commands
 
@@ -176,8 +180,8 @@ _Add support for Anthropic API_
 
 ### Config
 
-* `provider` - Change model provider between `ollama` and `anthropic`
-* `max_tokens` - Set the token limit for Anthropic API
+- `provider` - Change model provider between `ollama` and `anthropic`
+- `max_tokens` - Set the token limit for Anthropic API
 
 ## 0.3.1
 
@@ -200,10 +204,10 @@ _Enable switching context file with a command and add support for a separate kno
 
 Support path aliases instead of defaulting to cforge_dir.
 
-* "/" - Absolute path
-* "" - Relative to the current dir
-* "@c/" - Relative to cforge_dir
-* "@k/" - Relative to knowledge_dir
+- "/" - Absolute path
+- "" - Relative to the current dir
+- "@c/" - Relative to cforge_dir
+- "@k/" - Relative to knowledge_dir
 
 ## 0.2.6 - 2025-06-26
 
@@ -301,10 +305,10 @@ _Add `edit` command_
 ### Commands
 
 - Enable modifying the currently open history file
-    1. `$EDITOR`
-    2. `$VISUAL`
-    3. windows - `notepad`
-    4. other - `vi`
+  1. `$EDITOR`
+  2. `$VISUAL`
+  3. windows - `notepad`
+  4. other - `vi`
 
 ## 0.1.6 - 2025-06-08
 
@@ -322,10 +326,10 @@ and disable interruption_
 ### Prompts
 
 - Use a more traditional ordering with:
-    1. System prompt
-    2. Context file
-    3. History file
-    4. Current user prompt
+  1. System prompt
+  2. Context file
+  3. History file
+  4. Current user prompt
 
 ### Commands
 
