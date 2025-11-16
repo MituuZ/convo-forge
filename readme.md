@@ -16,7 +16,7 @@ A command-line interface for interacting with Ollama and Anthropic models.
 How the messages array is formed in the request JSON:
 
 | Role             | Content                                  |
-|------------------|------------------------------------------|
+| ---------------- | ---------------------------------------- |
 | system/assistant | cforge system prompt                     |
 | user/assistant   | conversation history                     |
 | user             | current prompt (+ optional context file) |
@@ -31,6 +31,9 @@ git clone https://github.com/mituuz/convo-forge.git
 cd convo-forge
 # When running the command for the first time, it generates a config file with the default values
 cargo run -- chat.md
+
+# Or install the binary using cargo
+cargo install --path .
 
 # Basic commands
 :help   # Show available commands
@@ -66,9 +69,9 @@ cforge [OPTIONS]
 ### Arguments
 
 - `<HISTORY_FILE>` - Path to the file that acts as chat history (will be created if it doesn't exist)
-    - If a relative path is provided, it will be created inside the data directory (according to XDG)
-    - If an absolute path is provided, it will be used as-is
-    - Mandatory for the first time, after that `.cforge.toml` contains a reference to the previously opened history file
+  - If a relative path is provided, it will be created inside the data directory (according to XDG)
+  - If an absolute path is provided, it will be used as-is
+  - Mandatory for the first time, after that `.cforge.toml` contains a reference to the previously opened history file
 
 ### Options
 
@@ -97,9 +100,9 @@ cforge supports two types of tools:
 
 - Built-in tools
 - User tools
-    - gitignored by default
-    - included dynamically at build time by [build.rs](build.rs "Link to build.rs")
-    - implemented using Rust
+  - gitignored by default
+  - included dynamically at build time by [build.rs](build.rs "Link to build.rs")
+  - implemented using Rust
 
 For the full documentation, see [docs/tools.md](docs/tools.md "Link to tools.md").
 
@@ -158,7 +161,7 @@ completion_mode = "circular"
 
 ### Env variables
 
-* **ANTHROPIC_API_KEY** - Valid API key to use Anthropic's models
+- **ANTHROPIC_API_KEY** - Valid API key to use Anthropic's models
 
 ## Security & Privacy
 
