@@ -17,7 +17,7 @@ use crate::api::{ChatClient, ChatResponse};
 use crate::command::command_util::get_editor;
 use crate::command::commands::{CommandParams, CommandResult, CommandStruct};
 use crate::config::AppConfig;
-use crate::history_file::HistoryFile;
+use crate::models::history_file::HistoryFile;
 use crate::tool::tools::get_tools;
 use crate::user_input::{Command, UserInput};
 use serde_json::Value;
@@ -132,7 +132,7 @@ impl<'a> CommandProcessor<'a> {
                         self.app_config.switch_profile(&profile);
                         *self.rebuild_chat_client = true;
                     } else {
-                        println!("No profile found with name: {}", new_profile);
+                        println!("No profile found with name: {new_profile}");
                         return Ok(CommandResult::Continue);
                     }
                 }

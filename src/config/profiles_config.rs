@@ -53,7 +53,10 @@ impl Profile {
         }
 
         let model = &self.models[0];
-        println!("Model type {} not found, using {} model", model_type, model.model_type);
+        println!(
+            "Model type {} not found, using {} model",
+            model_type, model.model_type
+        );
         model
     }
 
@@ -71,7 +74,13 @@ impl Profile {
         println!("Available models for profile {}:", self.name);
         for model in &self.models {
             if model.model_type == *current_model_type {
-                println!("{}{}{}: {}", prefix, "* ".green(), model.model_type, model.model);
+                println!(
+                    "{}{}{}: {}",
+                    prefix,
+                    "* ".green(),
+                    model.model_type,
+                    model.model
+                );
             } else {
                 println!("{}{}: {}", prefix, model.model_type, model.model);
             }
@@ -117,7 +126,7 @@ impl ModelType {
             "fast" => Ok(ModelType::Fast),
             "balanced" => Ok(ModelType::Balanced),
             "deep" => Ok(ModelType::Deep),
-            _ => Err(format!("Invalid model type: {}", model_type)),
+            _ => Err(format!("Invalid model type: {model_type}")),
         }
     }
 }
@@ -162,14 +171,17 @@ impl Profile {
     /// 2. Each model must have a unique model type
     pub fn validate(&self, profile_name: &String) -> Result<(), String> {
         if self.models.is_empty() {
-            return Err(format!("Profile {} has no models", profile_name));
+            return Err(format!("Profile {profile_name} has no models"));
         }
 
         let mut model_types: Vec<ModelType> = vec![];
 
         for model in &self.models {
             if model_types.contains(&model.model_type) {
-                return Err(format!("Profile {} has a duplicate model type: {}", profile_name, &model.model_type));
+                return Err(format!(
+                    "Profile {} has a duplicate model type: {}",
+                    profile_name, &model.model_type
+                ));
             }
 
             model_types.push(model.model_type);
@@ -184,22 +196,17 @@ fn default_model_type() -> ModelType {
 }
 
 fn default_profiles() -> Vec<Profile> {
-    let models: Vec<Model> = vec![
-        Model {
-            model: "gemma3:12b".to_string(),
-            description: None,
-            model_type: ModelType::Balanced,
-        }
-    ];
+    let models: Vec<Model> = vec![Model {
+        model: "gemma3:12b".to_string(),
+        description: None,
+        model_type: ModelType::Balanced,
+    }];
 
-
-    let profiles: Vec<Profile> = vec![
-        Profile {
-            name: "local".to_string(),
-            provider: "ollama".to_string(),
-            models,
-        }
-    ];
+    let profiles: Vec<Profile> = vec![Profile {
+        name: "local".to_string(),
+        provider: "ollama".to_string(),
+        models,
+    }];
 
     profiles
 }
@@ -211,7 +218,7 @@ mod tests {
     #[test]
     fn test_default_profiles() {
         let config = ProfilesConfig {
-            profiles: default_profiles()
+            profiles: default_profiles(),
         };
 
         assert_eq!(config.profiles.len(), 1);
@@ -290,7 +297,10 @@ mod tests {
         "#;
 
         let config: ProfilesConfig = toml::from_str(config_str).unwrap();
-        assert_eq!(config.validate().unwrap_err(), "Profile name test is not unique");
+        assert_eq!(
+            config.validate().unwrap_err(),
+            "Profile name test is not unique"
+        );
     }
 
     #[test]
@@ -317,7 +327,6 @@ mod tests {
 
         assert!(toml::from_str::<ProfilesConfig>(config_str).is_err());
     }
-
 
     #[test]
     fn test_validate_default_model_type() {
@@ -355,6 +364,10 @@ mod tests {
         "#;
 
         let config: ProfilesConfig = toml::from_str(config_str).unwrap();
-        assert_eq!(config.validate().unwrap_err(), "Profile test has a duplicate model type: fast");
+        assert_eq!(
+            config.validate().unwrap_err(),
+            "Profile test has a duplicate model type: fast"
+        );
     }
 }
+

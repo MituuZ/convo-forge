@@ -13,25 +13,7 @@
  * OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-use crate::config::AppConfig;
-use crate::tool::tools::Tool;
 
-pub fn tool() -> Tool {
-    Tool::new(
-        "pwd",
-        "Show current working directory",
-        serde_json::json!({
-            "type": "object",
-            "properties": {},
-            "required": []
-        }),
-        pwd_impl,
-    )
-}
-
-fn pwd_impl(_args: serde_json::Value, _: Option<AppConfig>) -> String {
-    match std::process::Command::new("pwd").output() {
-        Ok(output) => String::from_utf8_lossy(&output.stdout).to_string(),
-        Err(e) => format!("Failed to execute pwd command: {e}"),
-    }
+pub trait ContextEstimation {
+    fn estimate_context_size(&self) -> usize;
 }

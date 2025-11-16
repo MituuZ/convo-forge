@@ -17,7 +17,7 @@
 #![cfg(test)]
 
 use crate::api::{ChatClient, ChatResponse};
-use crate::history_file::HistoryFile;
+use crate::models::history_file::HistoryFile;
 use serde_json::Value;
 use std::{fs, io};
 use tempfile::TempDir;
@@ -28,24 +28,44 @@ pub struct TestMockClient {
 
 impl Default for TestMockClient {
     fn default() -> Self {
-        Self { system_prompt: String::new() }
+        Self {
+            system_prompt: String::new(),
+        }
     }
 }
 
 impl ChatClient for TestMockClient {
-    fn generate_response(&self, _history_messages_json: Value, _user_prompt: &str, _context_content: Option<&str>) -> io::Result<ChatResponse> {
-        Ok(ChatResponse { content: String::new(), tool_calls: None })
+    fn generate_response(
+        &self,
+        _history_messages_json: Value,
+        _user_prompt: &str,
+        _context_content: Option<&str>,
+    ) -> io::Result<ChatResponse> {
+        Ok(ChatResponse {
+            content: String::new(),
+            tool_calls: None,
+        })
     }
 
-    fn generate_tool_response(&self, _tool_prompt: Value) -> io::Result<ChatResponse> { unreachable!() }
+    fn generate_tool_response(&self, _tool_prompt: Value) -> io::Result<ChatResponse> {
+        unreachable!()
+    }
 
-    fn model_context_size(&self) -> Option<usize> { None }
+    fn model_context_size(&self) -> Option<usize> {
+        None
+    }
 
-    fn model_supports_tools(&self) -> bool { false }
+    fn model_supports_tools(&self) -> bool {
+        false
+    }
 
-    fn update_system_prompt(&mut self, system_prompt: String) { self.system_prompt = system_prompt; }
+    fn update_system_prompt(&mut self, system_prompt: String) {
+        self.system_prompt = system_prompt;
+    }
 
-    fn system_prompt(&self) -> String { self.system_prompt.clone() }
+    fn system_prompt(&self) -> String {
+        self.system_prompt.clone()
+    }
 }
 
 pub fn make_mock_client() -> Box<dyn ChatClient> {
@@ -61,4 +81,3 @@ pub fn setup_test_environment() -> (Box<dyn ChatClient>, HistoryFile, TempDir, S
     let history = HistoryFile::new("test-history.txt".to_string(), dir_path.clone()).unwrap();
     (chat_client, history, temp_dir, dir_path)
 }
-

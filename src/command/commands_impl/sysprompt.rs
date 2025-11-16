@@ -32,7 +32,9 @@ pub(crate) fn new<'a>(_default_prefixes: &HashMap<String, String>) -> (String, C
     )
 }
 
-pub(crate) fn command<'a>(default_prefixes: &HashMap<String, String>) -> (String, CommandStruct<'a>) {
+pub(crate) fn command<'a>(
+    default_prefixes: &HashMap<String, String>,
+) -> (String, CommandStruct<'a>) {
     new(default_prefixes)
 }
 
@@ -46,7 +48,6 @@ pub(crate) fn sysprompt_command(command_params: CommandParams) -> io::Result<Com
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::api::ChatClient;
     use crate::test_support::setup_test_environment;
     use std::io;
 
@@ -55,7 +56,10 @@ mod tests {
         let (mut chat_client, mut history, _temp_dir, dir_path) = setup_test_environment();
         let new_system_prompt = "This is a test system prompt";
         let initial_system_prompt = chat_client.system_prompt().clone();
-        let args: Vec<String> = new_system_prompt.split_whitespace().map(|s| s.to_string()).collect();
+        let args: Vec<String> = new_system_prompt
+            .split_whitespace()
+            .map(|s| s.to_string())
+            .collect();
         let params = CommandParams::new(args, &mut chat_client, &mut history, dir_path);
         assert_ne!(initial_system_prompt, new_system_prompt);
         let result = sysprompt_command(params)?;

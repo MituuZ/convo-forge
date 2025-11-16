@@ -33,6 +33,6 @@ pub fn tool() -> Tool {
 fn git_diff_impl(_args: serde_json::Value, _: Option<AppConfig>) -> String {
     match Command::new("git").arg("diff").output() {
         Ok(output) => String::from_utf8_lossy(&output.stdout).to_string(),
-        Err(e) => format!("Failed to execute git diff command: {}", e),
+        Err(e) => format!("Failed to execute git diff command: {e}"),
     }
 }
