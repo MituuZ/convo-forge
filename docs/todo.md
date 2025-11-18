@@ -6,13 +6,15 @@
 - [x] Use ollama API instead of run commands
 - [x] Parse the chat history to a correctly formatted JSON
 - [x] Implement simple completions with rustyline
-    - [x] Commands
-    - [x] Files
+  - [x] Commands
+  - [x] Files
 - [x] Support multiline input with alt + enter (using rustyline)
 - [x] Update the default sysprompt
 - [x] Keep track of the model's context window and file size
 - [x] Add support for knowledge directory
 - [x] The model might not realize that it has the context file available
+- [ ] Support streaming with an interrupt thread
+- [ ] Add an option to hide thinking
 - [ ] Custom completions for `model` and `profile` commands
 - [ ] Keybinds for commands?
 - [ ] Support memories, which are included in the prompt by default (session/global) (could be implemented as a tool)
@@ -32,16 +34,17 @@
 - [ ] Create an extension system for adding tools
 - [ ] Add tool validation for user-defined tools (e.g., check unique names)
 - [ ] Should tool results be saved (to history or maybe an alternative file) or (even) printed?
-    - `append_tool_input` in git history
+  - `append_tool_input` in git history
 
 ## Commands
 
 - [x] Allow changing the context file during a chat
-    - [x] `config.create_editor` - Handle command/file command logic using the registry
+  - [x] `config.create_editor` - Handle command/file command logic using the registry
 - [x] `prompt`- Enable creating, editing and using prompt files
-    - The user should be able to define where their actual prompt is injected
+  - The user should be able to define where their actual prompt is injected
 - [x] `clear` - Clear the current history file
-- [ ] `copy` - Copy the history file to another location. Edit the copy of the file?
+- [ ] `fork` - Copy the history file to another location. Edit the copy of the file
+- [ ] `rename` - Rename the current history file
 - [ ] Truncate chat (line count, estimated tokens, or LLM assisted)
 
 ## Completion overhaul

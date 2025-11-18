@@ -112,6 +112,10 @@ impl HistoryFile {
         &self.content
     }
 
+    pub(crate) fn print_content(&self) {
+        println!("{}", &self.content);
+    }
+
     /// Get the content of the history file formatted as a JSON array
     ///
     /// Returns a JSON array of `"role": "", "content": ""` messages

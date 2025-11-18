@@ -55,7 +55,7 @@ impl CacheConfig {
         Self::new(None, None, None)
     }
 
-    pub(crate) fn load(cache_path: Option<PathBuf>) -> Self {
+    pub(crate) fn load(cache_path: Option<PathBuf>, arg_history_file: &Option<String>) -> Self {
         let mut cache = Self::empty();
 
         if let Some(cache_path) = cache_path {
@@ -67,6 +67,16 @@ impl CacheConfig {
                 Err(e) => eprintln!("Failed to read cache file: {e}"),
             }
         };
+
+        if let Some(hf) = arg_history_file {
+            cache.last_history_file = Some(hf.to_string());
+        }
+
+        if cache.last_history_file.is_none() {
+            println!("You must specify a history file `cforge <history_file>` for the first time.");
+            println!("See `cforge --help` for more information.");
+            panic!("No history file specified and no previous history file found from cache.");
+        }
 
         cache
     }
@@ -83,6 +93,15 @@ impl CacheConfig {
             }
         }
     }
+
+    pub fn get_history_file_path(&self) -> String {
+        match &self.last_history_file {
+            Some(hf) => hf.to_string(),
+            None => panic!(
+                "No history file given as an argument or found from cache. This shouldn't happen"
+            ),
+        }
+    }
 }
 
 #[cfg(test)]
@@ -91,9 +110,10 @@ mod tests {
 
     use tempfile::TempDir;
 
-    use crate::config::cache_config::{CacheConfig, CACHE_FILE};
+    use crate::config::cache_config::{CACHE_FILE, CacheConfig};
 
     #[test]
+    #[should_panic]
     fn load_invalid_cache_config() {
         let temp_dir = create_cache_config(
             "
@@ -101,48 +121,44 @@ mod tests {
             ",
         );
         let path_opt = Some(temp_dir.path().to_path_buf());
-        let config = CacheConfig::load(path_opt);
-
-        assert_eq!(
-            config.last_history_file,
-            CacheConfig::empty().last_history_file
-        );
+        let _ = CacheConfig::load(path_opt, &None);
     }
 
     #[test]
+    #[should_panic]
     fn load_non_existent_cache_config() {
         let temp_dir = create_cache_config("");
         let path_opt = Some(temp_dir.path().join("doesnt_exist.toml").to_path_buf());
-        let config = CacheConfig::load(path_opt);
-
-        assert_eq!(
-            config.last_history_file,
-            CacheConfig::empty().last_history_file
-        );
+        let _ = CacheConfig::load(path_opt, &None);
     }
 
     #[test]
+    #[should_panic]
     fn load_empty_cache_config() {
         let temp_dir = create_cache_config("");
         let path_opt = Some(temp_dir.path().to_path_buf());
-        let config = CacheConfig::load(path_opt);
-
-        assert_eq!(
-            config.last_history_file,
-            CacheConfig::empty().last_history_file
-        );
+        let _ = CacheConfig::load(path_opt, &None);
     }
 
     #[test]
     fn load_valid_cache_config() {
         let temp_dir = create_cache_config("last_history_file = \"some_history_file\"");
         let path_opt = Some(temp_dir.path().to_path_buf());
-        let config = CacheConfig::load(path_opt);
+        let config = CacheConfig::load(path_opt, &None);
 
         assert_eq!(
             config.last_history_file,
             Some("some_history_file".to_string())
         );
+    }
+
+    #[test]
+    fn override_using_arg_history() {
+        let temp_dir = create_cache_config("last_history_file = \"some_history_file\"");
+        let path_opt = Some(temp_dir.path().to_path_buf());
+        let config = CacheConfig::load(path_opt, &Some("override_path".to_string()));
+
+        assert_eq!(config.last_history_file, Some("override_path".to_string()));
     }
 
     fn create_cache_config(content: &str) -> TempDir {
