@@ -33,7 +33,9 @@ pub(crate) fn new<'a>(_default_prefixes: &HashMap<String, String>) -> (String, C
     )
 }
 
-pub(crate) fn command<'a>(default_prefixes: &HashMap<String, String>) -> (String, CommandStruct<'a>) {
+pub(crate) fn command<'a>(
+    default_prefixes: &HashMap<String, String>,
+) -> (String, CommandStruct<'a>) {
     new(default_prefixes)
 }
 
@@ -44,8 +46,7 @@ pub(crate) fn model_command(command_params: CommandParams) -> io::Result<Command
                 Ok(CommandResult::SwitchModel(new_model))
             } else {
                 eprintln!(
-                    "Error: Invalid model type specified: {}. Usage: :model <model>",
-                    new_model
+                    "Error: Invalid model type specified: {new_model}. Usage: :model <model>"
                 );
                 eprintln!("Valid models types are 'fast', 'balanced', or 'deep'\n");
                 Ok(CommandResult::PrintModels)
@@ -87,7 +88,10 @@ mod tests {
         let args: Vec<String> = vec!["fast".to_string()];
         let params = CommandParams::new(args, &mut client, &mut history, dir_path);
         let result = model_command(params)?;
-        assert!(matches!(result, CommandResult::SwitchModel(ModelType::Fast)));
+        assert!(matches!(
+            result,
+            CommandResult::SwitchModel(ModelType::Fast)
+        ));
         Ok(())
     }
 }

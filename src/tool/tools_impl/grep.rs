@@ -51,9 +51,7 @@ fn grep_impl(args: Value, app_config: Option<AppConfig>) -> String {
         None => {
             return "Error: App config not found".to_string();
         }
-        Some(app_config) => {
-            app_config.user_config.knowledge_dir.clone()
-        }
+        Some(app_config) => app_config.user_config.knowledge_dir.clone(),
     };
 
     if knowledge_base_path.is_empty() {
@@ -64,8 +62,7 @@ fn grep_impl(args: Value, app_config: Option<AppConfig>) -> String {
         Ok(p) => p,
         Err(_) => {
             return format!(
-                "Error: '{}' cannot be resolved to a real directory",
-                knowledge_base_path
+                "Error: '{knowledge_base_path}' cannot be resolved to a real directory",
             );
         }
     };
@@ -83,7 +80,7 @@ fn grep_impl(args: Value, app_config: Option<AppConfig>) -> String {
 \n- whitespace\
 \n- -_.
         "
-            .to_string();
+        .to_string();
     }
 
     let output = match Command::new("grep")
@@ -99,7 +96,7 @@ fn grep_impl(args: Value, app_config: Option<AppConfig>) -> String {
     {
         Ok(c) => c,
         Err(e) => {
-            return format!("Error launching grep: {}", e);
+            return format!("Error launching grep: {e}");
         }
     };
 
@@ -199,3 +196,4 @@ mod tests {
         assert_eq!(grep_impl(args, Some(config)), "No matches found");
     }
 }
+

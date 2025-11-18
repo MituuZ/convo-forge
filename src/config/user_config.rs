@@ -54,7 +54,7 @@ impl UserConfig {
             let toml_str =
                 toml::to_string_pretty(&default).expect("Could not serialize default config");
             fs::write(&path, toml_str).expect("Could not write default config file");
-            println!("Created default config at {:?}", path);
+            println!("Created default config at {path:?}");
             return default;
         }
 
@@ -160,7 +160,7 @@ mod tests {
     use std::{fs::write, path::PathBuf};
 
     use crate::config::rustyline_config::RustylineConfig;
-    use crate::config::user_config::{UserConfig, CONFIG_FILE};
+    use crate::config::user_config::{CONFIG_FILE, UserConfig};
     use tempfile::TempDir;
 
     #[test]

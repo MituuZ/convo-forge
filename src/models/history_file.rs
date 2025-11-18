@@ -14,6 +14,7 @@
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+use crate::traits::estimate_context_size::ContextEstimation;
 use colored::Colorize;
 use lazy_static::lazy_static;
 use regex::Regex;
@@ -181,7 +182,7 @@ impl HistoryFile {
     pub(crate) fn append_user_input(&mut self, input: &str) -> io::Result<()> {
         let mut file = OpenOptions::new().append(true).open(&self.path)?;
 
-        let entry = format!("{}{input}", DELIMITER_USER_INPUT);
+        let entry = format!("{DELIMITER_USER_INPUT}{input}");
         file.write_all(entry.as_bytes())?;
 
         self.content.push_str(&entry);
@@ -205,7 +206,7 @@ impl HistoryFile {
         let response_with_note = response.to_string();
 
         let entry = format!("{}{response_with_note}", DELIMITER_AI_RESPONSE.yellow());
-        let file_entry = format!("{}{response_with_note}", DELIMITER_AI_RESPONSE);
+        let file_entry = format!("{DELIMITER_AI_RESPONSE}{response_with_note}");
         file.write_all(file_entry.as_bytes())?;
 
         self.content.push_str(&entry);
@@ -224,6 +225,13 @@ impl HistoryFile {
             }
             Err(e) => println!("Error opening file: {e}"),
         }
+    }
+}
+
+impl ContextEstimation for HistoryFile {
+    fn estimate_context_size(&self) -> usize {
+        let char_count = &self.content.chars().count();
+        char_count / 4 + 1
     }
 }
 

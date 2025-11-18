@@ -13,25 +13,41 @@
  * OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-use crate::config::AppConfig;
-use crate::tool::tools::Tool;
 
-pub fn tool() -> Tool {
-    Tool::new(
-        "pwd",
-        "Show current working directory",
-        serde_json::json!({
-            "type": "object",
-            "properties": {},
-            "required": []
-        }),
-        pwd_impl,
-    )
+use std::fs;
+use std::path::PathBuf;
+
+use crate::traits::estimate_context_size::ContextEstimation;
+
+pub(crate) struct ContextFile {
+    pub(crate) content: Option<String>,
 }
 
-fn pwd_impl(_args: serde_json::Value, _: Option<AppConfig>) -> String {
-    match std::process::Command::new("pwd").output() {
-        Ok(output) => String::from_utf8_lossy(&output.stdout).to_string(),
-        Err(e) => format!("Failed to execute pwd command: {e}"),
+impl ContextFile {
+    pub(crate) fn new(context_file_path: &Option<PathBuf>) -> Self {
+        // Read the context file if provided
+        let content = if let Some(file_path) = &context_file_path {
+            match fs::read_to_string(file_path.clone()) {
+                Ok(content) => Some(content),
+                Err(e) => {
+                    eprintln!("Error reading context file: {e}");
+                    None
+                }
+            }
+        } else {
+            None
+        };
+
+        ContextFile { content }
+    }
+}
+
+impl ContextEstimation for ContextFile {
+    fn estimate_context_size(&self) -> usize {
+        let char_count = match &self.content {
+            Some(c) => c.chars().count(),
+            None => 0,
+        };
+        char_count / 4 + 1
     }
 }

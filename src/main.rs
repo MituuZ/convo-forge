@@ -17,21 +17,23 @@
 pub mod api;
 mod command;
 pub mod config;
-mod history_file;
+mod models;
 pub mod tool;
+pub mod traits;
 mod user_input;
 
 #[cfg(test)]
 mod test_support;
 
-use crate::api::{get_chat_client_implementation, ChatClient};
-use crate::command::commands::{create_command_registry, CommandResult};
+use crate::api::{ChatClient, get_chat_client_implementation};
+use crate::command::commands::{CommandResult, create_command_registry};
 use crate::config::AppConfig;
-use crate::history_file::HistoryFile;
+use crate::models::context_file::ContextFile;
+use crate::models::history_file::HistoryFile;
+use crate::traits::estimate_context_size::ContextEstimation;
 use clap::Parser;
 use colored::Colorize;
 use command::processor::CommandProcessor;
-use std::fs::{self};
 use std::io::{self};
 use std::path::PathBuf;
 
@@ -104,25 +106,13 @@ fn main() -> io::Result<()> {
             println!("Model supports tools");
         }
 
-        // Read the context file if provided
-        let context_file_content = if let Some(file_path) = &context_file_path {
-            match fs::read_to_string(file_path.clone()) {
-                Ok(content) => Some(content),
-                Err(e) => {
-                    eprintln!("Error reading context file: {e}");
-                    None
-                }
-            }
-        } else {
-            None
-        };
+        let context_file = ContextFile::new(&context_file_path);
 
         if let Some(model_context_size) = chat_client.model_context_size()
             && app_config.user_config.token_estimation
         {
             print_token_usage(
-                estimate_token_count(history.get_content())
-                    + estimate_token_count(context_file_content.as_deref().unwrap_or("")),
+                history.estimate_context_size() + context_file.estimate_context_size(),
                 model_context_size,
             );
         }
@@ -154,7 +144,7 @@ fn main() -> io::Result<()> {
             &command_registry,
             &mut context_file_path,
             &mut rebuild_chat_client,
-            context_file_content.clone(),
+            context_file.content.clone(),
         );
 
         match processor.process(&user_prompt) {
@@ -196,9 +186,4 @@ fn print_token_usage(estimated_tokens: usize, context_size: usize) {
     );
 
     println!("\n\nEstimated token usage (1 token ≈ 4 characters): {bar}");
-}
-
-fn estimate_token_count(prompt: &str) -> usize {
-    let char_count = prompt.chars().count();
-    char_count / 4 + 1 // Add 1 to avoid returning 0 for very short content
 }

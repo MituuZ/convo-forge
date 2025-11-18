@@ -17,7 +17,7 @@
 use crate::api::ChatClient;
 use crate::command::commands_impl;
 use crate::config::profiles_config::ModelType;
-use crate::history_file::HistoryFile;
+use crate::models::history_file::HistoryFile;
 use colored::Colorize;
 use std::collections::HashMap;
 use std::io;
@@ -103,7 +103,9 @@ impl<'a> CommandStruct<'a> {
         match self.command_example {
             Some(example) => format!(
                 "{:<12} - {}\n            {}",
-                self.command_string.cyan(), self.description, example
+                self.command_string.cyan(),
+                self.description,
+                example
             ),
             None => format!("{:<12} - {}", self.command_string.cyan(), self.description),
         }
