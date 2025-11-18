@@ -21,10 +21,10 @@ use std::path::PathBuf;
 #[command(author, version, about, long_about = None)]
 pub(crate) struct Args {
     /// Path to file containing chat history. Can be either relative (to `cforge_dir`) or absolute.
-    /// If not provided, the last history file will be used, which is saved in `~/.cforge.toml`.
+    /// If not provided, the last history file will be used, which is saved in the XDG cache file.
     pub(crate) history_file: Option<String>,
 
-    /// Optional file with content to be used as input for each chat message
+    /// Optional file path, which's content is used as additional input for each chat message.
     #[arg(short = 'f', long = "file")]
     pub(crate) context_file: Option<PathBuf>,
 }
