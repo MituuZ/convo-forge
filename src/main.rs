@@ -27,7 +27,7 @@ mod test_support;
 
 use crate::api::{ChatClient, get_chat_client_implementation};
 use crate::command::commands::{CommandResult, create_command_registry};
-use crate::config::AppConfig;
+use crate::config::{AppConfig, args::Args};
 use crate::models::context_file::ContextFile;
 use crate::models::history_file::HistoryFile;
 use crate::traits::estimate_context_size::ContextEstimation;
@@ -35,52 +35,19 @@ use clap::Parser;
 use colored::Colorize;
 use command::processor::CommandProcessor;
 use std::io::{self};
-use std::path::PathBuf;
-
-#[derive(Parser)]
-#[command(author, version, about, long_about = None)]
-struct Args {
-    /// Path to file containing chat history. Can be either relative (to `cforge_dir`) or absolute.
-    /// If not provided, the last history file will be used, which is saved in `~/.cforge.toml`.
-    history_file: Option<String>,
-
-    /// Optional file with content to be used as input for each chat message
-    #[arg(short = 'f', long = "file")]
-    context_file: Option<PathBuf>,
-}
 
 fn main() -> io::Result<()> {
-    let mut app_config = AppConfig::load_config();
     let args = Args::parse();
+    let mut app_config = AppConfig::load_config(&args.history_file);
     let command_registry = create_command_registry(app_config.user_config.command_prefixes.clone());
     let mut context_file_path = args.context_file.clone();
-
-    let history_path = args.history_file.unwrap_or_else(|| {
-        match app_config.cache_config.last_history_file.clone() {
-            Some(path) => path,
-            None => {
-                println!(
-                    "You must specify a history file `cforge <history_file>` for the first time."
-                );
-                println!("See `cforge --help` for more information.");
-                panic!("No history file specified and no previous history file found.");
-            }
-        }
-    });
-
-    app_config.update_last_history_file(history_path.clone());
-
     let mut history = HistoryFile::new(
-        history_path.clone(),
+        app_config.cache_config.get_history_file_path(),
         app_config.data_dir.display().to_string(),
     )?;
-    println!("{}", history.get_content());
-    println!(
-        "\n\nYou're conversing with model '{}' ({}) from profile '{}'",
-        &app_config.current_model,
-        &app_config.current_model.model_type,
-        &app_config.current_profile.name
-    );
+
+    history.print_content();
+    app_config.print_model_info();
 
     let mut chat_client: Box<dyn ChatClient> = get_chat_client_implementation(
         &app_config.current_profile.provider,
@@ -108,12 +75,10 @@ fn main() -> io::Result<()> {
 
         let context_file = ContextFile::new(&context_file_path);
 
-        if let Some(model_context_size) = chat_client.model_context_size()
-            && app_config.user_config.token_estimation
-        {
+        if app_config.user_config.token_estimation {
             print_token_usage(
                 history.estimate_context_size() + context_file.estimate_context_size(),
-                model_context_size,
+                &chat_client.model_context_size(),
             );
         }
 
@@ -161,7 +126,14 @@ fn main() -> io::Result<()> {
 }
 
 /// Calculate and visualize token usage compared to model context size
-fn print_token_usage(estimated_tokens: usize, context_size: usize) {
+fn print_token_usage(estimated_tokens: usize, maybe_context_size: &Option<usize>) {
+    let context_size = match maybe_context_size {
+        Some(c) => *c,
+        None => {
+            return;
+        }
+    };
+
     let percentage = (estimated_tokens as f64 / context_size as f64 * 100.0).min(100.0);
 
     let bar_width = 50;

@@ -15,13 +15,16 @@
  */
 use std::{collections::HashMap, fs::create_dir_all, path::PathBuf};
 
-use rustyline::{history::DefaultHistory, Cmd, Config, Editor, EventHandler, KeyEvent, Modifiers};
+use rustyline::{Cmd, Config, Editor, EventHandler, KeyEvent, Modifiers, history::DefaultHistory};
 
 use crate::command::command_complete::CommandHelper;
 use crate::command::commands::{CommandStruct, FileCommandDirectory};
 use crate::config::profiles_config::{Model, ModelType, Profile};
-pub(crate) use crate::config::{cache_config::CacheConfig, rustyline_config::build, user_config::UserConfig};
+pub(crate) use crate::config::{
+    cache_config::CacheConfig, rustyline_config::build, user_config::UserConfig,
+};
 
+pub mod args;
 pub mod cache_config;
 pub mod profiles_config;
 pub mod rustyline_config;
@@ -39,8 +42,8 @@ pub struct AppConfig {
 }
 
 impl AppConfig {
-    pub fn load_config() -> AppConfig {
-        let mut cache_config: CacheConfig = CacheConfig::load(get_cache_path());
+    pub fn load_config(arg_history_file: &Option<String>) -> AppConfig {
+        let mut cache_config: CacheConfig = CacheConfig::load(get_cache_path(), &arg_history_file);
         let user_config: UserConfig = UserConfig::load(get_config_path());
         let rustyline_config = build(&user_config);
 
@@ -176,6 +179,13 @@ impl AppConfig {
 
         println!("Switched to model: {}", model.model);
     }
+
+    pub(crate) fn print_model_info(&self) {
+        println!(
+            "\n\nYou're conversing with model '{}' ({}) from profile '{}'",
+            &self.current_model, &self.current_model.model_type, &self.current_profile.name
+        );
+    }
 }
 
 impl Default for AppConfig {
@@ -219,7 +229,10 @@ fn get_commands(command_registry: &HashMap<String, CommandStruct>) -> CommandVec
         }
     }
 
-    CommandVecs { all_commands, file_commands }
+    CommandVecs {
+        all_commands,
+        file_commands,
+    }
 }
 
 /// Return XDG compliant config path
