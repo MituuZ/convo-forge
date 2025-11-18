@@ -14,6 +14,7 @@
 - [x] Add support for knowledge directory
 - [x] The model might not realize that it has the context file available
 - [ ] Support streaming with an interrupt thread
+- [ ] Add an option to hide thinking
 - [ ] Custom completions for `model` and `profile` commands
 - [ ] Keybinds for commands?
 - [ ] Support memories, which are included in the prompt by default (session/global) (could be implemented as a tool)
