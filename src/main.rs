@@ -21,15 +21,15 @@ mod models;
 pub mod tool;
 pub mod traits;
 mod user_input;
+mod session;
 
 #[cfg(test)]
 mod test_support;
 
-use crate::api::{ChatClient, get_chat_client_implementation};
-use crate::command::commands::{CommandResult, create_command_registry};
-use crate::config::{AppConfig, args::Args};
+use crate::command::commands::{create_command_registry, CommandResult};
+use crate::config::{args::Args, AppConfig};
 use crate::models::context_file::ContextFile;
-use crate::models::history_file::HistoryFile;
+use crate::session::Session;
 use crate::traits::estimate_context_size::ContextEstimation;
 use clap::Parser;
 use colored::Colorize;
@@ -38,47 +38,33 @@ use std::io::{self};
 
 fn main() -> io::Result<()> {
     let args = Args::parse();
-    let mut app_config = AppConfig::load_config(&args.history_file);
+    let app_config = AppConfig::load_config(&args.history_file);
     let command_registry = create_command_registry(app_config.user_config.command_prefixes.clone());
     let mut context_file_path = args.context_file.clone();
-    let mut history = HistoryFile::new(
-        app_config.cache_config.get_history_file_path(),
-        app_config.data_dir.display().to_string(),
-    )?;
+    let mut session = Session::new(app_config);
 
-    history.print_content();
-    app_config.print_model_info();
+    session.history_file.print_content();
+    session.config.print_model_info();
 
-    let mut chat_client: Box<dyn ChatClient> = get_chat_client_implementation(
-        &app_config.current_profile.provider,
-        &app_config.current_model.model,
-        app_config.user_config.system_prompt.clone(),
-        app_config.user_config.max_tokens,
-    );
     let mut rebuild_chat_client = false;
 
     loop {
         if rebuild_chat_client {
-            chat_client = get_chat_client_implementation(
-                &app_config.current_profile.provider,
-                &app_config.current_model.model,
-                app_config.user_config.system_prompt.clone(),
-                app_config.user_config.max_tokens,
-            );
+            session.rebuild_client();
             rebuild_chat_client = false;
         }
 
         // TODO: This shouldn't be printed on every iteration and model information should be fetched once
-        if &app_config.current_profile.provider == "ollama" && chat_client.model_supports_tools() {
+        if session.config.current_profile.provider == "ollama" && session.client.model_supports_tools() {
             println!("Model supports tools");
         }
 
         let context_file = ContextFile::new(&context_file_path);
 
-        if app_config.user_config.token_estimation {
+        if session.config.user_config.token_estimation {
             print_token_usage(
-                history.estimate_context_size() + context_file.estimate_context_size(),
-                &chat_client.model_context_size(),
+                session.history_file.estimate_context_size() + context_file.estimate_context_size(),
+                &session.client.model_context_size(),
             );
         }
 
@@ -86,7 +72,7 @@ fn main() -> io::Result<()> {
             "\nEnter your prompt or a command (type ':q' to end or ':help' for other command)"
         );
 
-        let mut rl = match app_config.create_rustyline_editor(&command_registry) {
+        let mut rl = match session.config.create_rustyline_editor(&command_registry) {
             Ok(r) => r,
             Err(e) => {
                 eprintln!("Error initializing rustyline: {e}");
@@ -103,9 +89,9 @@ fn main() -> io::Result<()> {
         };
 
         let mut processor = CommandProcessor::new(
-            &mut chat_client,
-            &mut history,
-            &mut app_config,
+            &mut session.client,
+            &mut session.history_file,
+            &mut session.config,
             &command_registry,
             &mut context_file_path,
             &mut rebuild_chat_client,

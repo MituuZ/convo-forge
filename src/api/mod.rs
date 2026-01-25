@@ -78,6 +78,13 @@ pub fn get_chat_client_implementation(
     system_prompt: String,
     max_tokens: usize,
 ) -> Box<dyn ChatClient> {
+    // Test-only provider that returns a lightweight stub client without external dependencies
+    #[cfg(test)]
+    {
+        if provider.eq_ignore_ascii_case("test") {
+            return Box::new(TestChatClient::new(system_prompt, max_tokens));
+        }
+    }
     match provider.to_lowercase().as_str() {
         "anthropic" => Box::new(AnthropicClient::new(
             model.to_string(),
@@ -90,5 +97,59 @@ pub fn get_chat_client_implementation(
             Box::new(client)
         }
         _ => panic!("Unsupported provider"),
+    }
+}
+
+#[cfg(test)]
+struct TestChatClient {
+    system_prompt: String,
+    max_tokens: usize,
+}
+
+#[cfg(test)]
+impl TestChatClient {
+    fn new(system_prompt: String, max_tokens: usize) -> Self {
+        Self {
+            system_prompt,
+            max_tokens,
+        }
+    }
+}
+
+#[cfg(test)]
+impl ChatClient for TestChatClient {
+    fn generate_response(
+        &self,
+        _history_messages_json: Value,
+        _user_prompt: &str,
+        _context_content: Option<&str>,
+    ) -> io::Result<ChatResponse> {
+        Ok(ChatResponse {
+            content: String::from("test-response"),
+            tool_calls: None,
+        })
+    }
+
+    fn generate_tool_response(&self, _tool_prompt: Value) -> io::Result<ChatResponse> {
+        Ok(ChatResponse {
+            content: String::from("test-tool-response"),
+            tool_calls: None,
+        })
+    }
+
+    fn model_context_size(&self) -> Option<usize> {
+        Some(self.max_tokens)
+    }
+
+    fn model_supports_tools(&self) -> bool {
+        false
+    }
+
+    fn update_system_prompt(&mut self, system_prompt: String) {
+        self.system_prompt = system_prompt;
+    }
+
+    fn system_prompt(&self) -> String {
+        self.system_prompt.clone()
     }
 }
